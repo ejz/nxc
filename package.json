@@ -3,6 +3,9 @@
     "version": "1.0.0",
     "description": "",
     "type": "module",
+    "bin": {
+        "nxc": "nxc.js"
+    },
     "scripts": {
         "build": "webpack"
     },
