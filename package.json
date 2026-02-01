@@ -7,7 +7,10 @@
         "nxc": "nxc.js"
     },
     "scripts": {
-        "build": "webpack"
+        "clean": "rm -rf dist",
+        "prebuild": "npm run clean",
+        "build": "webpack",
+        "postbuild": "node copyFiles"
     },
     "devDependencies": {
         "webpack": "5.94.0",
