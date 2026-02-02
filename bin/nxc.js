@@ -1,17 +1,22 @@
 import os from 'node:os';
 import path from 'node:path';
 
-import nxcRunner from '../src/nxcRunner.js';
+import runner from '../src/runner.js';
 
-const FatalExitCode = 1;
+export const ExitCode = {
+    Success: 0,
+    Fatal: 1,
+};
 
 bootstrap();
 
 function bootstrap({
-    fatalExitCode = FatalExitCode,
+    fatalExitCode = ExitCode.Fatal,
+    successExitCode = ExitCode.Success,
     thisFile = __filename,
     thisDirectory = __dirname,
     thisName = path.basename(thisFile, '.js'),
+    packageJson = path.join(thisDirectory, 'package.json'),
     thisProcess = process,
     processPid = thisProcess.pid,
     consoleLog = console.log,
@@ -29,7 +34,7 @@ function bootstrap({
     isStdoutStreamTerminal = stdoutStream.isTTY,
     isStderrStreamTerminal = stderrStream.isTTY,
     startedAt = +new Date,
-    runner = nxcRunner,
+    runner: _runner = runner,
 } = {}) {
     return new Promise((resolve) => {
         let onException = (error) => {
@@ -43,6 +48,7 @@ function bootstrap({
             thisFile,
             thisDirectory,
             thisName,
+            packageJson,
             processPid,
             consoleLog,
             consoleError,
@@ -59,7 +65,7 @@ function bootstrap({
             startedAt,
         };
         opts.self = opts;
-        runner(opts).catch(onFatalError).then((exitCode) => {
+        runner(opts).catch(onFatalError).then((exitCode = successExitCode) => {
             doProcessExit(exitCode);
             resolve(exitCode);
         });
@@ -74,8 +80,7 @@ function doProcessExitGetter(proc) {
 
 function onFatalErrorGetter(consoleError, exitCode) {
     return (error) => {
-        let message = [error.constructor.name, error.message].filter(Boolean).join(': ');
-        consoleError('%s', message);
+        consoleError('(fatal) %s', error.message);
         return exitCode;
     };
 }
