@@ -10,11 +10,13 @@
         "clean": "rm -rf dist",
         "prebuild": "npm run clean",
         "build": "webpack",
-        "postbuild": "node copyFiles"
+        "postbuild": "node copyFiles",
+        "test": "tape 'tests/**/*.js'"
     },
     "devDependencies": {
         "webpack": "5.94.0",
-        "webpack-cli": "5.1.4"
+        "webpack-cli": "5.1.4",
+        "tape": "5.9.0"
     },
     "keywords": [],
     "author": "",
