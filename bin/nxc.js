@@ -31,39 +31,39 @@ function bootstrap({
     startedAt = +new Date,
     runner = nxcRunner,
 } = {}) {
-    let resolve, defer = new Promise((res) => resolve = res);
-    let onException = (error) => {
-        let exitCode = onFatalError(error);
-        doProcessExit(exitCode);
-        resolve(exitCode);
-    }, onRejection = onException;
-    thisProcess.on('uncaughtException', onException);
-    thisProcess.on('unhandledRejection', onRejection);
-    let opts = {
-        thisFile,
-        thisDirectory,
-        thisName,
-        processPid,
-        consoleLog,
-        consoleError,
-        currentDirectory,
-        argv,
-        env,
-        homeDirectory,
-        stdinStream,
-        stdoutStream,
-        stderrStream,
-        isStdinStreamTerminal,
-        isStdoutStreamTerminal,
-        isStderrStreamTerminal,
-        startedAt,
-    };
-    opts.self = opts;
-    runner(opts).catch(onFatalError).then((exitCode) => {
-        doProcessExit(exitCode);
-        resolve(exitCode);
+    return new Promise((resolve) => {
+        let onException = (error) => {
+            let exitCode = onFatalError(error);
+            doProcessExit(exitCode);
+            resolve(exitCode);
+        }, onRejection = onException;
+        thisProcess.on('uncaughtException', onException);
+        thisProcess.on('unhandledRejection', onRejection);
+        let opts = {
+            thisFile,
+            thisDirectory,
+            thisName,
+            processPid,
+            consoleLog,
+            consoleError,
+            currentDirectory,
+            argv,
+            env,
+            homeDirectory,
+            stdinStream,
+            stdoutStream,
+            stderrStream,
+            isStdinStreamTerminal,
+            isStdoutStreamTerminal,
+            isStderrStreamTerminal,
+            startedAt,
+        };
+        opts.self = opts;
+        runner(opts).catch(onFatalError).then((exitCode) => {
+            doProcessExit(exitCode);
+            resolve(exitCode);
+        });
     });
-    return defer;
 }
 
 function doProcessExitGetter(proc) {
