@@ -99,3 +99,34 @@ test('Logger / 4', (t) => {
     t.equal(col.shift(), '4');
     t.end();
 });
+
+test('Logger / 5', (t) => {
+    let col = [];
+    let logger = new Logger((msg) => col.push(msg));
+    logger.log('a%_r', ['%i', 1]);
+    t.equal(col.shift(), 'a 1');
+    logger.log('%color', ['red', 'foo']);
+    t.equal(col.shift(), 'foo');
+    logger.log('%red', 'bar');
+    t.equal(col.shift(), 'bar');
+    t.end();
+});
+
+test('Logger / 6', (t) => {
+    let col = [];
+    let logger = new Logger((msg) => col.push(msg));
+    let prefix = logger.prefix('%s', 'p');
+    logger.log('1');
+    t.equal(col.shift(), '1');
+    prefix.log('2');
+    t.equal(col.shift(), 'p 2');
+    prefix.log('3');
+    t.equal(col.shift(), 'p 3');
+    let original = prefix.formatter.prefix;
+    prefix.formatter.prefix = (...args) => {
+        return '/' + original(...args) + '/';
+    };
+    prefix.log('3');
+    t.equal(col.shift(), '/p/ 3');
+    t.end();
+});

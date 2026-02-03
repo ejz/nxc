@@ -80,7 +80,9 @@ function doProcessExitGetter(proc) {
 
 function onFatalErrorGetter(consoleError, exitCode) {
     return (error) => {
-        consoleError('(fatal) %s', error.message);
+        if (error.message !== '') {
+            consoleError('%s', error.message);
+        }
         return exitCode;
     };
 }
