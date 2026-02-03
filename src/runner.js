@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 
 import Logger, {LogLevel} from './Logger.js';
+import Compiler from './Compiler.js';
 
-export default async function nxcRunner({
+export default async function runner({
     argv,
     consoleError,
     self,
@@ -84,6 +85,10 @@ const commands = {
         fn: helpCommand,
         positionals: [0, 0],
     },
+    compile: {
+        fn: compileCommand,
+        positionals: [1, 3],
+    },
 };
 
 function versionCommand({thisName, packageJson, consoleLog}) {
@@ -95,11 +100,67 @@ function versionCommand({thisName, packageJson, consoleLog}) {
 
 function helpCommand({thisName, consoleLog}) {
     let start = 'usage: ' + thisName + ' ';
+    let pad = ' '.repeat(start.length);
+    let tab = ' '.repeat(4);
     let message = [
         start + '[-d|-debug]',
-        ' '.repeat(start.length) + '[-q|-quiet]',
-        ' '.repeat(start.length) + '[-enable-color] [-disable-color]',
-        ' '.repeat(start.length) + '<command> [<args>]',
+        pad + '[-q|-quiet]',
+        pad + '[-enable-color] [-disable-color]',
+        pad + '<command> [<args>]',
+        'available commands:',
+        tab + 'version',
+        tab + 'help',
+        tab + 'compile [-o|-output <output>] <input>',
     ].join('\n');
     consoleLog('%s', message);
+}
+
+function compileCommand({positionals, currentDirectory, logger}) {
+    let outputFile = 'a.out';
+    let i = 0, marker = false;
+    for (; i < positionals.length; i++) {
+        let pos = positionals[i];
+        let next = positionals[i + 1];
+        if (['-o', '-output'].includes(arg)) {
+            if (next === undefined) {
+                logger.error('no argument value for `%s`', arg);
+                throw new Error;
+            }
+            outputFile = next;
+            continue;
+        }
+        if (arg === '--') {
+            marker = true;
+            i++;
+        }
+        break;
+    }
+    positionals = positionals.slice(i);
+    if (positionals.length === 0) {
+        logger.error('no input file provided');
+        throw new Error;
+    }
+    let inputFile = positionals.shift();
+    if (inputFile.startsWith('-') && !marker) {
+        logger.error('invalid argument `%s`', inputFile);
+        throw new Error;
+    }
+    let buffer;
+    try {
+        buffer = fs.readFileSync(inputFile);
+    } catch {
+        logger.error('could not read `%s`', inputFile);
+        throw new Error;
+    }
+    let compiler = new Compiler({
+        logger: logger.prefix('%bold', 'Compiler:'),
+    });
+    buffer = compiler.compile(buffer);
+    try {
+        fs.writeFileSync(outputFile, buffer);
+    } catch {
+        logger.error('could not write to `%s`', outputFile);
+        throw new Error;
+    }
+    logger.log('done successfully');
 }

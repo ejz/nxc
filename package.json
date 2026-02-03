@@ -14,9 +14,10 @@
         "test": "tape 'tests/**/*.js'"
     },
     "devDependencies": {
+        "tape": "5.9.0",
+        "tape-promise": "4.0.0",
         "webpack": "5.94.0",
-        "webpack-cli": "5.1.4",
-        "tape": "5.9.0"
+        "webpack-cli": "5.1.4"
     },
     "keywords": [],
     "author": "",
