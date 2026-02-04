@@ -128,13 +128,18 @@ export default class Logger {
     }
 }
 
-
-
 export const formatter = {
     /* string */
     s(args, ptr) {
         let arg = args[ptr];
         return arg.toString();
+    },
+    /* quote string */
+    q(args, ptr) {
+        let arg = args[ptr];
+        arg = arg.toString();
+        arg = arg.replace(/`/g, '\\`');
+        return '`' + arg + '`';
     },
     /* integer */
     i(args, ptr) {
@@ -171,6 +176,7 @@ export const formatter = {
     llt(args, ptr, logLevel) {
         return logLevelText[logLevel];
     },
+    /* custom color */
     color(args, ptr, logLevel, logger) {
         let arg = args[ptr];
         let [color] = arg;
@@ -180,6 +186,7 @@ export const formatter = {
         }
         return toColorWrapper(color)(arg);
     },
+    /* certain color */
     ...newObj(colorList, (k) => {
         let colorWrapper = toColorWrapper(k);
         return (args, ptr, logLevel, logger) => {
