@@ -44,6 +44,7 @@ function bootstrap({
         }, onRejection = onException;
         thisProcess.on('uncaughtException', onException);
         thisProcess.on('unhandledRejection', onRejection);
+        let onErrorHandlers = [];
         let opts = {
             thisFile,
             thisDirectory,
@@ -65,7 +66,12 @@ function bootstrap({
             startedAt,
         };
         opts.self = opts;
-        runner(opts).catch(onFatalError).then((exitCode = successExitCode) => {
+        opts.onError = (oeh) => onErrorHandlers.push(oeh);
+        let onError = (e) => {
+            e = onErrorHandlers.reduce((e, oeh) => oeh(e), e);
+            return onFatalError(e);
+        };
+        runner(opts).catch(onError).then((exitCode = successExitCode) => {
             doProcessExit(exitCode);
             resolve(exitCode);
         });
@@ -81,7 +87,7 @@ function doProcessExitGetter(proc) {
 function onFatalErrorGetter(consoleError, exitCode) {
     return (error) => {
         if (error.message !== '') {
-            consoleError('%s', error.message);
+            consoleError('(fatal) %s', error.message);
         }
         return exitCode;
     };
