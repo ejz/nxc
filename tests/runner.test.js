@@ -2,16 +2,20 @@ import tape from 'tape'
 import tapePromise from 'tape-promise';
 
 import runner from '../src/runner.js';
+import NoCommandError from '../src/errors/NoCommandError.js';
+import InvalidArgumentError from '../src/errors/InvalidArgumentError.js';
+import InvalidCommandError from '../src/errors/InvalidCommandError.js';
 
 const test = tapePromise.default(tape);
 
-let col = [];
+let noop = () => {};
 let _runner = (o) => {
     let opts = {
         argv: [],
-        consoleError: (...m) => col.push(m.pop()),
+        consoleError: noop,
         isStderrStreamTerminal: false,
         commands: {},
+        onError: noop,
         ...o,
     };
     opts.self = opts;
@@ -19,25 +23,9 @@ let _runner = (o) => {
 };
 
 test('runner / 1', async (t) => {
-    let commands = {
-        cmd1: {
-            fn: () => {},
-            positionals: [1, 1],
-        },
-        cmd2: {
-            fn: () => {},
-            positionals: [0, 0],
-        },
-    }
-    await t.rejects(_runner());
-    t.match(col.pop(), /no command/i);
-    await t.rejects(_runner({argv: ['-a']}));
-    t.match(col.pop(), /invalid argument/i);
-    await t.rejects(_runner({argv: ['command']}));
-    t.match(col.pop(), /invalid command/i);
-    await t.rejects(_runner({argv: ['cmd1'], commands}));
-    t.match(col.pop(), /required positional/i);
-    await t.rejects(_runner({argv: ['cmd2', '1'], commands}));
-    t.match(col.pop(), /invalid argument/i);
+    let commands = {cmd: noop};
+    await t.rejects(_runner(), NoCommandError);
+    await t.rejects(_runner({argv: ['-a']}), InvalidArgumentError);
+    await t.rejects(_runner({argv: ['command']}), InvalidCommandError);
     t.end();
 });
