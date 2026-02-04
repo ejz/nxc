@@ -118,4 +118,8 @@ export default class Lexer {
         }
         return whitespaceCommentCollection;
     }
+
+    static indent(lines, c = 1, tab = ' '.repeat(4)) {
+        return lines.map((line) => tab.repeat(c) + line);
+    }
 }

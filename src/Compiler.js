@@ -1,4 +1,5 @@
 import Lexer from './Lexer.js';
+import Program from './tokens/Program.js';
 
 export default class Compiler {
     constructor({logger}) {
@@ -7,6 +8,7 @@ export default class Compiler {
 
     compile(buffer) {
         let lexer = new Lexer(buffer);
-        return Buffer.from(lexer.content);
+        let program = new Program(lexer).tokenize();
+        return Buffer.from('');
     }
 }
