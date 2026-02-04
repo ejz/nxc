@@ -4,6 +4,7 @@ export default class Compiler {
     }
 
     compile(buffer) {
+        this.logger.debug('start ..');
         return buffer;
     }
 }
