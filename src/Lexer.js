@@ -1,4 +1,7 @@
 import LexerValidationError from './errors/LexerValidationError.js';
+import WhitespaceCommentCollection from './WhitespaceCommentCollection.js';
+import Comment from './tokens/Comment.js';
+import Whitespace from './tokens/Whitespace.js';
 
 export default class Lexer {
     constructor(buffer) {
@@ -26,7 +29,7 @@ export default class Lexer {
         return this.content.length === 0;
     }
 
-    move() {
+    move(n) {
         this.content = this.content.slice(n);
         this.position += n;
     }
@@ -64,5 +67,55 @@ export default class Lexer {
             }
             return tail;
         }).join('');
+    }
+
+    eatRegex(regex) {
+        let match = this.content.match(regex);
+        if (match === null) {
+            return null;
+        }
+        let [m] = match;
+        this.move(m.length);
+        return m;
+    }
+
+    eat(smth) {
+        if (!this.content.startsWith(smth)) {
+            return false;
+        }
+        this.move(smth.length);
+        return true;
+    }
+
+    eatTill(sub) {
+        let content = this.content;
+        let pos = content.indexOf(sub);
+        if (pos === -1) {
+            return null;
+        }
+        let body = content.slice(0, pos);
+        this.move(pos);
+        return body;
+    }
+
+    eatAll() {
+        let content = this.content;
+        this.move(content.length);
+        return content;
+    }
+
+    whitespaceCommentCollection() {
+        let whitespaceCommentCollection = new WhitespaceCommentCollection();
+        while (true) {
+            let token = (
+                new Comment(this).tokenize()
+                ?? new Whitespace(this).tokenize()
+            );
+            if (token === null) {
+                break;
+            }
+            whitespaceCommentCollection.push(token);
+        }
+        return whitespaceCommentCollection;
     }
 }
