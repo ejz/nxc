@@ -1,6 +1,7 @@
 import Lexer from '../Lexer.js';
 import Token from './Token.js';
 import EmptyStatement from './EmptyStatement.js';
+import InvalidTokenError from '../errors/InvalidTokenError.js';
 
 export default class RegularBlock extends Token {
     tokenize() {
@@ -18,7 +19,7 @@ export default class RegularBlock extends Token {
             this.lexer.whitespaceCommentCollection();
         }
         if (!this.lexer.eat('}')) {
-            throw new Error;
+            throw new InvalidTokenError(this.lexer);
         }
         return this.finalize();
     }
