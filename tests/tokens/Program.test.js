@@ -18,7 +18,7 @@ test('Program / 1', (t) => {
             /* */
         }
     `;
-    let lexer = new Lexer(Buffer.from(input));
+    let lexer = new Lexer(input);
     let program = new Program(lexer).tokenize();
     t.equals(program.stringify(), ';\n;\n{\n    ;\n}\n{\n    ;\n}\n');
     t.end();

@@ -5,6 +5,9 @@ import Whitespace from './tokens/Whitespace.js';
 
 export default class Lexer {
     constructor(buffer) {
+        if (typeof buffer === 'string') {
+            buffer = Buffer.from(buffer);
+        }
         this.validate(buffer);
         let content = buffer.toString();
         this.content = content;
@@ -117,6 +120,31 @@ export default class Lexer {
             whitespaceCommentCollection.push(token);
         }
         return whitespaceCommentCollection;
+    }
+
+    eatSpecial(special, whitespaceCommentCollectionAfter = true) {
+        return this.try(() => {
+            this.whitespaceCommentCollection();
+            if (!this.eat(special)) {
+                return false;
+            }
+            if (whitespaceCommentCollectionAfter) {
+                this.whitespaceCommentCollection();
+            }
+            return true;
+        });
+    }
+
+    eatEnd() {
+        return this.try(() => {
+            let wcc = this.whitespaceCommentCollection();
+            return (
+                this.isEndOfFile()
+                || this.eat(';')
+                || wcc.gotNewline()
+                || this.look(() => this.eat('}'))
+            );
+        });
     }
 
     static indent(lines, c = 1, tab = ' '.repeat(4)) {
