@@ -4,6 +4,9 @@ import InvalidTokenError from '../errors/InvalidTokenError.js';
 export default class AssemblerStatement extends Token {
     tokenize() {
         this.mnemo = this.eatMnemo();
+        if (this.mnemo === null) {
+            return null;
+        }
         this.arguments = [];
         while (!this.lexer.eatEnd()) {
             if (this.arguments.length === 0) {
@@ -32,9 +35,9 @@ export default class AssemblerStatement extends Token {
         if (integer !== null) {
             return {type: 'integer', integer};
         }
-        let effective = this.eatEffective();
-        if (effective !== null) {
-            return {type: 'effective', effective};
+        let sib = this.eatSib();
+        if (sib !== null) {
+            return {type: 'sib', sib};
         }
         let register = this.eatRegister();
         if (register !== null) {
@@ -44,14 +47,14 @@ export default class AssemblerStatement extends Token {
     }
 
     eatMnemo() {
-        return this.lexer.eatRegex(/^[a-zA-Z][a-zA-Z0-9]*/);
+        return this.lexer.eatRegex(/^[a-zA-Z][a-zA-Z0-9]*(\.(8|16|32))?/);
     }
 
     eatRegister() {
         return this.lexer.eatRegex(/^[a-z][a-z0-9]*/);
     }
 
-    eatInteger(allowMinus = true) {
+    eatInteger() {
         let integer = this.lexer.eatRegex(/^[+-]?\s*(0x[0-9a-fA-F]+|0|[1-9][0-9]*)/);
         if (integer === null) {
             return null;
@@ -66,7 +69,6 @@ export default class AssemblerStatement extends Token {
     eatAddress() {
         let address = null;
         this.lexer.try(() => {
-            let ptr = this.eatPtr();
             let seg = this.eatInteger();
             if (seg === null) {
                 return false;
@@ -78,36 +80,10 @@ export default class AssemblerStatement extends Token {
             if (adr === null) {
                 return false;
             }
-            address = {
-                ptr,
-                segment: seg,
-                address: adr,
-            };
+            address = [seg, adr];
             return true;
         });
         return address;
-    }
-
-    eatEffective() {
-        let effective = null;
-        this.lexer.try(() => {
-            let ptr = this.eatPtr();
-            let sib = this.eatSib();
-            if (sib === null) {
-                return false;
-            }
-            effective = {ptr, ...sib};
-            return true;
-        });
-        return effective;
-    }
-
-    eatPtr() {
-        let ptr = this.lexer.eatRegex(/^[a-zA-Z][a-zA-Z0-9]*[ \t]+[pP][tT][rR][ \t]+/);
-        if (ptr === null) {
-            return null;
-        }
-        return ptr.split(/\s+/).shift().toLowerCase();
     }
 
     eatSib() {
@@ -202,15 +178,13 @@ export default class AssemblerStatement extends Token {
                 return argument.integer.toLowerCase();
             }
             if (argument.type === 'address') {
-                let {ptr, segment, address} = argument.address;
-                ptr = ptr === null ? '' : ptr.toLowerCase() + ' ptr ';
-                return ptr + [segment.toLowerCase(), address.toLowerCase()].join(':');
+                let [segment, address] = argument.address;
+                return [segment.toLowerCase(), address.toLowerCase()].join(':');
             }
-            if (argument.type === 'effective') {
-                let {ptr, scale, index, base, displacement} = argument.effective;
-                ptr = ptr === null ? '' : ptr.toLowerCase() + ' ptr ';
+            if (argument.type === 'sib') {
+                let {scale, index, base, displacement} = argument.sib;
                 let disp = parseInt(displacement);
-                return ptr + '[' + [
+                return '[' + [
                     base === null ? null : base,
                     index === null ? null : (index + ' * ' + scale),
                     disp !== 0 ? displacement.toLowerCase() : null,
@@ -219,5 +193,22 @@ export default class AssemblerStatement extends Token {
             throw new Error('unknown case');
         }).join(', ');
         return [line];
+    }
+
+    toBuffer(arch) {
+        let schemes = arch.cpu[this.mnemo];
+        [schemes = []] = [schemes];
+        if (schemes.length === 0) {
+            throw new Error;
+        }
+        let scheme = schemes.find((scheme) => {
+            return scheme.args.every((schemeArg, i) => {
+                return arch.resolve(schemeArg, this.arguments[i]);
+            });
+        });
+        if (scheme === undefined) {
+            throw new Error;
+        }
+        return arch.toBuffer(scheme, this.arguments);
     }
 }

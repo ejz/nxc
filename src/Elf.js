@@ -3,7 +3,8 @@ import u16b from './utils/u16b.js';
 import u32b from './utils/u32b.js';
 
 export default class Elf {
-    constructor() {
+    constructor(arch) {
+        this.arch = arch;
         this.buffers = [];
     }
 
