@@ -3,9 +3,11 @@ import Program from './tokens/Program.js';
 import AssemblerBlock from './tokens/AssemblerBlock.js';
 import RegularBlock from './tokens/RegularBlock.js';
 import EmptyStatement from './tokens/EmptyStatement.js';
+import x86 from './arch/x86.js';
+import Elf from './Elf.js';
 
 export default class Compiler {
-    constructor({logger}) {
+    constructor({logger = null} = {}) {
         this.logger = logger;
     }
 
@@ -13,7 +15,20 @@ export default class Compiler {
         let lexer = new Lexer(buffer);
         let program = new Program(lexer).tokenize();
         this.normalize(program);
-        return Buffer.from('');
+        let elf = new Elf(x86);
+        let filter = (token, parent) => {
+            if (parent !== program) {
+                throw new Error;
+            }
+            return true;
+        };
+        let assemblerBlocks = Lexer.find(program, filter, AssemblerBlock);
+        for (let [assemblerBlock] of assemblerBlocks) {
+            assemblerBlock.statements.forEach((assemblerStatement) => {
+                elf.push(assemblerStatement.toBuffer(x86));
+            });
+        }
+        return elf.toBuffer();
     }
 
     normalize(program) {

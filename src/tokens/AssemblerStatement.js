@@ -47,7 +47,7 @@ export default class AssemblerStatement extends Token {
     }
 
     eatMnemo() {
-        return this.lexer.eatRegex(/^[a-zA-Z][a-zA-Z0-9]*(\.(8|16|32))?/);
+        return this.lexer.eatRegex(/^[a-zA-Z][a-zA-Z0-9]*(\.\d+)?/);
     }
 
     eatRegister() {
@@ -55,11 +55,10 @@ export default class AssemblerStatement extends Token {
     }
 
     eatInteger() {
-        let integer = this.lexer.eatRegex(/^[+-]?\s*(0x[0-9a-fA-F]+|0|[1-9][0-9]*)/);
+        let integer = this.lexer.eatRegex(/^[+-]?(0x[0-9a-fA-F]+|0|[1-9][0-9]*)/);
         if (integer === null) {
             return null;
         }
-        integer = integer.replace(/\s+/g, '');
         if (integer.startsWith('+')) {
             integer = integer.slice(1);
         }
@@ -140,7 +139,7 @@ export default class AssemblerStatement extends Token {
         if (register === null) {
             return null;
         }
-        let scale = this.lexer.eatRegex(/^[ \t]*\*[ \t]*(1|2|4|8)[ \t]*/);
+        let scale = this.lexer.eatRegex(/^[ \t]*\*[ \t]*\d+[ \t]*/);
         if (scale !== null) {
             scale = +scale.match(/\d+/).shift();
         }
@@ -148,14 +147,19 @@ export default class AssemblerStatement extends Token {
     }
 
     compileSib(parts) {
-        let sib = {scale: 1, base: null, index: null, displacement: '0'};
+        let sib = {
+            scale: null,
+            base: null,
+            index: null,
+            displacement: null,
+        };
         for (let part of parts) {
             if (part.type === 'integer') {
                 sib.displacement = part.integer;
                 continue;
             }
             if (part.type !== 'register') {
-                throw new Error('unknown case');
+                throw new Error;
             }
             if (part.scale !== null) {
                 sib.scale = part.scale;
@@ -183,27 +187,35 @@ export default class AssemblerStatement extends Token {
             }
             if (argument.type === 'sib') {
                 let {scale, index, base, displacement} = argument.sib;
-                let disp = parseInt(displacement);
+                let disp = parseInt(displacement ?? 0);
                 return '[' + [
                     base === null ? null : base,
-                    index === null ? null : (index + ' * ' + scale),
+                    index === null ? null : (index + (scale !== null ? ' * ' + scale : '')),
                     disp !== 0 ? displacement.toLowerCase() : null,
                 ].filter((p) => p !== null).join(' + ').replace(' + -', ' - ') + ']';
             }
-            throw new Error('unknown case');
+            throw new Error;
         }).join(', ');
         return [line];
     }
 
     toBuffer(arch) {
-        let schemes = arch.cpu[this.mnemo];
+        let schemes = arch.mnemo[this.mnemo];
         [schemes = []] = [schemes];
         if (schemes.length === 0) {
             throw new Error;
         }
         let scheme = schemes.find((scheme) => {
+            if (scheme.args.length !== this.arguments.length) {
+                return false;
+            }
             return scheme.args.every((schemeArg, i) => {
-                return arch.resolve(schemeArg, this.arguments[i]);
+                let resolver = arch.resolver[schemeArg];
+                if (resolver === undefined) {
+                    return false;
+                }
+                [resolver] = resolver;
+                return resolver(this.arguments[i]);
             });
         });
         if (scheme === undefined) {

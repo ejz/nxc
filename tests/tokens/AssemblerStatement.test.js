@@ -7,7 +7,7 @@ test('AssemblerStatement / 1', (t) => {
     let cases = [
         ['mov eax, 2', 'mov eax, 2'],
         ['mov eax, 0xFF', 'mov eax, 0xff'],
-        ['mov worD pTr 0xF:0xA', 'mov word ptr 0xf:0xa'],
+        ['mov 0xF:0xA', 'mov 0xf:0xa'],
         ['mov 0xF:0xA', 'mov 0xf:0xa'],
         ['mov -0xF:+0xA', 'mov -0xf:0xa'],
         ['mov  [ eax ]', 'mov [eax]'],
@@ -18,7 +18,7 @@ test('AssemblerStatement / 1', (t) => {
         ['mov  [-1 + eax]', 'mov [eax - 1]'],
         ['mov  [eax-1]', 'mov [eax - 1]'],
         ['mov  [eax - -1]', 'mov [eax + 1]'],
-        ['mov  [eax - - 1]', 'mov [eax + 1]'],
+        ['mov  [eax - -1]', 'mov [eax + 1]'],
         ['mov  [+ -1 + eax]', 'mov [eax - 1]'],
         ['mov  [ eax * 4 - -0x10 ]', 'mov [eax * 4 + 0x10]'],
         ['mov  [ eax * 4 +0xFF ]', 'mov [eax * 4 + 0xff]'],

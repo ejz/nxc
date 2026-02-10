@@ -8,65 +8,67 @@ export const register = {
 export const details = {
     name: 'x86',
     bits: 32,
+    scales: ['1', '2', '4', '8'],
+    prefixes: ['8', '16', '32'],
 };
 
-export default {
+export const mnemo = {
     'add.8': [
-        {opcode: '00', args: ['r/m8', 'r8']},
-        {opcode: '02', args: ['r8', 'r/m8']},
+        {opcode: '00 /r', args: ['r/m8', 'r8']},
+        {opcode: '02 /r', args: ['r8', 'r/m8']},
         {opcode: '04', args: ['al', 'imm8']},
         {opcode: '80 /0', args: ['r/m8', 'imm8']},
     ],
     'add.16': [
-        {opcode: '66 01', args: ['r/m16', 'r16']},
-        {opcode: '66 03', args: ['r16', 'r/m16']},
+        {opcode: '66 01 /r', args: ['r/m16', 'r16']},
+        {opcode: '66 03 /r', args: ['r16', 'r/m16']},
         {opcode: '66 05', args: ['ax', 'imm16']},
         {opcode: '66 81 /0', args: ['r/m16', 'imm16']},
         {opcode: '66 83 /0', args: ['r/m16', 'imm8']},
     ],
     'add.32': [
-        {opcode: '01', args: ['r/m32', 'r32']},
-        {opcode: '03', args: ['r32', 'r/m32']},
+        {opcode: '01 /r', args: ['r/m32', 'r32']},
+        {opcode: '03 /r', args: ['r32', 'r/m32']},
         {opcode: '05', args: ['eax', 'imm32']},
         {opcode: '81 /0', args: ['r/m32', 'imm32']},
         {opcode: '83 /0', args: ['r/m32', 'imm8']},
     ],
     'and.8': [
-        {opcode: '20', args: ['r/m8', 'r8']},
-        {opcode: '22', args: ['r8', 'r/m8']},
+        {opcode: '20 /r', args: ['r/m8', 'r8']},
+        {opcode: '22 /r', args: ['r8', 'r/m8']},
         {opcode: '24', args: ['al', 'imm8']},
         {opcode: '80 /4', args: ['r/m8', 'imm8']},
     ],
     'and.16': [
-        {opcode: '66 21', args: ['r/m16', 'r16']},
-        {opcode: '66 23', args: ['r16', 'r/m16']},
+        {opcode: '66 21 /r', args: ['r/m16', 'r16']},
+        {opcode: '66 23 /r', args: ['r16', 'r/m16']},
         {opcode: '66 25', args: ['ax', 'imm16']},
         {opcode: '66 81 /4', args: ['r/m16', 'imm16']},
         {opcode: '66 83 /4', args: ['r/m16', 'imm8']},
     ],
     'and.32': [
-        {opcode: '21', args: ['r/m32', 'r32']},
-        {opcode: '23', args: ['r32', 'r/m32']},
+        {opcode: '21 /r', args: ['r/m32', 'r32']},
+        {opcode: '23 /r', args: ['r32', 'r/m32']},
         {opcode: '25', args: ['eax', 'imm32']},
         {opcode: '81 /4', args: ['r/m32', 'imm32']},
         {opcode: '83 /4', args: ['r/m32', 'imm8']},
     ],
     'cmp.8': [
-        {opcode: '38', args: ['r/m8', 'r8']},
-        {opcode: '3a', args: ['r8', 'r/m8']},
+        {opcode: '38 /r', args: ['r/m8', 'r8']},
+        {opcode: '3a /r', args: ['r8', 'r/m8']},
         {opcode: '3c', args: ['al', 'imm8']},
         {opcode: '80 /7', args: ['r/m8', 'imm8']},
     ],
     'cmp.16': [
-        {opcode: '66 39', args: ['r/m16', 'r16']},
-        {opcode: '66 3b', args: ['r16', 'r/m16']},
+        {opcode: '66 39 /r', args: ['r/m16', 'r16']},
+        {opcode: '66 3b /r', args: ['r16', 'r/m16']},
         {opcode: '66 3d', args: ['ax', 'imm16']},
         {opcode: '66 81 /7', args: ['r/m16', 'imm16']},
         {opcode: '66 83 /7', args: ['r/m16', 'imm8']},
     ],
     'cmp.32': [
-        {opcode: '39', args: ['r/m32', 'r32']},
-        {opcode: '3b', args: ['r32', 'r/m32']},
+        {opcode: '39 /r', args: ['r/m32', 'r32']},
+        {opcode: '3b /r', args: ['r32', 'r/m32']},
         {opcode: '3d', args: ['eax', 'imm32']},
         {opcode: '81 /7', args: ['r/m32', 'imm32']},
         {opcode: '83 /7', args: ['r/m32', 'imm8']},
@@ -90,21 +92,21 @@ export default {
         {opcode: 'f7 /2', args: ['r/m32']},
     ],
     'or.8': [
-        {opcode: '08', args: ['r/m8', 'r8']},
-        {opcode: '0a', args: ['r8', 'r/m8']},
+        {opcode: '08 /r', args: ['r/m8', 'r8']},
+        {opcode: '0a /r', args: ['r8', 'r/m8']},
         {opcode: '0c', args: ['al', 'imm8']},
         {opcode: '80 /1', args: ['r/m8', 'imm8']},
     ],
     'or.16': [
-        {opcode: '66 09', args: ['r/m16', 'r16']},
-        {opcode: '66 0b', args: ['r16', 'r/m16']},
+        {opcode: '66 09 /r', args: ['r/m16', 'r16']},
+        {opcode: '66 0b /r', args: ['r16', 'r/m16']},
         {opcode: '66 0d', args: ['ax', 'imm16']},
         {opcode: '66 81 /1', args: ['r/m16', 'imm16']},
         {opcode: '66 83 /1', args: ['r/m16', 'imm8']},
     ],
     'or.32': [
-        {opcode: '09', args: ['r/m32', 'r32']},
-        {opcode: '0b', args: ['r32', 'r/m32']},
+        {opcode: '09 /r', args: ['r/m32', 'r32']},
+        {opcode: '0b /r', args: ['r32', 'r/m32']},
         {opcode: '0d', args: ['eax', 'imm32']},
         {opcode: '81 /1', args: ['r/m32', 'imm32']},
         {opcode: '83 /1', args: ['r/m32', 'imm8']},
@@ -117,41 +119,41 @@ export default {
         {opcode: 'cf', args: []},
     ],
     'sub.8': [
-        {opcode: '28', args: ['r/m8', 'r8']},
-        {opcode: '2a', args: ['r8', 'r/m8']},
+        {opcode: '28 /r', args: ['r/m8', 'r8']},
+        {opcode: '2a /r', args: ['r8', 'r/m8']},
         {opcode: '2c', args: ['al', 'imm8']},
         {opcode: '80 /5', args: ['r/m8', 'imm8']},
     ],
     'sub.16': [
-        {opcode: '66 29', args: ['r/m16', 'r16']},
-        {opcode: '66 2b', args: ['r16', 'r/m16']},
+        {opcode: '66 29 /r', args: ['r/m16', 'r16']},
+        {opcode: '66 2b /r', args: ['r16', 'r/m16']},
         {opcode: '66 2d', args: ['ax', 'imm16']},
         {opcode: '66 81 /5', args: ['r/m16', 'imm16']},
         {opcode: '66 83 /5', args: ['r/m16', 'imm8']},
     ],
     'sub.32': [
-        {opcode: '29', args: ['r/m32', 'r32']},
-        {opcode: '2b', args: ['r32', 'r/m32']},
+        {opcode: '29 /r', args: ['r/m32', 'r32']},
+        {opcode: '2b /r', args: ['r32', 'r/m32']},
         {opcode: '2d', args: ['eax', 'imm32']},
         {opcode: '81 /5', args: ['r/m32', 'imm32']},
         {opcode: '83 /5', args: ['r/m32', 'imm8']},
     ],
     'xor.8': [
-        {opcode: '30', args: ['r/m8', 'r8']},
-        {opcode: '32', args: ['r8', 'r/m8']},
+        {opcode: '30 /r', args: ['r/m8', 'r8']},
+        {opcode: '32 /r', args: ['r8', 'r/m8']},
         {opcode: '34', args: ['al', 'imm8']},
         {opcode: '80 /6', args: ['r/m8', 'imm8']},
     ],
     'xor.16': [
-        {opcode: '66 31', args: ['r/m16', 'r16']},
-        {opcode: '66 33', args: ['r16', 'r/m16']},
+        {opcode: '66 31 /r', args: ['r/m16', 'r16']},
+        {opcode: '66 33 /r', args: ['r16', 'r/m16']},
         {opcode: '66 35', args: ['ax', 'imm16']},
         {opcode: '66 81 /6', args: ['r/m16', 'imm16']},
         {opcode: '66 83 /6', args: ['r/m16', 'imm8']},
     ],
     'xor.32': [
-        {opcode: '31', args: ['r/m32', 'r32']},
-        {opcode: '33', args: ['r32', 'r/m32']},
+        {opcode: '31 /r', args: ['r/m32', 'r32']},
+        {opcode: '33 /r', args: ['r32', 'r/m32']},
         {opcode: '35', args: ['eax', 'imm32']},
         {opcode: '81 /6', args: ['r/m32', 'imm32']},
         {opcode: '83 /6', args: ['r/m32', 'imm8']},
@@ -265,8 +267,8 @@ export default {
         {opcode: '8f /0', args: ['r/m32']},
     ],
     'mov.8': [
-        {opcode: '88', args: ['r/m8', 'r8']},
-        {opcode: '8a', args: ['r8', 'r/m8']},
+        {opcode: '88 /r', args: ['r/m8', 'r8']},
+        {opcode: '8a /r', args: ['r8', 'r/m8']},
         {opcode: 'b0', args: ['al', 'imm8']},
         {opcode: 'b1', args: ['cl', 'imm8']},
         {opcode: 'b2', args: ['dl', 'imm8']},
@@ -278,8 +280,8 @@ export default {
         {opcode: 'c6 /0', args: ['r/m8', 'imm8']},
     ],
     'mov.16': [
-        {opcode: '66 89', args: ['r/m16', 'r16']},
-        {opcode: '66 8b', args: ['r16', 'r/m16']},
+        {opcode: '66 89 /r', args: ['r/m16', 'r16']},
+        {opcode: '66 8b /r', args: ['r16', 'r/m16']},
         {opcode: '66 b8', args: ['ax', 'imm16']},
         {opcode: '66 b9', args: ['cx', 'imm16']},
         {opcode: '66 ba', args: ['dx', 'imm16']},
@@ -291,8 +293,8 @@ export default {
         {opcode: '66 c7 /0', args: ['r/m16', 'imm16']},
     ],
     'mov.32': [
-        {opcode: '89', args: ['r/m32', 'r32']},
-        {opcode: '8b', args: ['r32', 'r/m32']},
+        {opcode: '89 /r', args: ['r/m32', 'r32']},
+        {opcode: '8b /r', args: ['r32', 'r/m32']},
         {opcode: 'b8', args: ['eax', 'imm32']},
         {opcode: 'b9', args: ['ecx', 'imm32']},
         {opcode: 'ba', args: ['edx', 'imm32']},
@@ -354,3 +356,190 @@ export default {
         {opcode: 'ff /1', args: ['r/m32']},
     ],
 };
+
+export const resolver = {
+    '0': rawClosure(0),
+    '1': rawClosure(1),
+    '2': rawClosure(2),
+    '3': rawClosure(3),
+    'imm8': immClosure(
+        -0x7f,
+        0xff,
+        1,
+        'writeUInt8',
+    ),
+    'imm16': immClosure(
+        -0x7fff,
+        0xffff,
+        2,
+        'writeUInt16LE',
+    ),
+    'imm32': immClosure(
+        -0x7fffffff,
+        0xffffffff,
+        4,
+        'writeUInt32LE',
+    ),
+    ...Object.fromEntries(register.sreg.map(regClosure)),
+    ...Object.fromEntries(register.r8.map(regClosure)),
+    ...Object.fromEntries(register.r16.map(regClosure)),
+    ...Object.fromEntries(register.r32.map(regClosure)),
+    'r8': rmClosure(register.r8, false),
+    'r16': rmClosure(register.r16, false),
+    'r32': rmClosure(register.r32, false),
+    'r/m8': rmClosure(register.r8, true),
+    'r/m16': rmClosure(register.r16, true),
+    'r/m32': rmClosure(register.r32, true),
+};
+
+export function toBuffer({opcode, args}, asmArgs) {
+    let collect = [];
+    opcode.split(' ').forEach((op) => {
+        let [o, t] = op;
+        if (o === '/') {
+            t = t === 'r' ? 0 : parseInt(t);
+            // Reg
+            collect.push(t << 3);
+            return;
+        }
+        collect.push(parseInt(op, 16));
+    });
+    args.forEach((arg, i) => {
+        let [, getter = null] = resolver[arg];
+        if (getter === null) {
+            return;
+        }
+        collect.push(...getter(asmArgs[i], collect));
+    });
+    return Buffer.from(collect);
+}
+
+export default {
+    mnemo,
+    resolver,
+    toBuffer,
+};
+
+export function immClosure(min, max, bytes, bufMethod) {
+    let resolver = ({type: t, integer: i}) => {
+        if (t !== 'integer') {
+            return false;
+        }
+        let v = parseInt(i);
+        return min <= v && v <= max;
+    };
+    let composer = ({integer: i}) => {
+        let v = parseInt(i);
+        v += v < 0 ? max + 1 : 0;
+        let buf = Buffer.alloc(bytes);
+        buf[bufMethod](v);
+        return [...buf];
+    };
+    return [resolver, composer];
+}
+
+export function rawClosure(int) {
+    let resolver = ({type: t, integer: i}) => {
+        if (t !== 'integer') {
+            return false;
+        }
+        let v = parseInt(i);
+        return v === int;
+    };
+    return [resolver];
+}
+
+export function regClosure(reg) {
+    let resolver = ({type: t, register: r}) => {
+        if (t !== 'register') {
+            return false;
+        }
+        return r === reg;
+    };
+    return [reg, [resolver]];
+}
+
+export function rmClosure(reg, mode) {
+    let resolver = ({type: t, register: r, sib: s}) => {
+        if (t === 'register' && reg.includes(r)) {
+            return true;
+        }
+        if (mode && t === 'sib' && isSibOkay(s)) {
+            return true;
+        }
+        return false;
+    };
+    let composer = ({type: t, register: r, sib: s}, buf) => {
+        console.log({type: t});
+        if (t === 'register') {
+            let byte, idx = reg.indexOf(r);
+            if (mode) {
+                // Mod (3)
+                byte = 3 << 6;
+                // R/M
+                byte += idx;
+            } else {
+                // Reg
+                byte = idx << 3;
+            }
+            buf[buf.length - 1] += byte;
+            return [];
+        }
+        let byte;
+        let {scale, base, index, displacement} = s;
+        let gotBase = base !== null;
+        let noDispacement = parseInt(displacement ?? 0) === 0;
+        let noScaledIndex = index === null;
+        if (gotBase && noDispacement && noScaledIndex) {
+            let idx = register.r32.indexOf(base);
+            // Mod (0)
+            byte = 0 << 6;
+            // R/M
+            byte += idx;
+            buf[buf.length - 1] += byte;
+            return [];
+        }
+        throw new Error; // todo
+        // if ()
+        // if (index !== null) {
+        //     scale ??= '1';
+        // }
+        // if (scale === null && index === null && displacement === null && base !== null) {
+
+        // }
+        // if (index !== null) {
+        //     scale ??= '1';
+        // }
+        // if (displacement === null) {
+
+        // }
+        // scale ??= 1;
+        // scale 
+        //     sib.scale = 1;
+        // if (sib.scale === null && sib.index !== null) {
+        // }
+    };
+    return [resolver, composer];
+}
+
+export function isSibOkay(sib) {
+    let {scale, base, index, displacement} = sib;
+    if (scale !== null && details.scales.includes(scale)) {
+        return false;
+    }
+    if (base !== null && !register.r32.includes(base)) {
+        return false;
+    }
+    if (index !== null && !register.r32.includes(index)) {
+        return false;
+    }
+    if (displacement !== null) {
+        let v = parseInt(displacement);
+        let [min, max] = [-0x7fffffff, 0xffffffff];
+        let valid = min <= v && v <= max;
+        if (!valid) {
+            return false;
+        }
+    }
+    return true;
+}
