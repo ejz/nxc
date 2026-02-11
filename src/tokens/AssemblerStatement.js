@@ -93,9 +93,12 @@ export default class AssemblerStatement extends Token {
             }
             let parts = [];
             while (parts.length === 0 || !this.eatSibEnd()) {
-                let plusMinus = this.lexer.eatRegex(/^[ \t]*[+-][ \t]*/);
-                if (parts.length !== 0 && plusMinus === null) {
-                    throw new InvalidTokenError(this.lexer);
+                let plusMinus = null;
+                if (parts.length !== 0) {
+                    plusMinus = this.lexer.eatRegex(/^[ \t]*[+-][ \t]*/);
+                    if (plusMinus === null) {
+                        throw new InvalidTokenError(this.lexer);
+                    }
                 }
                 let part = this.eatSibPart();
                 if (part === null) {
@@ -139,9 +142,9 @@ export default class AssemblerStatement extends Token {
         if (register === null) {
             return null;
         }
-        let scale = this.lexer.eatRegex(/^[ \t]*\*[ \t]*\d+[ \t]*/);
+        let scale = this.lexer.eatRegex(/^[ \t]*\*[ \t]*\d+/);
         if (scale !== null) {
-            scale = +scale.match(/\d+/).shift();
+            scale = scale.match(/\d+/).shift();
         }
         return {type: 'register', register, scale};
     }
@@ -151,11 +154,11 @@ export default class AssemblerStatement extends Token {
             scale: null,
             base: null,
             index: null,
-            displacement: null,
+            disp: null,
         };
         for (let part of parts) {
             if (part.type === 'integer') {
-                sib.displacement = part.integer;
+                sib.disp = part.integer;
                 continue;
             }
             if (part.type !== 'register') {
@@ -186,12 +189,11 @@ export default class AssemblerStatement extends Token {
                 return [segment.toLowerCase(), address.toLowerCase()].join(':');
             }
             if (argument.type === 'sib') {
-                let {scale, index, base, displacement} = argument.sib;
-                let disp = parseInt(displacement ?? 0);
+                let {scale, index, base, disp} = argument.sib;
                 return '[' + [
                     base === null ? null : base,
                     index === null ? null : (index + (scale !== null ? ' * ' + scale : '')),
-                    disp !== 0 ? displacement.toLowerCase() : null,
+                    disp !== null ? disp.toLowerCase() : null,
                 ].filter((p) => p !== null).join(' + ').replace(' + -', ' - ') + ']';
             }
             throw new Error;

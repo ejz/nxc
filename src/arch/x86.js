@@ -12,6 +12,40 @@ export const details = {
     prefixes: ['8', '16', '32'],
 };
 
+export function uNis(v) {
+    return this.min <= v && v <= this.max;
+};
+
+export function uNnormalize(v) {
+    v += v < 0 ? this.max + 1 : 0;
+    return v;
+}
+
+export const u8 = {
+    min: -0x7f,
+    max: 0xff,
+    size: 1,
+    method: 'writeUInt8',
+    is: uNis,
+    normalize: uNnormalize,
+};
+
+export const u16 = {
+    min: -0x7fff,
+    max: 0xffff,
+    size: 2,
+    method: 'writeUInt16LE',
+    is: uNis,
+};
+
+export const u32 = {
+    min: -0x7fffffff,
+    max: 0xffffffff,
+    size: 4,
+    method: 'writeUInt32LE',
+    is: uNis,
+};
+
 export const mnemo = {
     'add.8': [
         {opcode: '00 /r', args: ['r/m8', 'r8']},
@@ -362,24 +396,9 @@ export const resolver = {
     '1': rawClosure(1),
     '2': rawClosure(2),
     '3': rawClosure(3),
-    'imm8': immClosure(
-        -0x7f,
-        0xff,
-        1,
-        'writeUInt8',
-    ),
-    'imm16': immClosure(
-        -0x7fff,
-        0xffff,
-        2,
-        'writeUInt16LE',
-    ),
-    'imm32': immClosure(
-        -0x7fffffff,
-        0xffffffff,
-        4,
-        'writeUInt32LE',
-    ),
+    'imm8': immClosure(u8.min, u8.max, u8.size, u8.method),
+    'imm16': immClosure(u16.min, u16.max, u16.size, u16.method),
+    'imm32': immClosure(u32.min, u32.max, u32.size, u32.method),
     ...Object.fromEntries(register.sreg.map(regClosure)),
     ...Object.fromEntries(register.r8.map(regClosure)),
     ...Object.fromEntries(register.r16.map(regClosure)),
@@ -393,25 +412,36 @@ export const resolver = {
 };
 
 export function toBuffer({opcode, args}, asmArgs) {
-    let collect = [];
+    let buf = [];
     opcode.split(' ').forEach((op) => {
         let [o, t] = op;
         if (o === '/') {
-            t = t === 'r' ? 0 : parseInt(t);
-            // Reg
-            collect.push(t << 3);
+            buf.modRmIdx = buf.length;
+            buf.push(0);
+            buf.sibIdx = buf.length;
+            Object.assign(buf, {
+                setRm,
+                setReg,
+                setMod,
+                setScale,
+                setIndex,
+                setBase,
+            });
+            if (t !== 'r') {
+                buf.setReg(parseInt(t));
+            }
             return;
         }
-        collect.push(parseInt(op, 16));
+        buf.push(parseInt(op, 16));
     });
     args.forEach((arg, i) => {
         let [, getter = null] = resolver[arg];
         if (getter === null) {
             return;
         }
-        collect.push(...getter(asmArgs[i], collect));
+        buf.push(...getter(asmArgs[i], buf));
     });
-    return Buffer.from(collect);
+    return Buffer.from(buf);
 }
 
 export default {
@@ -470,61 +500,49 @@ export function rmClosure(reg, mode) {
         return false;
     };
     let composer = ({type: t, register: r, sib: s}, buf) => {
-        console.log({type: t});
         if (t === 'register') {
-            let byte, idx = reg.indexOf(r);
             if (mode) {
-                // Mod (3)
-                byte = 3 << 6;
-                // R/M
-                byte += idx;
+                buf.setMod('reg');
+                buf.setRm(r);
             } else {
-                // Reg
-                byte = idx << 3;
+                buf.setReg(r);
             }
-            buf[buf.length - 1] += byte;
             return [];
         }
-        let byte;
-        let {scale, base, index, displacement} = s;
-        let gotBase = base !== null;
-        let noDispacement = parseInt(displacement ?? 0) === 0;
-        let noScaledIndex = index === null;
-        if (gotBase && noDispacement && noScaledIndex) {
-            let idx = register.r32.indexOf(base);
-            // Mod (0)
-            byte = 0 << 6;
-            // R/M
-            byte += idx;
-            buf[buf.length - 1] += byte;
-            return [];
+        let {scale, base, index, disp} = s;
+        disp = parseInt(disp ?? 0);
+        scale ??= details.scales.at();
+        let dispMode = disp === 0 ? 'disp0' : u8.is(disp) ? 'disp8' : 'disp32';
+        if (index === null) {
+            // special cases:
+            //   1) disp32 = ebp + disp0
+            //   2) ebp + disp0 = ebp + disp8
+            if (base === null) {
+                buf.setMod('disp0');
+                buf.setRm('ebp');
+                return disp2buffer(disp, 'disp32');
+            }
+            if (base === 'ebp' && dispMode === 'disp0') {
+                dispMode = 'disp8';
+            }
+            buf.setMod(dispMode);
+            buf.setRm(base);
+            return disp2buffer(disp, dispMode);
         }
-        throw new Error; // todo
-        // if ()
-        // if (index !== null) {
-        //     scale ??= '1';
-        // }
-        // if (scale === null && index === null && displacement === null && base !== null) {
-
-        // }
-        // if (index !== null) {
-        //     scale ??= '1';
-        // }
-        // if (displacement === null) {
-
-        // }
-        // scale ??= 1;
-        // scale 
-        //     sib.scale = 1;
-        // if (sib.scale === null && sib.index !== null) {
-        // }
+        buf.setMod(dispMode);
+        buf.setRm('esp');
+        buf.push(0); // sib
+        buf.setScale(scale);
+        buf.setIndex(index);
+        buf.setBase(base);
+        return disp2buffer(disp, dispMode);
     };
     return [resolver, composer];
 }
 
 export function isSibOkay(sib) {
-    let {scale, base, index, displacement} = sib;
-    if (scale !== null && details.scales.includes(scale)) {
+    let {scale, base, index, disp} = sib;
+    if (scale !== null && !details.scales.includes(scale)) {
         return false;
     }
     if (base !== null && !register.r32.includes(base)) {
@@ -533,13 +551,70 @@ export function isSibOkay(sib) {
     if (index !== null && !register.r32.includes(index)) {
         return false;
     }
-    if (displacement !== null) {
-        let v = parseInt(displacement);
-        let [min, max] = [-0x7fffffff, 0xffffffff];
-        let valid = min <= v && v <= max;
-        if (!valid) {
-            return false;
+    if (disp !== null && !u32.is(parseInt(disp))) {
+        return false;
+    }
+    return [base, index, disp].some((i) => i !== null);
+}
+
+const reverseKeyValue = ([key, value]) => [value, key];
+
+export const rmRegDict = {
+    ...Object.fromEntries([...register.r32.entries()].map(reverseKeyValue)),
+    ...Object.fromEntries([...register.r16.entries()].map(reverseKeyValue)),
+    ...Object.fromEntries([...register.r8.entries()].map(reverseKeyValue)),
+};
+
+export function setRm(val) {
+    val = rmRegDict[val];
+    this[this.modRmIdx] += val << 0;
+}
+
+export function setReg(val) {
+    val = typeof val === 'string' ? rmRegDict[val] : val;
+    this[this.modRmIdx] += val << 3;
+}
+
+export const modDict = {
+    'disp0':  0b00,
+    'disp8':  0b01,
+    'disp32': 0b10,
+    'reg':    0b11,
+};
+
+export function setMod(val) {
+    this[this.modRmIdx] += modDict[val] << 6;
+}
+
+export function setBase(val) {
+    val = rmRegDict[val];
+    this[this.sibIdx] += val << 0;
+}
+
+export function setIndex(val) {
+    val = rmRegDict[val];
+    this[this.sibIdx] += val << 3;
+}
+
+export function setScale(val) {
+    val = details.scales.indexOf(val);
+    this[this.sibIdx] += val << 6;
+}
+
+export function disp2buffer(disp, mode) {
+    switch (mode) {
+        case 'disp0':
+            return [];
+        case 'disp8': {
+            let buffer = Buffer.alloc(u8.size);
+            buffer[u8.method](u8.normalize(disp));
+            return [...buffer];
+        }
+        case 'disp32': {
+            let buffer = Buffer.alloc(u32.size);
+            buffer[u32.method](u32.normalize(disp));
+            return [...buffer];
         }
     }
-    return true;
+    throw new Error;
 }

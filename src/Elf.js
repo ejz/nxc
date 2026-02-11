@@ -1,6 +1,4 @@
-import u8b from './utils/u8b.js';
-import u16b from './utils/u16b.js';
-import u32b from './utils/u32b.js';
+import bufferCursor from './utils/bufferCursor.js';
 
 export default class Elf {
     constructor(arch) {
@@ -25,43 +23,40 @@ export default class Elf {
         let e_phoff = 0x40;
         let size = e_phoff + e_phnum * e_phentsize;
         let buffer = Buffer.alloc(size, 0);
-        let off = [0];
-        let u8 = u8b(buffer, off);
-        let u16 = u16b(buffer, off);
-        let u32 = u32b(buffer, off);
+        let cursor = bufferCursor(buffer);
         //
-        u8(0x7f);
-        u8('E'.charCodeAt());
-        u8('L'.charCodeAt());
-        u8('F'.charCodeAt());
-        u8(0x1); // 32-bit
-        u8(0x1); // little-endian
-        u8(0x1); // 1 version
+        cursor.u8(0x7f);
+        cursor.u8('E'.charCodeAt());
+        cursor.u8('L'.charCodeAt());
+        cursor.u8('F'.charCodeAt());
+        cursor.u8(0x1); // 32-bit
+        cursor.u8(0x1); // little-endian
+        cursor.u8(0x1); // 1 version
         //
-        off.splice(0, 1, 0x10);
-        u16(0x2); // e_type (ET_EXEC)
-        u16(0x3); // e_machine (x86)
-        u32(1); // e_version
-        u32(entry + size); // e_entry
-        u32(e_phoff); // e_phoff
-        u32(0); // e_shoff
-        u32(0); // e_flags
-        u16(52); // e_ehsize (52 = 32-bit)
-        u16(e_phentsize); // e_phentsize
-        u16(e_phnum); // e_phnum
-        u16(40); // e_shentsize (40 = 32-bit)
-        u16(0); // e_shnum
-        u16(0); // e_shstrndx
+        cursor.move(0x10);
+        cursor.u16(0x2); // e_type (ET_EXEC)
+        cursor.u16(0x3); // e_machine (x86)
+        cursor.u32(1); // e_version
+        cursor.u32(entry + size); // e_entry
+        cursor.u32(e_phoff); // e_phoff
+        cursor.u32(0); // e_shoff
+        cursor.u32(0); // e_flags
+        cursor.u16(52); // e_ehsize (52 = 32-bit)
+        cursor.u16(e_phentsize); // e_phentsize
+        cursor.u16(e_phnum); // e_phnum
+        cursor.u16(40); // e_shentsize (40 = 32-bit)
+        cursor.u16(0); // e_shnum
+        cursor.u16(0); // e_shstrndx
         //
-        off.splice(0, 1, e_phoff);
-        u32(1); // p_type (PT_LOAD)
-        u32(0); // p_offset
-        u32(entry); // p_vaddr
-        u32(entry); // p_paddr
-        u32(size + codeSize); // p_filesz
-        u32(size + codeSize); // p_memsz
-        u32(0x1 + 0x4); // p_flags (x - 1, w - 2, r - 4)
-        u32(0x1000); // p_align
+        cursor.move(e_phoff);
+        cursor.u32(1); // p_type (PT_LOAD)
+        cursor.u32(0); // p_offset
+        cursor.u32(entry); // p_vaddr
+        cursor.u32(entry); // p_paddr
+        cursor.u32(size + codeSize); // p_filesz
+        cursor.u32(size + codeSize); // p_memsz
+        cursor.u32(0x1 + 0x4); // p_flags (x - 1, w - 2, r - 4)
+        cursor.u32(0x1000); // p_align
         //
         return buffer;
     }
