@@ -398,9 +398,9 @@ export const resolver = {
     '1': rawClosure(1),
     '2': rawClosure(2),
     '3': rawClosure(3),
-    'imm8': immClosure(u8.min, u8.max, u8.size, u8.method),
-    'imm16': immClosure(u16.min, u16.max, u16.size, u16.method),
-    'imm32': immClosure(u32.min, u32.max, u32.size, u32.method),
+    'imm8': immClosure(u8),
+    'imm16': immClosure(u16),
+    'imm32': immClosure(u32),
     ...Object.fromEntries(register.sreg.map(regClosure)),
     ...Object.fromEntries(register.r8.map(regClosure)),
     ...Object.fromEntries(register.r16.map(regClosure)),
@@ -417,24 +417,24 @@ export function toBuffer({opcode, args}, asmArgs) {
     let buf = [];
     opcode.split(' ').forEach((op) => {
         let [o, t] = op;
-        if (o === '/') {
-            buf.modRmIdx = buf.length;
-            buf.push(0);
-            buf.sibIdx = buf.length;
-            Object.assign(buf, {
-                setRm,
-                setReg,
-                setMod,
-                setScale,
-                setIndex,
-                setBase,
-            });
-            if (t !== 'r') {
-                buf.setReg(parseInt(t));
-            }
+        if (o !== '/') {
+            buf.push(parseInt(op, 16));
             return;
         }
-        buf.push(parseInt(op, 16));
+        buf.modRmIdx = buf.length;
+        buf.push(0);
+        buf.sibIdx = buf.length;
+        Object.assign(buf, {
+            setRm,
+            setReg,
+            setMod,
+            setScale,
+            setIndex,
+            setBase,
+        });
+        if (t !== 'r') {
+            buf.setReg(parseInt(t));
+        }
     });
     args.forEach((arg, i) => {
         let [, getter = null] = resolver[arg];
@@ -452,19 +452,16 @@ export default {
     toBuffer,
 };
 
-export function immClosure(min, max, bytes, bufMethod) {
+export function immClosure(uN) {
     let resolver = ({type: t, integer: i}) => {
         if (t !== 'integer') {
             return false;
         }
-        let v = parseInt(i);
-        return min <= v && v <= max;
+        return uN.is(parseInt(i));
     };
     let composer = ({integer: i}) => {
-        let v = parseInt(i);
-        v += v < 0 ? max + 1 : 0;
-        let buf = Buffer.alloc(bytes);
-        buf[bufMethod](v);
+        let buf = Buffer.alloc(uN.size);
+        buf[uN.method](uN.normalize(parseInt(i)));
         return [...buf];
     };
     return [resolver, composer];
@@ -516,9 +513,18 @@ export function rmClosure(reg, mode) {
         // 2) ebp + disp0 = ebp + disp8
         // 3) [esp] -> forced sib
         // 4) swap [ebp + esp] -> [esp + ebp]
+        // 5) [eax * 1] -> [eax]
+        let [def] = details.scales;
         let {scale, base, index, disp} = s;
         if (scale === null && index === 'esp' && base !== 'esp') {
             [index, base] = [base, index];
+        }
+        if (index === 'esp') {
+            throw new Error;
+        }
+        if (scale === def && index !== null && base === null) {
+            base = index;
+            [index, scale] = [null, null];
         }
         disp = parseInt(disp ?? 0);
         let dispMode = disp === 0 && base !== 'ebp' ? 'disp0' : u8.is(disp) ? 'disp8' : 'disp32';
@@ -527,8 +533,7 @@ export function rmClosure(reg, mode) {
         } else {
             buf.setRm('esp');
             buf.push(0); // sib
-            scale ??= details.scales.at();
-            buf.setScale(scale);
+            buf.setScale(scale ?? def);
             buf.setIndex(index ?? 'esp');
             buf.setBase(base ?? 'ebp');
         }
