@@ -44,6 +44,12 @@ test('Compiler / 2', (t) => {
         ['mov.16 [eax + 0x20], bx', 'mov word ptr [eax + 0x20], bx'],
         ['mov.16 [eax - 0x20], bx', 'mov word ptr [eax - 0x20], bx'],
         ['mov.16 [eax + -0x20], bx', 'mov word ptr [eax - 0x20], bx'],
+        ['mov.32 [-100 + eax + ecx * 8], ebx', 'mov dword ptr [eax + ecx * 8 - 0x64], ebx'],
+        ['mov.32 [0x100], ebx', 'mov dword ptr ds:0x100, ebx'],
+        ['mov.32 [esp], ebx', 'mov dword ptr [esp], ebx'],
+        ['mov.32 [esp + eax], ebx', 'mov dword ptr [esp + eax * 1], ebx'],
+        ['mov.32 [eax + esp], ebx', 'mov dword ptr [esp + eax * 1], ebx'],
+        ['mov.32 [ebp + ecx * 4], ebx', 'mov dword ptr [ebp + ecx * 4 + 0x0], ebx'],
         // mov.8 [0x0], al
         // disp32 = ebp + disp0
         // ['mov.32 [0x1000], bx', 'mov word ptr [eax-0x20],bx'],
@@ -74,7 +80,7 @@ test('Compiler / 2', (t) => {
             })
             .filter(Boolean)
             .join('; ');
-        t.equal(stdout, out);
+        t.equal(stdout, out, inp);
     }
     t.end();
 });

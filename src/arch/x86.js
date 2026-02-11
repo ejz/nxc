@@ -36,6 +36,7 @@ export const u16 = {
     size: 2,
     method: 'writeUInt16LE',
     is: uNis,
+    normalize: uNnormalize,
 };
 
 export const u32 = {
@@ -44,6 +45,7 @@ export const u32 = {
     size: 4,
     method: 'writeUInt32LE',
     is: uNis,
+    normalize: uNnormalize,
 };
 
 export const mnemo = {
@@ -509,33 +511,29 @@ export function rmClosure(reg, mode) {
             }
             return [];
         }
+        // special cases:
+        // 1) disp32 = ebp + disp0
+        // 2) ebp + disp0 = ebp + disp8
+        // 3) [esp] -> forced sib
+        // 4) swap [ebp + esp] -> [esp + ebp]
         let {scale, base, index, disp} = s;
-        disp = parseInt(disp ?? 0);
-        scale ??= details.scales.at();
-        let dispMode = disp === 0 ? 'disp0' : u8.is(disp) ? 'disp8' : 'disp32';
-        if (index === null) {
-            // special cases:
-            //   1) disp32 = ebp + disp0
-            //   2) ebp + disp0 = ebp + disp8
-            if (base === null) {
-                buf.setMod('disp0');
-                buf.setRm('ebp');
-                return disp2buffer(disp, 'disp32');
-            }
-            if (base === 'ebp' && dispMode === 'disp0') {
-                dispMode = 'disp8';
-            }
-            buf.setMod(dispMode);
-            buf.setRm(base);
-            return disp2buffer(disp, dispMode);
+        if (scale === null && index === 'esp' && base !== 'esp') {
+            [index, base] = [base, index];
         }
-        buf.setMod(dispMode);
-        buf.setRm('esp');
-        buf.push(0); // sib
-        buf.setScale(scale);
-        buf.setIndex(index);
-        buf.setBase(base);
-        return disp2buffer(disp, dispMode);
+        disp = parseInt(disp ?? 0);
+        let dispMode = disp === 0 && base !== 'ebp' ? 'disp0' : u8.is(disp) ? 'disp8' : 'disp32';
+        if (index === null && base !== 'esp') {
+            buf.setRm(base ?? 'ebp');
+        } else {
+            buf.setRm('esp');
+            buf.push(0); // sib
+            scale ??= details.scales.at();
+            buf.setScale(scale);
+            buf.setIndex(index ?? 'esp');
+            buf.setBase(base ?? 'ebp');
+        }
+        buf.setMod(base === null ? 'disp0' : dispMode);
+        return disp2buffer(disp, base === null ? 'disp32' : dispMode);
     };
     return [resolver, composer];
 }

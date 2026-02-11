@@ -156,22 +156,38 @@ export default class AssemblerStatement extends Token {
             index: null,
             disp: null,
         };
+        if (parts.length > 3) {
+            throw new Error;
+        }
         for (let part of parts) {
-            if (part.type === 'integer') {
+            if (
+                part.type === 'integer'
+                && sib.disp === null
+            ) {
                 sib.disp = part.integer;
                 continue;
             }
             if (part.type !== 'register') {
                 throw new Error;
             }
-            if (part.scale !== null) {
+            if (
+                part.scale !== null
+                && sib.scale === null
+                && sib.index === null
+            ) {
                 sib.scale = part.scale;
                 sib.index = part.register;
-            } else if (sib.base === null) {
-                sib.base = part.register;
-            } else {
-                sib.index = part.register;
+                continue;
             }
+            if (sib.base === null) {
+                sib.base = part.register;
+                continue;
+            }
+            if (sib.index === null) {
+                sib.index = part.register;
+                continue;
+            }
+            throw new Error;
         }
         return sib;
     }

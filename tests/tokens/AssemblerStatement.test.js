@@ -15,7 +15,7 @@ test('AssemblerStatement / 1', (t) => {
         ['mov  [ eax ]', 'mov [eax]'],
         ['mov  [ eax*1 ]', 'mov [eax * 1]'],
         ['mov  [ eax*100 ]', 'mov [eax * 100]'],
-        ['mov  [ eax*1 +0+1 ]', 'mov [eax * 1 + 1]'],
+        ['mov  [ eax*1 +1 ]', 'mov [eax * 1 + 1]'],
         ['mov  [ +1 + eax*1 ]', 'mov [eax * 1 + 1]'],
         ['mov  [ -1 + eax*1 ]', 'mov [eax * 1 - 1]'],
         ['mov  [-1 + eax]', 'mov [eax - 1]'],
@@ -28,7 +28,7 @@ test('AssemblerStatement / 1', (t) => {
     for (let [inp, out] of cases) {
         let lexer = new Lexer(inp);
         let statement = new AssemblerStatement(lexer).tokenize();
-        t.equals(statement.stringify().shift(), out);
+        t.equals(statement.stringify().shift(), out, inp);
     }
     t.end();
 });
