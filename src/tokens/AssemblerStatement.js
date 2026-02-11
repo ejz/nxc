@@ -47,7 +47,7 @@ export default class AssemblerStatement extends Token {
     }
 
     eatMnemo() {
-        return this.lexer.eatRegex(/^[a-zA-Z][a-zA-Z0-9]*(\.\d+)?/);
+        return this.lexer.eatRegex(/^([a-zA-Z][a-zA-Z0-9]*)(\.[a-zA-Z][a-zA-Z0-9]*)*(\.\d+)?/);
     }
 
     eatRegister() {
@@ -218,12 +218,25 @@ export default class AssemblerStatement extends Token {
     }
 
     toBuffer(arch) {
-        let schemes = arch.mnemo[this.mnemo];
-        [schemes = []] = [schemes];
-        if (schemes.length === 0) {
+        let possible = [this.mnemo];
+        if (!/\.\d+$/.test(this.mnemo)) {
+            possible = possible.concat(arch.details.opsizes.map((opsize) => {
+                return [this.mnemo, opsize].join('.');
+            }));
+        }
+        let schemes = possible.map((mnemo) => this.getScheme(arch, mnemo));
+        schemes = schemes.filter((scheme) => scheme !== undefined);
+        if (schemes.length !== 1) {
             throw new Error;
         }
-        let scheme = schemes.find((scheme) => {
+        let [scheme] = schemes;
+        return arch.toBuffer(scheme, this.arguments);
+    }
+
+    getScheme(arch, mnemo) {
+        let schemes = arch.mnemo[mnemo];
+        [schemes = []] = [schemes];
+        return schemes.find((scheme) => {
             if (scheme.args.length !== this.arguments.length) {
                 return false;
             }
@@ -236,9 +249,5 @@ export default class AssemblerStatement extends Token {
                 return resolver(this.arguments[i]);
             });
         });
-        if (scheme === undefined) {
-            throw new Error;
-        }
-        return arch.toBuffer(scheme, this.arguments);
     }
 }

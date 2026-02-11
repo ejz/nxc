@@ -9,7 +9,7 @@ export const details = {
     name: 'x86',
     bits: 32,
     scales: ['1', '2', '4', '8'],
-    prefixes: ['8', '16', '32'],
+    opsizes: ['8', '16', '32'],
 };
 
 export function uNis(v) {
@@ -450,6 +450,7 @@ export default {
     mnemo,
     resolver,
     toBuffer,
+    details,
 };
 
 export function immClosure(uN) {
