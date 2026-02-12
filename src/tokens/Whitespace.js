@@ -11,7 +11,7 @@ export default class Whitespace extends WhitespaceComment {
     }
 
     eat() {
-        return this.lexer.eatRegex(/^[ \t\n]+/);
+        return this.lexer.eatWhitespace();
     }
 }
 

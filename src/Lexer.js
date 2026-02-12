@@ -116,6 +116,10 @@ export default class Lexer {
         return content;
     }
 
+    eatWhitespace() {
+        return this.eatRegex(/^[ \t\n]+/);
+    }
+
     whitespaceCommentCollection() {
         let whitespaceCommentCollection = new WhitespaceCommentCollection();
         while (true) {
@@ -131,17 +135,36 @@ export default class Lexer {
         return whitespaceCommentCollection;
     }
 
-    eatSpecial(special, whitespaceCommentCollectionAfter = true) {
+    eatSpecialCharacter(sc) {
+        let before = sc.startsWith(' ');
+        let after = sc.endsWith(' ');
+        sc = before ? sc.slice(1) : sc;
+        sc = after ? sc.slice(0, -1) : sc;
         return this.try(() => {
-            this.whitespaceCommentCollection();
-            if (!this.eat(special)) {
+            if (before) {
+                this.whitespaceCommentCollection();
+            }
+            if (!this.eat(sc)) {
                 return false;
             }
-            if (whitespaceCommentCollectionAfter) {
+            if (after) {
                 this.whitespaceCommentCollection();
             }
             return true;
         });
+    }
+
+    eatHex() {
+        return this.lexer.eatRegex(/^0x[0-9a-fA-F]+/);
+    }
+
+    eatDec() {
+        return this.eatRegex(/^(0|[1-9][0-9]*)/);
+    }
+
+    eatIdentifier(withUpperCase = false) {
+        let regex = withUpperCase ? /^[a-zA-Z][a-zA-Z0-9]*/ : /^[a-z][a-z0-9]*/;
+        return this.lexer.eatRegex(regex);
     }
 
     eatEnd() {
