@@ -1,13 +1,16 @@
 import Token from './Token.js';
 import InvalidTokenError from '../errors/InvalidTokenError.js';
+import Lexer from '../Lexer.js';
 
 const withSelf = (obj) => (obj.self = obj, obj);
+const isArray = Array.isArray;
+const toArray = (a) => isArray(a) ? a : [a];
 
 export default class AssemblerStatement extends Token {
-    tokenize() {
+    tokenize(args) {
         return (
-            this.tokenizeOperation()
-            ?? this.tokenizeInstruction()
+            this.tokenizeOperation(args)
+            ?? this.tokenizeInstruction(args)
         );
     }
 
@@ -15,7 +18,7 @@ export default class AssemblerStatement extends Token {
         return null;
     }
 
-    tokenizeInstruction() {
+    tokenizeInstruction(args = []) {
         this.mnemo = this.eatMnemo();
         if (this.mnemo === null) {
             return null;
@@ -34,12 +37,24 @@ export default class AssemblerStatement extends Token {
             if (argument === null) {
                 throw new InvalidTokenError(this.lexer);
             }
-            this.arguments.push(withSelf(argument));
+            if (argument.type !== 'ref') {
+                this.arguments.push(withSelf(argument));
+                continue;
+            }
+            let arg = args[argument.ref];
+            if (arg === undefined) {
+                throw new Error;
+            }
+            this.arguments.push(arg);
         }
         return this.finalize();
     }
 
     tokenizeAssemblerArgument() {
+        let ref = this.eatRef();
+        if (ref !== null) {
+            return {type: 'ref', ref};
+        }
         let address = this.eatAddress();
         if (address !== null) {
             return {type: 'address', address};
@@ -60,7 +75,34 @@ export default class AssemblerStatement extends Token {
     }
 
     eatMnemo() {
-        return this.lexer.eatRegex(/^([a-zA-Z][a-zA-Z0-9]*)(\.[a-zA-Z][a-zA-Z0-9]*)*(\.\d+)?/);
+        let mnemo = {
+            base: null,
+            opsize: null,
+        };
+        let parts = [];
+        while (true) {
+            let identifier = this.lexer.eatIdentifier(true);
+            if (identifier === null) {
+                break;
+            }
+            parts.push(identifier);
+            if (!this.lexer.eat('.')) {
+                break;
+            }
+            parts.push('.');
+        }
+        if (parts.length === 0) {
+            return null;
+        }
+        if (parts.at(-1) === '.') {
+            parts.pop();
+            mnemo.opsize = this.lexer.eatDecNum();
+            if (mnemo.opsize === null) {
+                throw new Error;
+            }
+        }
+        mnemo.base = parts.join('');
+        return mnemo;
     }
 
     eatRegister() {
@@ -99,6 +141,18 @@ export default class AssemblerStatement extends Token {
             return true;
         });
         return address;
+    }
+
+    eatRef() {
+        let ref = null;
+        this.lexer.try(() => {
+            if (!this.lexer.eat('$')) {
+                return false;
+            }
+            ref = this.lexer.eatDecNum();
+            return ref !== null;
+        });
+        return ref;
     }
 
     eatSib() {
@@ -217,7 +271,12 @@ export default class AssemblerStatement extends Token {
     stringify() {
         let space = this.arguments.length !== 0 ? ' ' : '';
         let map = (a) => this.stringifyArgument(a);
-        let line = this.mnemo + space + this.arguments.map(map).join(', ');
+        let line = (
+            this.mnemo.base
+            + (this.mnemo.opsize !== null ? '.' + this.mnemo.opsize : '')
+            + space
+            + this.arguments.map(map).join(', ')
+        );
         return [line];
     }
 
@@ -249,11 +308,34 @@ export default class AssemblerStatement extends Token {
     }
 
     toBuffer(arch) {
-        let possible = [this.mnemo];
-        if (!/\.\d+$/.test(this.mnemo)) {
-            possible = possible.concat(arch.details.opsizes.map((opsize) => {
-                return [this.mnemo, opsize].join('.');
+        let {base, opsize} = this.mnemo;
+        let maybeAlias = arch.alias[base];
+        if (opsize === null && maybeAlias !== undefined) {
+            let {nargs, alias} = maybeAlias;
+            if (nargs !== this.arguments.length) {
+                throw new Error;
+            }
+            let buffers = toArray(alias).map((alias) => {
+                let lexer = new Lexer(alias);
+                let statement = new AssemblerStatement(lexer).tokenize(this.arguments);
+                if (statement === null) {
+                    throw new Error;
+                }
+                if (!lexer.isEndOfFile()) {
+                    throw new Error;
+                }
+                return statement.toBuffer(arch);
+            });
+            return Buffer.concat(buffers);
+        }
+        let possible;
+        if (opsize === null) {
+            possible = [base];
+            possible = possible.concat(arch.opsizes.map((opsize) => {
+                return [base, opsize].join('.');
             }));
+        } else {
+            possible = [[base, opsize].join('.')];
         }
         let schemes = possible.map((mnemo) => this.getScheme(arch, mnemo));
         schemes = schemes.filter((scheme) => scheme !== undefined);

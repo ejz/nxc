@@ -2,19 +2,19 @@ import {format} from 'node:util';
 
 import * as types from '../types.js';
 
+export const arch = {
+    name: 'x86',
+    bits: 32,
+    scales: ['1', '2', '4', '8'],
+    opsizes: ['8', '16', '32'],
+};
+
 export const register = {
     r32: ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'],
     r16: ['ax', 'cx', 'dx', 'bx', 'sp', 'bp', 'si', 'di'],
     r8: ['al', 'cl', 'dl', 'bl', 'ah', 'ch', 'dh', 'bh'],
     sreg: ['es', 'cs', 'ss', 'ds', 'fs', 'gs'],
     syscall: ['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi', 'ebp'],
-};
-
-export const details = {
-    name: 'x86',
-    bits: 32,
-    scales: ['1', '2', '4', '8'],
-    opsizes: ['8', '16', '32'],
 };
 
 export const mnemo = {
@@ -426,12 +426,12 @@ export function toBuffer({opcode, args}, asmArgs) {
 }
 
 export default {
+    ...arch,
     mnemo,
     alias,
     operation,
     resolver,
     toBuffer,
-    details,
 };
 
 export function immClosure(uN, iN) {
@@ -507,7 +507,7 @@ export function rmClosure(reg, mode) {
         // 3) [esp] -> forced sib
         // 4) swap [ebp + esp] -> [esp + ebp]
         // 5) [eax * 1] -> [eax]
-        let [def] = details.scales;
+        let [def] = arch.scales;
         let {scale, base, index, disp} = s;
         if (scale === null && index === 'esp' && base !== 'esp') {
             [index, base] = [base, index];
@@ -538,7 +538,7 @@ export function rmClosure(reg, mode) {
 
 export function isSibOkay(sib) {
     let {scale, base, index, disp, minus, self} = sib;
-    if (scale !== null && !details.scales.includes(scale)) {
+    if (scale !== null && !arch.scales.includes(scale)) {
         return false;
     }
     if (base !== null && !register.r32.includes(base)) {
@@ -599,7 +599,7 @@ export function setIndex(val) {
 }
 
 export function setScale(val) {
-    val = details.scales.indexOf(val);
+    val = arch.scales.indexOf(val);
     this[this.sibIdx] += val << 6;
 }
 
