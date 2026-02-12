@@ -14,11 +14,33 @@ export default class AssemblerStatement extends Token {
         );
     }
 
-    tokenizeOperation() {
+    tokenizeOperation(args) {
+        let isOkay = this.lexer.try(() => {
+            let argument = this.tokenizeAssemblerArgument(args);
+            if (argument === null) {
+                return false;
+            }
+            this.arguments = [argument];
+            this.operation = this.eatOperation();
+            if (this.operation === null) {
+                return false;
+            }
+            argument = this.tokenizeAssemblerArgument(args);
+            if (argument === null) {
+                return false;
+            }
+            this.arguments.push(argument);
+            return true;
+        });
+        if (isOkay) {
+            return this.finalize();
+        }
+        delete this.arguments;
+        delete this.operation;
         return null;
     }
 
-    tokenizeInstruction(args = []) {
+    tokenizeInstruction(args) {
         this.mnemo = this.eatMnemo();
         if (this.mnemo === null) {
             return null;
@@ -33,28 +55,29 @@ export default class AssemblerStatement extends Token {
             } else if (!this.lexer.eatSpecialCharacter(' , ')) {
                 throw new InvalidTokenError(this.lexer);
             }
-            let argument = this.tokenizeAssemblerArgument();
+            let argument = this.tokenizeAssemblerArgument(args);
             if (argument === null) {
                 throw new InvalidTokenError(this.lexer);
             }
-            if (argument.type !== 'ref') {
-                this.arguments.push(withSelf(argument));
-                continue;
-            }
-            let arg = args[argument.ref];
-            if (arg === undefined) {
-                throw new Error;
-            }
-            this.arguments.push(arg);
+            this.arguments.push(argument);
         }
         return this.finalize();
     }
 
-    tokenizeAssemblerArgument() {
+    tokenizeAssemblerArgument(args = []) {
         let ref = this.eatRef();
         if (ref !== null) {
-            return {type: 'ref', ref};
+            let arg = args[ref];
+            if (arg === undefined) {
+                throw new Error;
+            }
+            return arg;
         }
+        let argument = this.#tokenizeAssemblerArgument();
+        return argument !== null ? withSelf(argument) : null;
+    }
+
+    #tokenizeAssemblerArgument() {
         let address = this.eatAddress();
         if (address !== null) {
             return {type: 'address', address};
@@ -103,6 +126,10 @@ export default class AssemblerStatement extends Token {
         }
         mnemo.base = parts.join('');
         return mnemo;
+    }
+
+    eatOperation() {
+        return this.lexer.eatSpecialCharacter(' = ');
     }
 
     eatRegister() {
