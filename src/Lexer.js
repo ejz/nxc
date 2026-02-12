@@ -154,17 +154,21 @@ export default class Lexer {
         });
     }
 
-    eatHex() {
-        return this.lexer.eatRegex(/^0x[0-9a-fA-F]+/);
+    eatDecNum() {
+        return this.eatRegex(/^(0|[1-9][0-9]*)/);
     }
 
-    eatDec() {
-        return this.eatRegex(/^(0|[1-9][0-9]*)/);
+    eatHexNum() {
+        return this.eatRegex(/^0x[0-9a-fA-F]+/);
+    }
+
+    eatNum() {
+        return this.eatHexNum() ?? this.eatDecNum();
     }
 
     eatIdentifier(withUpperCase = false) {
         let regex = withUpperCase ? /^[a-zA-Z][a-zA-Z0-9]*/ : /^[a-z][a-z0-9]*/;
-        return this.lexer.eatRegex(regex);
+        return this.eatRegex(regex);
     }
 
     eatEnd() {

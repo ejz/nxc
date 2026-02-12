@@ -3,6 +3,17 @@ import InvalidTokenError from '../errors/InvalidTokenError.js';
 
 export default class AssemblerStatement extends Token {
     tokenize() {
+        return (
+            this.tokenizeOperation()
+            ?? this.tokenizeInstruction()
+        );
+    }
+
+    tokenizeOperation() {
+        return null;
+    }
+
+    tokenizeInstruction() {
         this.mnemo = this.eatMnemo();
         if (this.mnemo === null) {
             return null;
@@ -14,7 +25,7 @@ export default class AssemblerStatement extends Token {
                 if (!wcc.notEmpty()) {
                     throw new InvalidTokenError(this.lexer);
                 }
-            } else if (!this.lexer.eatSpecial(',')) {
+            } else if (!this.lexer.eatSpecialCharacter(' , ')) {
                 throw new InvalidTokenError(this.lexer);
             }
             let argument = this.tokenizeAssemblerArgument();
@@ -51,17 +62,20 @@ export default class AssemblerStatement extends Token {
     }
 
     eatRegister() {
-        return this.lexer.eatRegex(/^[a-z][a-z0-9]*/);
+        return this.lexer.eatIdentifier();
     }
 
     eatInteger() {
-        let integer = this.lexer.eatRegex(/^[+-]?(0x[0-9a-fA-F]+|0|[1-9][0-9]*)/);
-        if (integer === null) {
-            return null;
-        }
-        if (integer.startsWith('+')) {
-            integer = integer.slice(1);
-        }
+        let integer = null;
+        this.lexer.try(() => {
+            let sign = this.lexer.eatRegex(/^[+-]/);
+            let num = this.lexer.eatNum();
+            if (num === null) {
+                return false;
+            }
+            integer = (sign ?? '') + num;
+            return true;
+        });
         return integer;
     }
 
@@ -93,10 +107,11 @@ export default class AssemblerStatement extends Token {
             }
             let parts = [];
             while (parts.length === 0 || !this.eatSibEnd()) {
-                let plusMinus = null;
+                let minus = false;
                 if (parts.length !== 0) {
-                    plusMinus = this.lexer.eatRegex(/^[ \t]*[+-][ \t]*/);
-                    if (plusMinus === null) {
+                    let plus = this.lexer.eatSpecialCharacter(' + ');
+                    minus = !plus ? this.lexer.eatSpecialCharacter(' - ') : false;
+                    if (!plus && !minus) {
                         throw new InvalidTokenError(this.lexer);
                     }
                 }
@@ -104,15 +119,9 @@ export default class AssemblerStatement extends Token {
                 if (part === null) {
                     throw new InvalidTokenError(this.lexer);
                 }
-                if ((plusMinus ?? '').trim() === '-') {
-                    if (part.type !== 'integer') {
-                        throw new InvalidTokenError(this.lexer);
-                    }
-                    if (part.integer.startsWith('-')) {
-                        part.integer = part.integer.slice(1);
-                    } else {
-                        part.integer = '-' + part.integer;
-                    }
+                part.minus = minus;
+                if (part.minus && part.type !== 'integer') {
+                    throw new InvalidTokenError(this.lexer);
                 }
                 parts.push(part);
             }
@@ -126,11 +135,11 @@ export default class AssemblerStatement extends Token {
     }
 
     eatSibStart() {
-        return this.lexer.eatRegex(/^\[[ \t]*/) !== null;
+        return this.lexer.eatSpecialCharacter('[ ');
     }
 
     eatSibEnd() {
-        return this.lexer.eatRegex(/^[ \t]*\]/) !== null;
+        return this.lexer.eatSpecialCharacter(' ]');
     }
 
     eatSibPart() {
@@ -142,11 +151,20 @@ export default class AssemblerStatement extends Token {
         if (register === null) {
             return null;
         }
-        let scale = this.lexer.eatRegex(/^[ \t]*\*[ \t]*\d+/);
-        if (scale !== null) {
-            scale = scale.match(/\d+/).shift();
-        }
+        let scale = this.eatSibScale();
         return {type: 'register', register, scale};
+    }
+
+    eatSibScale() {
+        let scale = null;
+        this.lexer.try(() => {
+            if (!this.lexer.eatSpecialCharacter(' * ')) {
+                return false;
+            }
+            scale = this.lexer.eatDecNum();
+            return scale !== null;
+        });
+        return scale;
     }
 
     compileSib(parts) {
@@ -155,6 +173,7 @@ export default class AssemblerStatement extends Token {
             base: null,
             index: null,
             disp: null,
+            minus: false,
         };
         if (parts.length > 3) {
             throw new Error;
@@ -165,6 +184,7 @@ export default class AssemblerStatement extends Token {
                 && sib.disp === null
             ) {
                 sib.disp = part.integer;
+                sib.minus = part.minus;
                 continue;
             }
             if (part.type !== 'register') {
@@ -193,28 +213,37 @@ export default class AssemblerStatement extends Token {
     }
 
     stringify() {
-        let line = this.mnemo.toLowerCase() + (this.arguments.length !== 0 ? ' ' : '') + this.arguments.map((argument) => {
-            if (argument.type === 'register') {
-                return argument.register;
-            }
-            if (argument.type === 'integer') {
-                return argument.integer.toLowerCase();
-            }
-            if (argument.type === 'address') {
-                let [segment, address] = argument.address;
-                return [segment.toLowerCase(), address.toLowerCase()].join(':');
-            }
-            if (argument.type === 'sib') {
-                let {scale, index, base, disp} = argument.sib;
-                return '[' + [
-                    base === null ? null : base,
-                    index === null ? null : (index + (scale !== null ? ' * ' + scale : '')),
-                    disp !== null ? disp.toLowerCase() : null,
-                ].filter((p) => p !== null).join(' + ').replace(' + -', ' - ') + ']';
-            }
-            throw new Error;
-        }).join(', ');
+        let space = this.arguments.length !== 0 ? ' ' : '';
+        let map = (a) => this.stringifyArgument(a);
+        let line = this.mnemo + space + this.arguments.map(map).join(', ');
         return [line];
+    }
+
+    stringifyArgument({type: t, register: r, integer: i, address: a, sib: s}) {
+        switch (t) {
+            case 'register':
+                return r;
+            case 'integer':
+                return i;
+            case 'address':
+                return a.join(':');
+            case 'sib': {
+                let {scale, index, base, disp, minus} = s;
+                let sib = '';
+                sib += base ?? '';
+                if (index !== null) {
+                    sib += sib !== '' ? ' + ' : '';
+                    sib += index;
+                    sib += scale !== null ? ' * ' + scale : '';
+                }
+                if (disp !== null) {
+                    sib += sib !== '' ? (minus ? ' - ' : ' + ') : '';
+                    sib += disp;
+                }
+                return '[' + sib + ']';
+            }
+        }
+        throw new Error;
     }
 
     toBuffer(arch) {
