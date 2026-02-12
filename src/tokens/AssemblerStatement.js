@@ -129,7 +129,10 @@ export default class AssemblerStatement extends Token {
     }
 
     eatOperation() {
-        return this.lexer.eatSpecialCharacter(' = ');
+        if (this.lexer.eatSpecialCharacter(' = ')) {
+            return '=';
+        }
+        return null;
     }
 
     eatRegister() {
@@ -335,6 +338,13 @@ export default class AssemblerStatement extends Token {
     }
 
     toBuffer(arch) {
+        if (this.operation !== undefined) {
+            let operation = arch.operation[this.operation];
+            if (operation === undefined) {
+                throw new Error;
+            }
+            return this.toBufferChild(arch, operation);
+        }
         let {base, opsize} = this.mnemo;
         let maybeAlias = arch.alias[base];
         if (opsize === null && maybeAlias !== undefined) {
@@ -343,15 +353,7 @@ export default class AssemblerStatement extends Token {
                 throw new Error;
             }
             let buffers = toArray(alias).map((alias) => {
-                let lexer = new Lexer(alias);
-                let statement = new AssemblerStatement(lexer).tokenize(this.arguments);
-                if (statement === null) {
-                    throw new Error;
-                }
-                if (!lexer.isEndOfFile()) {
-                    throw new Error;
-                }
-                return statement.toBuffer(arch);
+                return this.toBufferChild(arch, alias);
             });
             return Buffer.concat(buffers);
         }
@@ -371,6 +373,18 @@ export default class AssemblerStatement extends Token {
         }
         let [scheme] = schemes;
         return arch.toBuffer(scheme, this.arguments);
+    }
+
+    toBufferChild(arch, childText) {
+        let lexer = new Lexer(childText);
+        let statement = new AssemblerStatement(lexer).tokenize(this.arguments);
+        if (statement === null) {
+            throw new Error;
+        }
+        if (!lexer.isEndOfFile()) {
+            throw new Error;
+        }
+        return statement.toBuffer(arch);
     }
 
     getScheme(arch, mnemo) {

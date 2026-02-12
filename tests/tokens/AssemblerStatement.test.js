@@ -55,3 +55,13 @@ test('AssemblerStatement / 2', (t) => {
     x86.alias = alias;
     t.end();
 });
+
+test('AssemblerStatement / 3', (t) => {
+    {
+        let lexer = new Lexer('eax = 1');
+        let statement = new AssemblerStatement(lexer).tokenize();
+        let buffer = statement.toBuffer(x86);
+        t.deepEqual([...buffer], [0xb8, 0x1, 0x0, 0x0, 0x0]);
+    }
+    t.end();
+});
