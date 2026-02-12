@@ -44,6 +44,7 @@ test('Compiler / 2', (t) => {
         ['mov.16 [eax + ebx], bx', 'mov word ptr [eax + ebx * 1], bx'],
         ['mov.16 [eax + ebx*8], bx', 'mov word ptr [eax + ebx * 8], bx'],
         ['mov.16 [eax + 0x20], bx', 'mov word ptr [eax + 0x20], bx'],
+        ['mov.16 [eax - -0x20], bx', 'mov word ptr [eax + 0x20], bx'],
         ['mov.16 [eax - 0x20], bx', 'mov word ptr [eax - 0x20], bx'],
         ['mov.16 [eax + -0x20], bx', 'mov word ptr [eax - 0x20], bx'],
         ['mov.32 [-100 + eax + ecx * 8], ebx', 'mov dword ptr [eax + ecx * 8 - 0x64], ebx'],
@@ -55,6 +56,7 @@ test('Compiler / 2', (t) => {
         ['mov.32 [eax], ebx', 'mov dword ptr [eax], ebx'],
         ['mov.32 [eax * 1], ebx', 'mov dword ptr [eax], ebx'],
         ['mov.32 [eax * 1 + 0], ebx', 'mov dword ptr [eax], ebx'],
+        ['mov.32 [eax * 1 - -0xffff], ebx', 'mov dword ptr [eax + 0xffff], ebx'],
     ];
     let file = tmp('tmp-', '.bin');
     for (let [inp, out] of cases) {

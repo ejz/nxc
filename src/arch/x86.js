@@ -1,8 +1,13 @@
+import {format} from 'node:util';
+
+import * as types from '../types.js';
+
 export const register = {
     r32: ['eax', 'ecx', 'edx', 'ebx', 'esp', 'ebp', 'esi', 'edi'],
     r16: ['ax', 'cx', 'dx', 'bx', 'sp', 'bp', 'si', 'di'],
     r8: ['al', 'cl', 'dl', 'bl', 'ah', 'ch', 'dh', 'bh'],
     sreg: ['es', 'cs', 'ss', 'ds', 'fs', 'gs'],
+    syscall: ['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi', 'ebp'],
 };
 
 export const details = {
@@ -10,42 +15,6 @@ export const details = {
     bits: 32,
     scales: ['1', '2', '4', '8'],
     opsizes: ['8', '16', '32'],
-};
-
-export function uNis(v) {
-    return this.min <= v && v <= this.max;
-};
-
-export function uNnormalize(v) {
-    v += v < 0 ? this.max + 1 : 0;
-    return v;
-}
-
-export const u8 = {
-    min: -0x7f,
-    max: 0xff,
-    size: 1,
-    method: 'writeUInt8',
-    is: uNis,
-    normalize: uNnormalize,
-};
-
-export const u16 = {
-    min: -0x7fff,
-    max: 0xffff,
-    size: 2,
-    method: 'writeUInt16LE',
-    is: uNis,
-    normalize: uNnormalize,
-};
-
-export const u32 = {
-    min: -0x7fffffff,
-    max: 0xffffffff,
-    size: 4,
-    method: 'writeUInt32LE',
-    is: uNis,
-    normalize: uNnormalize,
 };
 
 export const mnemo = {
@@ -393,14 +362,24 @@ export const mnemo = {
     ],
 };
 
+export const alias = {
+    'syscall': getSyscall(1, 'int 0x80', 'eax'),
+    'syscall.exit': getSyscall(1, 0x1),
+    'syscall.write': getSyscall(3, 0x4),
+};
+
+export const operation = {
+    '=': 'mov $0, $1',
+};
+
 export const resolver = {
     '0': rawClosure(0),
     '1': rawClosure(1),
     '2': rawClosure(2),
     '3': rawClosure(3),
-    'imm8': immClosure(u8),
-    'imm16': immClosure(u16),
-    'imm32': immClosure(u32),
+    'imm8': immClosure(types.u8, types.i8),
+    'imm16': immClosure(types.u16, types.i16),
+    'imm32': immClosure(types.u32, types.i32),
     ...Object.fromEntries(register.sreg.map(regClosure)),
     ...Object.fromEntries(register.r8.map(regClosure)),
     ...Object.fromEntries(register.r16.map(regClosure)),
@@ -448,21 +427,34 @@ export function toBuffer({opcode, args}, asmArgs) {
 
 export default {
     mnemo,
+    alias,
+    operation,
     resolver,
     toBuffer,
     details,
 };
 
-export function immClosure(uN) {
-    let resolver = ({type: t, integer: i}) => {
+export function immClosure(uN, iN) {
+    let resolver = ({type: t, integer: i, self}) => {
         if (t !== 'integer') {
             return false;
         }
-        return uN.is(parseInt(i));
+        let int = parseInt(i);
+        if (uN.is(int)) {
+            self.int = int;
+            self.imm = uN;
+            return true;
+        }
+        if (iN.is(int)) {
+            self.int = int;
+            self.imm = iN;
+            return true;
+        }
+        return false;
     };
-    let composer = ({integer: i}) => {
-        let buf = Buffer.alloc(uN.size);
-        buf[uN.method](uN.normalize(parseInt(i)));
+    let composer = ({imm, int: i}) => {
+        let buf = Buffer.allocUnsafe(imm.size);
+        buf[imm.method](i);
         return [...buf];
     };
     return [resolver, composer];
@@ -527,8 +519,8 @@ export function rmClosure(reg, mode) {
             base = index;
             [index, scale] = [null, null];
         }
-        disp = parseInt(disp ?? 0);
-        let dispMode = disp === 0 && base !== 'ebp' ? 'disp0' : u8.is(disp) ? 'disp8' : 'disp32';
+        disp ??= 0;
+        let dispMode = disp === 0 && base !== 'ebp' ? 'disp0' : types.i8.is(disp) ? 'disp8' : 'disp32';
         if (index === null && base !== 'esp') {
             buf.setRm(base ?? 'ebp');
         } else {
@@ -545,7 +537,7 @@ export function rmClosure(reg, mode) {
 }
 
 export function isSibOkay(sib) {
-    let {scale, base, index, disp} = sib;
+    let {scale, base, index, disp, minus, self} = sib;
     if (scale !== null && !details.scales.includes(scale)) {
         return false;
     }
@@ -555,10 +547,16 @@ export function isSibOkay(sib) {
     if (index !== null && !register.r32.includes(index)) {
         return false;
     }
-    if (disp !== null && !u32.is(parseInt(disp))) {
-        return false;
+    if (disp !== null) {
+        let int = parseInt(disp);
+        int = minus ? -int : int;
+        if (!types.i32.is(int)) {
+            return false;
+        }
+        self.disp = int;
+        return true;
     }
-    return [base, index, disp].some((i) => i !== null);
+    return base !== null || index !== null;
 }
 
 const reverseKeyValue = ([key, value]) => [value, key];
@@ -610,15 +608,24 @@ export function disp2buffer(disp, mode) {
         case 'disp0':
             return [];
         case 'disp8': {
-            let buffer = Buffer.alloc(u8.size);
-            buffer[u8.method](u8.normalize(disp));
+            let buffer = Buffer.allocUnsafe(types.i8.size);
+            buffer[types.i8.method](disp);
             return [...buffer];
         }
         case 'disp32': {
-            let buffer = Buffer.alloc(u32.size);
-            buffer[u32.method](u32.normalize(disp));
+            let buffer = Buffer.allocUnsafe(types.i32.size);
+            buffer[types.i32.method](disp);
             return [...buffer];
         }
     }
     throw new Error;
+}
+
+export function getSyscall(nargs, instr, first = 'ebx') {
+    instr = typeof instr === 'string' ? instr : 'syscall ' + instr.toString();
+    let idx = register.syscall.indexOf(first);
+    let args = register.syscall.slice(idx, idx + nargs);
+    let map = (reg, i) => format('%s = $%s', reg, i);
+    let alias = args.map(map).concat(instr);
+    return {alias, nargs};
 }

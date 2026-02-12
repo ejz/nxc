@@ -1,6 +1,8 @@
 import Token from './Token.js';
 import InvalidTokenError from '../errors/InvalidTokenError.js';
 
+const withSelf = (obj) => (obj.self = obj, obj);
+
 export default class AssemblerStatement extends Token {
     tokenize() {
         return (
@@ -32,7 +34,7 @@ export default class AssemblerStatement extends Token {
             if (argument === null) {
                 throw new InvalidTokenError(this.lexer);
             }
-            this.arguments.push(argument);
+            this.arguments.push(withSelf(argument));
         }
         return this.finalize();
     }
@@ -209,7 +211,7 @@ export default class AssemblerStatement extends Token {
             }
             throw new Error;
         }
-        return sib;
+        return withSelf(sib);
     }
 
     stringify() {
