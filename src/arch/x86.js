@@ -360,9 +360,163 @@ export const mnemo = {
         {opcode: '4f', args: ['edi']},
         {opcode: 'ff /1', args: ['r/m32']},
     ],
+    'hlt': [
+        {opcode: 'f4', args: []},
+    ],
+    'lea.16': [
+        {opcode: '66 8d', args: ['r16', 'm']},
+    ],
+    'lea.32': [
+        {opcode: '8d', args: ['r32', 'm']},
+    ],
+    'rol.8': [
+        {opcode: 'd0 /0', args: ['r/m8', '1']},
+        {opcode: 'c0 /0', args: ['r/m8', 'imm8']},
+        {opcode: 'd2 /0', args: ['r/m8', 'cl']},
+    ],
+    'rol.16': [
+        {opcode: '66 d1 /0', args: ['r/m16', '1']},
+        {opcode: '66 c1 /0', args: ['r/m16', 'imm8']},
+        {opcode: '66 d3 /0', args: ['r/m16', 'cl']},
+    ],
+    'rol.32': [
+        {opcode: 'd1 /0', args: ['r/m32', '1']},
+        {opcode: 'c1 /0', args: ['r/m32', 'imm8']},
+        {opcode: 'd3 /0', args: ['r/m32', 'cl']},
+    ],
+    'rcl.8': [
+        {opcode: 'd0 /2', args: ['r/m8', '1']},
+        {opcode: 'c0 /2', args: ['r/m8', 'imm8']},
+        {opcode: 'd2 /2', args: ['r/m8', 'cl']},
+    ],
+    'rcl.16': [
+        {opcode: '66 d1 /2', args: ['r/m16', '1']},
+        {opcode: '66 c1 /2', args: ['r/m16', 'imm8']},
+        {opcode: '66 d3 /2', args: ['r/m16', 'cl']},
+    ],
+    'rcl.32': [
+        {opcode: 'd1 /2', args: ['r/m32', '1']},
+        {opcode: 'c1 /2', args: ['r/m32', 'imm8']},
+        {opcode: 'd3 /2', args: ['r/m32', 'cl']},
+    ],
+    'ror.8': [
+        {opcode: 'd0 /1', args: ['r/m8', '1']},
+        {opcode: 'c0 /1', args: ['r/m8', 'imm8']},
+        {opcode: 'd2 /1', args: ['r/m8', 'cl']},
+    ],
+    'ror.16': [
+        {opcode: '66 d1 /1', args: ['r/m16', '1']},
+        {opcode: '66 c1 /1', args: ['r/m16', 'imm8']},
+        {opcode: '66 d3 /1', args: ['r/m16', 'cl']},
+    ],
+    'ror.32': [
+        {opcode: 'd1 /1', args: ['r/m32', '1']},
+        {opcode: 'c1 /1', args: ['r/m32', 'imm8']},
+        {opcode: 'd3 /1', args: ['r/m32', 'cl']},
+    ],
+    'rcr.8': [
+        {opcode: 'd0 /3', args: ['r/m8', '1']},
+        {opcode: 'c0 /3', args: ['r/m8', 'imm8']},
+        {opcode: 'd2 /3', args: ['r/m8', 'cl']},
+    ],
+    'rcr.16': [
+        {opcode: '66 d1 /3', args: ['r/m16', '1']},
+        {opcode: '66 c1 /3', args: ['r/m16', 'imm8']},
+        {opcode: '66 d3 /3', args: ['r/m16', 'cl']},
+    ],
+    'rcr.32': [
+        {opcode: 'd1 /3', args: ['r/m32', '1']},
+        {opcode: 'c1 /3', args: ['r/m32', 'imm8']},
+        {opcode: 'd3 /3', args: ['r/m32', 'cl']},
+    ],
+    'shl.8': [
+        {opcode: 'd0 /4', args: ['r/m8', '1']},
+        {opcode: 'c0 /4', args: ['r/m8', 'imm8']},
+        {opcode: 'd2 /4', args: ['r/m8', 'cl']},
+    ],
+    'shl.16': [
+        {opcode: '66 d1 /4', args: ['r/m16', '1']},
+        {opcode: '66 c1 /4', args: ['r/m16', 'imm8']},
+        {opcode: '66 d3 /4', args: ['r/m16', 'cl']},
+    ],
+    'shl.32': [
+        {opcode: 'd1 /4', args: ['r/m32', '1']},
+        {opcode: 'c1 /4', args: ['r/m32', 'imm8']},
+        {opcode: 'd3 /4', args: ['r/m32', 'cl']},
+    ],
+    'sar.8': [
+        {opcode: 'd0 /7', args: ['r/m8', '1']},
+        {opcode: 'c0 /7', args: ['r/m8', 'imm8']},
+        {opcode: 'd2 /7', args: ['r/m8', 'cl']},
+    ],
+    'sar.16': [
+        {opcode: '66 d1 /7', args: ['r/m16', '1']},
+        {opcode: '66 c1 /7', args: ['r/m16', 'imm8']},
+        {opcode: '66 d3 /7', args: ['r/m16', 'cl']},
+    ],
+    'sar.32': [
+        {opcode: 'd1 /7', args: ['r/m32', '1']},
+        {opcode: 'c1 /7', args: ['r/m32', 'imm8']},
+        {opcode: 'd3 /7', args: ['r/m32', 'cl']},
+    ],
+    'shr.8': [
+        {opcode: 'd0 /5', args: ['r/m8', '1']},
+        {opcode: 'c0 /5', args: ['r/m8', 'imm8']},
+        {opcode: 'd2 /5', args: ['r/m8', 'cl']},
+    ],
+    'shr.16': [
+        {opcode: '66 d1 /5', args: ['r/m16', '1']},
+        {opcode: '66 c1 /5', args: ['r/m16', 'imm8']},
+        {opcode: '66 d3 /5', args: ['r/m16', 'cl']},
+    ],
+    'shr.32': [
+        {opcode: 'd1 /5', args: ['r/m32', '1']},
+        {opcode: 'c1 /5', args: ['r/m32', 'imm8']},
+        {opcode: 'd3 /5', args: ['r/m32', 'cl']},
+    ],
+    'xchg.8': [
+        {opcode: '86', args: ['r8', 'r/m8']},
+    ],
+    'xchg.16': [
+        {opcode: '66 87', args: ['r16', 'r/m16']},
+        {opcode: '66 90', args: ['ax', 'ax']},
+        {opcode: '66 91', args: ['cx', 'ax']},
+        {opcode: '66 91', args: ['ax', 'cx']},
+        {opcode: '66 92', args: ['dx', 'ax']},
+        {opcode: '66 92', args: ['ax', 'dx']},
+        {opcode: '66 93', args: ['bx', 'ax']},
+        {opcode: '66 93', args: ['ax', 'bx']},
+        {opcode: '66 94', args: ['sp', 'ax']},
+        {opcode: '66 94', args: ['ax', 'sp']},
+        {opcode: '66 95', args: ['bp', 'ax']},
+        {opcode: '66 95', args: ['ax', 'bp']},
+        {opcode: '66 96', args: ['si', 'ax']},
+        {opcode: '66 96', args: ['ax', 'si']},
+        {opcode: '66 97', args: ['di', 'ax']},
+        {opcode: '66 97', args: ['ax', 'di']},
+    ],
+    'xchg.32': [
+        {opcode: '87', args: ['r32', 'r/m32']},
+        {opcode: '90', args: ['eax', 'eax']},
+        {opcode: '91', args: ['ecx', 'eax']},
+        {opcode: '91', args: ['eax', 'ecx']},
+        {opcode: '92', args: ['edx', 'eax']},
+        {opcode: '92', args: ['eax', 'edx']},
+        {opcode: '93', args: ['ebx', 'eax']},
+        {opcode: '93', args: ['eax', 'ebx']},
+        {opcode: '94', args: ['esp', 'eax']},
+        {opcode: '94', args: ['eax', 'esp']},
+        {opcode: '95', args: ['ebp', 'eax']},
+        {opcode: '95', args: ['eax', 'ebp']},
+        {opcode: '96', args: ['esi', 'eax']},
+        {opcode: '96', args: ['eax', 'esi']},
+        {opcode: '97', args: ['edi', 'eax']},
+        {opcode: '97', args: ['eax', 'edi']},
+    ],
 };
 
 export const alias = {
+    'nop': {nargs: 0, alias: 'xchg eax, eax'},
     'syscall': getSyscallAlias(1, 'int 0x80', 'eax'),
     'syscall.exit': [
         getSyscallAlias(0, 'syscall.exit 0'),
