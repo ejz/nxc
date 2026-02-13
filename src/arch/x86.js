@@ -551,7 +551,17 @@ export const resolver = {
     'r/m16': rmClosure(register.r16, true),
     'r/m32': rmClosure(register.r32, true),
     'm': rmClosure([], true),
+    'rel8': relClosure(),
 };
+
+export function relClosure() {
+    let resolver = () => {
+        return false;
+    };
+    let composer = () => {
+    };
+    return [resolver, composer];
+}
 
 export function toBuffer({opcode, args}, asmArgs) {
     let buf = [];

@@ -24,9 +24,7 @@ export default class Compiler {
         };
         let assemblerBlocks = Lexer.find(program, filter, AssemblerBlock);
         for (let [assemblerBlock] of assemblerBlocks) {
-            assemblerBlock.statements.forEach((assemblerStatement) => {
-                elf.push(assemblerStatement.toBuffer(x86));
-            });
+            elf.push(assemblerBlock.toBuffer(x86));
         }
         return elf.toBuffer();
     }

@@ -43,4 +43,12 @@ export default class AssemblerBlock extends Token {
         }
         return [kw.ASM + ' {', ...Lexer.indent(lines), '}'];
     }
+
+    toBuffer(arch) {
+        let buffers = [];
+        for (let statement of this.statements) {
+            buffers.push(statement.toBuffer(arch));
+        }
+        return Buffer.concat(buffers);
+    }
 }

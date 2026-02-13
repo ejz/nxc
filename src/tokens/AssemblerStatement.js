@@ -2,16 +2,35 @@ import Token from './Token.js';
 import InvalidTokenError from '../errors/InvalidTokenError.js';
 import Lexer from '../Lexer.js';
 
-const withSelf = (obj) => (obj.self = obj, obj);
 const isArray = Array.isArray;
+const withSelf = (obj) => (obj.self = obj, obj);
 const toArray = (a) => isArray(a) ? a : [a];
 
 export default class AssemblerStatement extends Token {
     tokenize(args) {
         return (
-            this.tokenizeOperation(args)
+            (args === undefined ? this.tokenizeLabel() : null)
+            ?? this.tokenizeOperation(args)
             ?? this.tokenizeInstruction(args)
         );
+    }
+
+    tokenizeLabel() {
+        let isOkay = this.lexer.try(() => {
+            this.label = this.eatLabel();
+            if (this.label === null) {
+                return false;
+            }
+            return (
+                this.lexer.eat(':')
+                && this.lexer.eatEnd()
+            );
+        });
+        if (isOkay) {
+            return this.finalize();
+        }
+        delete this.label;
+        return null;
     }
 
     tokenizeOperation(args) {
@@ -94,7 +113,15 @@ export default class AssemblerStatement extends Token {
         if (register !== null) {
             return {type: 'register', register};
         }
+        let label = this.eatLabel();
+        if (label !== null) {
+            return {type: 'label', label};
+        }
         return null;
+    }
+
+    eatLabel() {
+        return this.lexer.eatIdentifier(true);
     }
 
     eatMnemo() {
