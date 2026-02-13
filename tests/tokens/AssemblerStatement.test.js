@@ -39,29 +39,26 @@ test('AssemblerStatement / 1', (t) => {
 test('AssemblerStatement / 2', (t) => {
     let alias = x86.alias;
     {
-        let lexer = new Lexer('inc.eax');
-        let statement = new AssemblerStatement(lexer).tokenize();
         x86.alias = {'inc.eax': {nargs: 0, alias: 'inc eax'}};
-        let buffer = statement.toBuffer(x86);
-        t.deepEqual([...buffer], [0x40]);
+        t.deepEqual(toBuffer('inc.eax'), toBuffer('inc eax'));
     }
     {
-        let lexer = new Lexer('add.eax 0x100');
-        let statement = new AssemblerStatement(lexer).tokenize();
         x86.alias = {'add.eax': {nargs: 1, alias: 'add eax, $0'}};
-        let buffer = statement.toBuffer(x86);
-        t.deepEqual([...buffer], [0x5, 0x0, 0x1, 0x0, 0x0]);
+        t.deepEqual(toBuffer('add.eax 0x100'), toBuffer('add eax, 0x100'));
     }
     x86.alias = alias;
     t.end();
 });
 
 test('AssemblerStatement / 3', (t) => {
-    {
-        let lexer = new Lexer('eax = 1');
-        let statement = new AssemblerStatement(lexer).tokenize();
-        let buffer = statement.toBuffer(x86);
-        t.deepEqual([...buffer], [0xb8, 0x1, 0x0, 0x0, 0x0]);
-    }
+    t.deepEqual(toBuffer('syscall.exit'), toBuffer('syscall.exit 0'));
+    t.deepEqual(toBuffer('eax = 1'), toBuffer('mov eax, 1'));
+    t.deepEqual(toBuffer('eax = 0'), toBuffer('xor eax, eax'));
     t.end();
 });
+
+export function toBuffer(inp) {
+    let lexer = new Lexer(inp);
+    let statement = new AssemblerStatement(lexer).tokenize();
+    return Array.from(statement.toBuffer(x86));
+}

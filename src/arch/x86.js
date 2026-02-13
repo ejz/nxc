@@ -363,13 +363,18 @@ export const mnemo = {
 };
 
 export const alias = {
-    'syscall': getSyscall(1, 'int 0x80', 'eax'),
-    'syscall.exit': getSyscall(1, 0x1),
-    'syscall.write': getSyscall(3, 0x4),
-};
-
-export const operation = {
-    '=': 'mov $0, $1',
+    'syscall': getSyscallAlias(1, 'int 0x80', 'eax'),
+    'syscall.exit': [
+        getSyscallAlias(0, 'syscall.exit 0'),
+        getSyscallAlias(1, 0x1),
+    ],
+    'syscall.write': getSyscallAlias(3, 0x4),
+    '=': [
+        getOperationAlias('xor $0, $0', ([, _1]) => {
+            return _1.type === 'integer' && parseInt(_1.integer) === 0;
+        }),
+        getOperationAlias('mov $0, $1'),
+    ],
 };
 
 export const resolver = {
@@ -429,7 +434,6 @@ export default {
     ...arch,
     mnemo,
     alias,
-    operation,
     resolver,
     toBuffer,
 };
@@ -621,11 +625,15 @@ export function disp2buffer(disp, mode) {
     throw new Error;
 }
 
-export function getSyscall(nargs, instr, first = 'ebx') {
+export function getSyscallAlias(nargs, instr, first = 'ebx') {
     instr = typeof instr === 'string' ? instr : 'syscall ' + instr.toString();
     let idx = register.syscall.indexOf(first);
     let args = register.syscall.slice(idx, idx + nargs);
     let map = (reg, i) => format('%s = $%s', reg, i);
     let alias = args.map(map).concat(instr);
     return {alias, nargs};
+}
+
+export function getOperationAlias(alias, condition) {
+    return {alias, condition};
 }

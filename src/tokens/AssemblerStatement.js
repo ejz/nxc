@@ -30,7 +30,7 @@ export default class AssemblerStatement extends Token {
                 return false;
             }
             this.arguments.push(argument);
-            return true;
+            return this.lexer.eatEnd();
         });
         if (isOkay) {
             return this.finalize();
@@ -339,19 +339,30 @@ export default class AssemblerStatement extends Token {
 
     toBuffer(arch) {
         if (this.operation !== undefined) {
-            let operation = arch.operation[this.operation];
-            if (operation === undefined) {
+            let operationList = arch.alias[this.operation];
+            if (operationList === undefined) {
                 throw new Error;
             }
-            return this.toBufferChild(arch, operation);
+            let foundOperation = operationList.find(({condition = null}) => {
+                return condition === null || condition(this.arguments);
+            });
+            if (foundOperation === undefined) {
+                throw new Error;
+            }
+            let {alias} = foundOperation;
+            return this.toBufferChild(arch, alias);
         }
         let {base, opsize} = this.mnemo;
         let maybeAlias = arch.alias[base];
         if (opsize === null && maybeAlias !== undefined) {
-            let {nargs, alias} = maybeAlias;
-            if (nargs !== this.arguments.length) {
+            let aliasList = toArray(maybeAlias);
+            let foundAlias = aliasList.find(({nargs}) => {
+                return nargs === this.arguments.length;
+            });
+            if (foundAlias === undefined) {
                 throw new Error;
             }
+            let {alias} = foundAlias;
             let buffers = toArray(alias).map((alias) => {
                 return this.toBufferChild(arch, alias);
             });
