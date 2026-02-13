@@ -57,6 +57,10 @@ test('Compiler / 2', (t) => {
         ['mov.32 [eax * 1], ebx', 'mov dword ptr [eax], ebx'],
         ['mov.32 [eax * 1 + 0], ebx', 'mov dword ptr [eax], ebx'],
         ['mov.32 [eax * 1 - -0xffff], ebx', 'mov dword ptr [eax + 0xffff], ebx'],
+        ['lea eax, [ebx]', 'lea eax, [ebx]'],
+        ['lea ax, [ebx]', 'lea ax, [ebx]'],
+        ['sal eax, 1', 'shl eax, 1'],
+        ['sal.32 eax, 1', 'shl eax, 1'],
     ];
     let file = tmp('tmp-', '.bin');
     for (let [inp, out] of cases) {

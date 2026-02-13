@@ -364,10 +364,10 @@ export const mnemo = {
         {opcode: 'f4', args: []},
     ],
     'lea.16': [
-        {opcode: '66 8d', args: ['r16', 'm']},
+        {opcode: '66 8d /r', args: ['r16', 'm']},
     ],
     'lea.32': [
-        {opcode: '8d', args: ['r32', 'm']},
+        {opcode: '8d /r', args: ['r32', 'm']},
     ],
     'rol.8': [
         {opcode: 'd0 /0', args: ['r/m8', '1']},
@@ -475,10 +475,10 @@ export const mnemo = {
         {opcode: 'd3 /5', args: ['r/m32', 'cl']},
     ],
     'xchg.8': [
-        {opcode: '86', args: ['r8', 'r/m8']},
+        {opcode: '86 /r', args: ['r8', 'r/m8']},
     ],
     'xchg.16': [
-        {opcode: '66 87', args: ['r16', 'r/m16']},
+        {opcode: '66 87 /r', args: ['r16', 'r/m16']},
         {opcode: '66 90', args: ['ax', 'ax']},
         {opcode: '66 91', args: ['cx', 'ax']},
         {opcode: '66 91', args: ['ax', 'cx']},
@@ -496,7 +496,7 @@ export const mnemo = {
         {opcode: '66 97', args: ['ax', 'di']},
     ],
     'xchg.32': [
-        {opcode: '87', args: ['r32', 'r/m32']},
+        {opcode: '87 /r', args: ['r32', 'r/m32']},
         {opcode: '90', args: ['eax', 'eax']},
         {opcode: '91', args: ['ecx', 'eax']},
         {opcode: '91', args: ['eax', 'ecx']},
@@ -517,6 +517,7 @@ export const mnemo = {
 
 export const alias = {
     'nop': {nargs: 0, alias: 'xchg eax, eax'},
+    'sal': 'shl',
     'syscall': getSyscallAlias(1, 'int 0x80', 'eax'),
     'syscall.exit': [
         getSyscallAlias(0, 'syscall.exit 0'),
@@ -543,12 +544,13 @@ export const resolver = {
     ...Object.fromEntries(register.r8.map(regClosure)),
     ...Object.fromEntries(register.r16.map(regClosure)),
     ...Object.fromEntries(register.r32.map(regClosure)),
-    'r8': rmClosure(register.r8, false),
-    'r16': rmClosure(register.r16, false),
-    'r32': rmClosure(register.r32, false),
+    'r8': rmClosure(register.r8),
+    'r16': rmClosure(register.r16),
+    'r32': rmClosure(register.r32),
     'r/m8': rmClosure(register.r8, true),
     'r/m16': rmClosure(register.r16, true),
     'r/m32': rmClosure(register.r32, true),
+    'm': rmClosure([], true),
 };
 
 export function toBuffer({opcode, args}, asmArgs) {
@@ -639,19 +641,20 @@ export function regClosure(reg) {
     return [reg, [resolver]];
 }
 
-export function rmClosure(reg, mode) {
+export function rmClosure(reg, acceptSib = false) {
     let resolver = ({type: t, register: r, sib: s}) => {
-        if (t === 'register' && reg.includes(r)) {
-            return true;
+        switch (t) {
+            case 'register':
+                return reg.includes(r);
+            case 'sib':
+                return acceptSib && isSibOkay(s);
+            default:
+                return false;
         }
-        if (mode && t === 'sib' && isSibOkay(s)) {
-            return true;
-        }
-        return false;
     };
     let composer = ({type: t, register: r, sib: s}, buf) => {
         if (t === 'register') {
-            if (mode) {
+            if (acceptSib) {
                 buf.setMod('reg');
                 buf.setRm(r);
             } else {

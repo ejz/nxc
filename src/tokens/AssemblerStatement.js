@@ -354,6 +354,10 @@ export default class AssemblerStatement extends Token {
         }
         let {base, opsize} = this.mnemo;
         let maybeAlias = arch.alias[base];
+        if (typeof maybeAlias === 'string') {
+            base = maybeAlias;
+            maybeAlias = undefined;
+        }
         if (opsize === null && maybeAlias !== undefined) {
             let aliasList = toArray(maybeAlias);
             let foundAlias = aliasList.find(({nargs}) => {

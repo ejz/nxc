@@ -54,6 +54,7 @@ test('AssemblerStatement / 3', (t) => {
     t.deepEqual(toBuffer('syscall.exit'), toBuffer('syscall.exit 0'));
     t.deepEqual(toBuffer('eax = 1'), toBuffer('mov eax, 1'));
     t.deepEqual(toBuffer('eax = 0'), toBuffer('xor eax, eax'));
+    t.deepEqual(toBuffer('nop'), toBuffer('xchg eax, eax'));
     t.end();
 });
 
