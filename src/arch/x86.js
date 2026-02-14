@@ -15,9 +15,10 @@ export const register = {
     r8: ['al', 'cl', 'dl', 'bl', 'ah', 'ch', 'dh', 'bh'],
     sreg: ['es', 'cs', 'ss', 'ds', 'fs', 'gs'],
     syscall: ['eax', 'ebx', 'ecx', 'edx', 'esi', 'edi', 'ebp'],
+    data: 'ds',
 };
 
-export const mnemo = {
+export const isa = {
     'add.8': [
         {opcode: '00 /r', args: ['r/m8', 'r8']},
         {opcode: '02 /r', args: ['r8', 'r/m8']},
@@ -274,6 +275,8 @@ export const mnemo = {
     'mov.8': [
         {opcode: '88 /r', args: ['r/m8', 'r8']},
         {opcode: '8a /r', args: ['r8', 'r/m8']},
+        {opcode: 'a0', args: ['al', 'moffs8']},
+        {opcode: 'a2', args: ['moffs8', 'al']},
         {opcode: 'b0', args: ['al', 'imm8']},
         {opcode: 'b1', args: ['cl', 'imm8']},
         {opcode: 'b2', args: ['dl', 'imm8']},
@@ -287,6 +290,8 @@ export const mnemo = {
     'mov.16': [
         {opcode: '66 89 /r', args: ['r/m16', 'r16']},
         {opcode: '66 8b /r', args: ['r16', 'r/m16']},
+        {opcode: '66 a1', args: ['ax', 'moffs16']},
+        {opcode: '66 a3', args: ['moffs16', 'ax']},
         {opcode: '66 b8', args: ['ax', 'imm16']},
         {opcode: '66 b9', args: ['cx', 'imm16']},
         {opcode: '66 ba', args: ['dx', 'imm16']},
@@ -300,6 +305,8 @@ export const mnemo = {
     'mov.32': [
         {opcode: '89 /r', args: ['r/m32', 'r32']},
         {opcode: '8b /r', args: ['r32', 'r/m32']},
+        {opcode: 'a1', args: ['eax', 'moffs32']},
+        {opcode: 'a3', args: ['moffs32', 'eax']},
         {opcode: 'b8', args: ['eax', 'imm32']},
         {opcode: 'b9', args: ['ecx', 'imm32']},
         {opcode: 'ba', args: ['edx', 'imm32']},
@@ -444,6 +451,15 @@ export const mnemo = {
         {opcode: 'c1 /4', args: ['r/m32', 'imm8']},
         {opcode: 'd3 /4', args: ['r/m32', 'cl']},
     ],
+    get ['sal.8']() {
+        return this['shl.8'];
+    },
+    get ['sal.16']() {
+        return this['shl.16'];
+    },
+    get ['sal.32']() {
+        return this['shl.32'];
+    },
     'sar.8': [
         {opcode: 'd0 /7', args: ['r/m8', '1']},
         {opcode: 'c0 /7', args: ['r/m8', 'imm8']},
@@ -513,23 +529,35 @@ export const mnemo = {
         {opcode: '97', args: ['edi', 'eax']},
         {opcode: '97', args: ['eax', 'edi']},
     ],
-};
-
-export const alias = {
-    'nop': {nargs: 0, alias: 'xchg eax, eax'},
-    'sal': 'shl',
+    'test.8': [
+        {opcode: '84 /r', args: ['r/m8', 'r8']},
+        {opcode: 'f6 /0', args: ['r/m8', 'imm8']},
+        {opcode: 'a8', args: ['al', 'imm8']},
+    ],
+    'test.16': [
+        {opcode: '66 85 /r', args: ['r/m16', 'r16']},
+        {opcode: '66 a9', args: ['ax', 'imm16']},
+        {opcode: '66 f7 /0', args: ['r/m16', 'imm16']},
+    ],
+    'test.32': [
+        {opcode: '85 /r', args: ['r/m32', 'r32']},
+        {opcode: 'a9', args: ['eax', 'imm32']},
+        {opcode: 'f7 /0', args: ['r/m32', 'imm32']},
+    ],
+    '=': [
+        {alias: 'xor $0, $0', args: ['any', '0']},
+        {alias: 'mov $0, $1', args: 2},
+    ],
+    'nop': [
+        {alias: 'xchg eax, eax', args: 0},
+        {alias: ([{int}]) => new Array(int).fill('nop'), args: ['u16']},
+    ],
     'syscall': getSyscallAlias(1, 'int 0x80', 'eax'),
     'syscall.exit': [
         getSyscallAlias(0, 'syscall.exit 0'),
         getSyscallAlias(1, 0x1),
     ],
     'syscall.write': getSyscallAlias(3, 0x4),
-    '=': [
-        getOperationAlias('xor $0, $0', ([, _1]) => {
-            return _1.type === 'integer' && parseInt(_1.integer) === 0;
-        }),
-        getOperationAlias('mov $0, $1'),
-    ],
 };
 
 export const resolver = {
@@ -552,13 +580,48 @@ export const resolver = {
     'r/m32': rmClosure(register.r32, true),
     'm': rmClosure([], true),
     'rel8': relClosure(),
+    'rel16': relClosure(),
+    'rel32': relClosure(),
+    'u16': immClosure(types.u16),
+    'any': [() => true],
+    'moffs8': moffsClosure([null, register.data]),
+    'moffs16': moffsClosure([null, register.data]),
+    'moffs32': moffsClosure([null, register.data]),
 };
 
 export function relClosure() {
-    let resolver = () => {
+    let resolver = ({type: t, register: r, label: l}) => {
+        if (!['register', 'label'].includes(t)) {
+            return false;
+        }
+        let name = {register: r, label: l}[t];
         return false;
     };
     let composer = () => {
+    };
+    return [resolver, composer];
+}
+
+export function moffsClosure(posSeg) {
+    let resolver = ({type: t, address: a, self}) => {
+        if (t !== 'address') {
+            return false;
+        }
+        let [seg, off] = a;
+        if (!posSeg.includes(seg)) {
+            return false;
+        }
+        let int = parseInt(off);
+        if (!types.u32.is(int)) {
+            return false;
+        }
+        self.int = int;
+        return true;
+    };
+    let composer = ({int: i}) => {
+        let buf = Buffer.allocUnsafe(types.u32.size);
+        buf[types.u32.method](i);
+        return [...buf];
     };
     return [resolver, composer];
 }
@@ -587,35 +650,34 @@ export function toBuffer({opcode, args}, asmArgs) {
         }
     });
     args.forEach((arg, i) => {
-        let [, getter = null] = resolver[arg];
-        if (getter === null) {
+        let [, composer = null] = resolver[arg];
+        if (composer === null) {
             return;
         }
-        buf.push(...getter(asmArgs[i], buf));
+        buf.push(...composer(asmArgs[i], buf));
     });
     return Buffer.from(buf);
 }
 
 export default {
     ...arch,
-    mnemo,
-    alias,
+    isa,
     resolver,
     toBuffer,
 };
 
-export function immClosure(uN, iN) {
+export function immClosure(uN = null, iN = null) {
     let resolver = ({type: t, integer: i, self}) => {
         if (t !== 'integer') {
             return false;
         }
         let int = parseInt(i);
-        if (uN.is(int)) {
+        if (uN !== null && uN.is(int)) {
             self.int = int;
             self.imm = uN;
             return true;
         }
-        if (iN.is(int)) {
+        if (iN !== null && iN.is(int)) {
             self.int = int;
             self.imm = iN;
             return true;
@@ -792,15 +854,11 @@ export function disp2buffer(disp, mode) {
     throw new Error;
 }
 
-export function getSyscallAlias(nargs, instr, first = 'ebx') {
+export function getSyscallAlias(args, instr, first = 'ebx') {
     instr = typeof instr === 'string' ? instr : 'syscall ' + instr.toString();
     let idx = register.syscall.indexOf(first);
-    let args = register.syscall.slice(idx, idx + nargs);
+    let sysArgs = register.syscall.slice(idx, idx + args);
     let map = (reg, i) => format('%s = $%s', reg, i);
-    let alias = args.map(map).concat(instr);
-    return {alias, nargs};
-}
-
-export function getOperationAlias(alias, condition) {
-    return {alias, condition};
+    let alias = sysArgs.map(map).concat(instr);
+    return {alias, args};
 }

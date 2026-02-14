@@ -13,14 +13,13 @@ const isTokenConstructor = (ctor) => (
 );
 
 export default class Lexer {
-    constructor(buffer) {
-        if (typeof buffer === 'string') {
-            buffer = Buffer.from(buffer);
+    constructor(input) {
+        if (Buffer.isBuffer(input)) {
+            this.validate(input);
+            input = input.toString();
+            input = this.replaceCrLf(input);
         }
-        this.validate(buffer);
-        let content = buffer.toString();
-        this.content = content;
-        this.replaceCrLf();
+        this.content = input;
         this.position = 0;
         this.backup = this.content;
     }
@@ -71,9 +70,9 @@ export default class Lexer {
         }
     }
 
-    replaceCrLf() {
-        let [head, ...tails] = this.content.split('\r');
-        this.content = head + tails.map((tail) => {
+    replaceCrLf(content) {
+        let [head, ...tails] = content.split('\r');
+        return head + tails.map((tail) => {
             if (!tail.startsWith('\n')) {
                 tail = '\n' + tail;
             }

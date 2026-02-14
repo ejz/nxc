@@ -61,6 +61,12 @@ test('Compiler / 2', (t) => {
         ['lea ax, [ebx]', 'lea ax, [ebx]'],
         ['sal eax, 1', 'shl eax, 1'],
         ['sal.32 eax, 1', 'shl eax, 1'],
+        ['mov eax, 1000', 'mov eax, 0x3e8'],
+        ['mov ax, 0x200', 'mov ax, 0x200'],
+        ['mov eax, :1000', 'mov eax, ds:0x3e8'],
+        ['mov ax, :0x200', 'mov ax, ds:0x200'],
+        ['mov eax, ds:1000', 'mov eax, ds:0x3e8'],
+        ['mov ax, ds:0x200', 'mov ax, ds:0x200'],
     ];
     let file = tmp('tmp-', '.bin');
     for (let [inp, out] of cases) {

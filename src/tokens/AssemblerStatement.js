@@ -183,18 +183,15 @@ export default class AssemblerStatement extends Token {
     eatAddress() {
         let address = null;
         this.lexer.try(() => {
-            let seg = this.eatInteger();
-            if (seg === null) {
-                return false;
-            }
+            let seg = this.eatRegister() ?? this.eatInteger();
             if (!this.lexer.eat(':')) {
                 return false;
             }
-            let adr = this.eatInteger();
-            if (adr === null) {
+            let off = this.eatInteger();
+            if (off === null) {
                 return false;
             }
-            address = [seg, adr];
+            address = [seg, off];
             return true;
         });
         return address;
@@ -365,49 +362,22 @@ export default class AssemblerStatement extends Token {
     }
 
     toBuffer(arch) {
-        if (this.operation !== undefined) {
-            let operationList = arch.alias[this.operation];
-            if (operationList === undefined) {
-                throw new Error;
-            }
-            let foundOperation = operationList.find(({condition = null}) => {
-                return condition === null || condition(this.arguments);
-            });
-            if (foundOperation === undefined) {
-                throw new Error;
-            }
-            let {alias} = foundOperation;
-            return this.toBufferChild(arch, alias);
+        let operation = this.getScheme(arch, this.operation);
+        if (operation !== undefined) {
+            return this.toBufferChild(arch, operation.alias);
         }
         let {base, opsize} = this.mnemo;
-        let maybeAlias = arch.alias[base];
-        if (typeof maybeAlias === 'string') {
-            base = maybeAlias;
-            maybeAlias = undefined;
-        }
-        if (opsize === null && maybeAlias !== undefined) {
-            let aliasList = toArray(maybeAlias);
-            let foundAlias = aliasList.find(({nargs}) => {
-                return nargs === this.arguments.length;
-            });
-            if (foundAlias === undefined) {
-                throw new Error;
-            }
-            let {alias} = foundAlias;
-            let buffers = toArray(alias).map((alias) => {
-                return this.toBufferChild(arch, alias);
-            });
-            return Buffer.concat(buffers);
-        }
-        let possible;
         if (opsize === null) {
-            possible = [base];
-            possible = possible.concat(arch.opsizes.map((opsize) => {
-                return [base, opsize].join('.');
-            }));
-        } else {
-            possible = [[base, opsize].join('.')];
+            let scheme = this.getScheme(arch, base);
+            if (scheme !== undefined) {
+                if (scheme.alias !== undefined) {
+                    return this.toBufferChild(arch, scheme.alias);
+                }
+                return arch.toBuffer(scheme, this.arguments);
+            }
         }
+        let opsizes = toArray(opsize ?? arch.opsizes);
+        let possible = opsizes.map((opsize) => [base, opsize].join('.'));
         let schemes = possible.map((mnemo) => this.getScheme(arch, mnemo));
         schemes = schemes.filter((scheme) => scheme !== undefined);
         if (schemes.length !== 1) {
@@ -417,23 +387,34 @@ export default class AssemblerStatement extends Token {
         return arch.toBuffer(scheme, this.arguments);
     }
 
-    toBufferChild(arch, childText) {
-        let lexer = new Lexer(childText);
-        let statement = new AssemblerStatement(lexer).tokenize(this.arguments);
-        if (statement === null) {
-            throw new Error;
-        }
-        if (!lexer.isEndOfFile()) {
-            throw new Error;
-        }
-        return statement.toBuffer(arch);
+    toBufferChild(arch, instructions) {
+        instructions = typeof instructions === 'function' ? instructions(this.arguments) : instructions;
+        let buffers = toArray(instructions).map((instruction) => {
+            let lexer = new Lexer(instruction);
+            let statement = new AssemblerStatement(lexer).tokenize(this.arguments);
+            if (statement === null) {
+                throw new Error;
+            }
+            if (!lexer.isEndOfFile()) {
+                throw new Error;
+            }
+            return statement.toBuffer(arch);
+        });
+        return Buffer.concat(buffers);
     }
 
-    getScheme(arch, mnemo) {
-        let schemes = arch.mnemo[mnemo];
+    getScheme(arch, isaKey = null) {
+        if (isaKey === null) {
+            return undefined;
+        }
+        let schemes = arch.isa[isaKey];
         [schemes = []] = [schemes];
-        return schemes.find((scheme) => {
-            if (scheme.args.length !== this.arguments.length) {
+        return toArray(schemes).find((scheme) => {
+            let len = this.arguments.length;
+            if (!isArray(scheme.args)) {
+                return scheme.args === len;
+            }
+            if (scheme.args.length !== len) {
                 return false;
             }
             return scheme.args.every((schemeArg, i) => {
