@@ -7,6 +7,7 @@ export const arch = {
     bits: 32,
     scales: ['1', '2', '4', '8'],
     opsizes: ['8', '16', '32'],
+    operations: ['=', '++', '--', '!='],
 };
 
 export const register = {
@@ -544,10 +545,26 @@ export const isa = {
         {opcode: 'a9', args: ['eax', 'imm32']},
         {opcode: 'f7 /0', args: ['r/m32', 'imm32']},
     ],
+    'cmc': {opcode: 'f5', args: []},
+    'clc': {opcode: 'f8', args: []},
+    'stc': {opcode: 'f9', args: []},
+    'cli': {opcode: 'fa', args: []},
+    'sti': {opcode: 'fb', args: []},
+    'cld': {opcode: 'fc', args: []},
+    'std': {opcode: 'fd', args: []},
     '=': [
+        {alias: 'clc', args: ['cf', '0']},
+        {alias: 'stc', args: ['cf', '1']},
+        {alias: 'cli', args: ['if', '0']},
+        {alias: 'sti', args: ['if', '1']},
+        {alias: 'cld', args: ['df', '0']},
+        {alias: 'std', args: ['df', '1']},
         {alias: 'xor $0, $0', args: ['any', '0']},
         {alias: 'mov $0, $1', args: 2},
     ],
+    '!=': {alias: 'cmc', args: ['cf', 'cf']},
+    '--': {alias: 'dec $0', args: ['any']},
+    '++': {alias: 'inc $0', args: ['any']},
     'nop': [
         {alias: 'xchg eax, eax', args: 0},
         {alias: ([{int}]) => new Array(int).fill('nop'), args: ['u16']},
@@ -557,7 +574,11 @@ export const isa = {
         getSyscallAlias(0, 'syscall.exit 0'),
         getSyscallAlias(1, 0x1),
     ],
-    'syscall.write': getSyscallAlias(3, 0x4),
+    'syscall.write': [
+        {alias: 'syscall.write 1, $1, $2', args: ['stdout', 'any', 'any']},
+        {alias: 'syscall.write 2, $1, $2', args: ['stderr', 'any', 'any']},
+        getSyscallAlias(3, 0x4),
+    ],
 };
 
 export const resolver = {
@@ -587,6 +608,13 @@ export const resolver = {
     'moffs8': moffsClosure([null, register.data]),
     'moffs16': moffsClosure([null, register.data]),
     'moffs32': moffsClosure([null, register.data]),
+    ...Object.fromEntries([
+        'cf',
+        'if',
+        'df',
+        'stdout',
+        'stderr',
+    ].map(regClosure)),
 };
 
 export function relClosure() {

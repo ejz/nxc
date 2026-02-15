@@ -1,6 +1,7 @@
 import Token from './Token.js';
 import InvalidTokenError from '../errors/InvalidTokenError.js';
 import Lexer from '../Lexer.js';
+import operations from '../arch/operations.js';
 
 const isArray = Array.isArray;
 const withSelf = (obj) => (obj.self = obj, obj);
@@ -35,7 +36,7 @@ export default class AssemblerStatement extends Token {
 
     tokenizeOperation(args) {
         let isOkay = this.lexer.try(() => {
-            let argument = this.tokenizeAssemblerArgument(args);
+            let argument = this.eatAssemblerArgument(args);
             if (argument === null) {
                 return false;
             }
@@ -44,46 +45,56 @@ export default class AssemblerStatement extends Token {
             if (this.operation === null) {
                 return false;
             }
-            argument = this.tokenizeAssemblerArgument(args);
-            if (argument === null) {
-                return false;
-            }
-            this.arguments.push(argument);
+            this.arguments.push(...this.eatAssemblerArguments(args));
             return this.lexer.eatEnd();
         });
         if (isOkay) {
             return this.finalize();
         }
-        delete this.arguments;
         delete this.operation;
+        delete this.arguments;
         return null;
     }
 
     tokenizeInstruction(args) {
-        this.mnemo = this.eatMnemo();
-        if (this.mnemo === null) {
-            return null;
-        }
-        this.arguments = [];
-        while (!this.lexer.eatEnd()) {
-            if (this.arguments.length === 0) {
-                let wcc = this.lexer.whitespaceCommentCollection();
-                if (!wcc.notEmpty()) {
-                    throw new InvalidTokenError(this.lexer);
-                }
-            } else if (!this.lexer.eatSpecialCharacter(' , ')) {
-                throw new InvalidTokenError(this.lexer);
+        let isOkay = this.lexer.try(() => {
+            this.mnemo = this.eatMnemo();
+            if (this.mnemo === null) {
+                return false;
             }
-            let argument = this.tokenizeAssemblerArgument(args);
-            if (argument === null) {
-                throw new InvalidTokenError(this.lexer);
+            let whitespaceCommentCollection = this.lexer.whitespaceCommentCollection();
+            this.arguments = this.eatAssemblerArguments(args);
+            if (this.arguments.length !== 0 && !whitespaceCommentCollection.notEmpty()) {
+                throw new Error;
             }
-            this.arguments.push(argument);
+            return this.lexer.eatEnd();
+        });
+        if (isOkay) {
+            return this.finalize();
         }
-        return this.finalize();
+        delete this.mnemo;
+        delete this.arguments;
+        return null;
     }
 
-    tokenizeAssemblerArgument(args = []) {
+    eatAssemblerArguments(args) {
+        let collect = [];
+        while (true) {
+            let argument = this.eatAssemblerArgument(args);
+            if (argument === null) {
+                if (collect.length === 0) {
+                    return [];
+                }
+                throw new InvalidTokenError(this.lexer);
+            }
+            collect.push(argument);
+            if (!this.lexer.eatSpecialCharacter(' , ')) {
+                return collect;
+            }
+        }
+    }
+
+    eatAssemblerArgument(args = []) {
         let ref = this.eatRef();
         if (ref !== null) {
             let arg = args[ref];
@@ -92,11 +103,11 @@ export default class AssemblerStatement extends Token {
             }
             return arg;
         }
-        let argument = this.#tokenizeAssemblerArgument();
+        let argument = this.#eatAssemblerArgument();
         return argument !== null ? withSelf(argument) : null;
     }
 
-    #tokenizeAssemblerArgument() {
+    #eatAssemblerArgument() {
         let address = this.eatAddress();
         if (address !== null) {
             return {type: 'address', address};
@@ -156,10 +167,17 @@ export default class AssemblerStatement extends Token {
     }
 
     eatOperation() {
-        if (this.lexer.eatSpecialCharacter(' = ')) {
-            return '=';
-        }
-        return null;
+        let operation = null;
+        this.lexer.try(() => {
+            this.lexer.whitespaceCommentCollection();
+            operation = this.lexer.eatOneOf(...operations);
+            if (operation === null) {
+                return false;
+            }
+            this.lexer.whitespaceCommentCollection();
+            return true;
+        });
+        return operation;
     }
 
     eatRegister() {
@@ -323,15 +341,34 @@ export default class AssemblerStatement extends Token {
     }
 
     stringify() {
+        let line = (
+            this.operation !== undefined
+            ? this.stringifyOperation()
+            : this.stringifyInstruction()
+        );
+        return [line];
+    }
+
+    stringifyInstruction() {
         let space = this.arguments.length !== 0 ? ' ' : '';
         let map = (a) => this.stringifyArgument(a);
-        let line = (
+        return (
             this.mnemo.base
             + (this.mnemo.opsize !== null ? '.' + this.mnemo.opsize : '')
             + space
             + this.arguments.map(map).join(', ')
         );
-        return [line];
+    }
+
+    stringifyOperation() {
+        let [argument, ...rest] = this.arguments;
+        let space = rest.length !== 0 ? ' ' : '';
+        let map = (a) => this.stringifyArgument(a);
+        return (
+            map(argument)
+            + ' ' + this.operation + space
+            + rest.map(map).join(', ')
+        );
     }
 
     stringifyArgument({type: t, register: r, integer: i, address: a, sib: s}) {

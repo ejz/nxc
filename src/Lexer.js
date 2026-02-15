@@ -98,6 +98,10 @@ export default class Lexer {
         return true;
     }
 
+    eatOneOf(...many) {
+        return many.find(this.eat.bind(this)) ?? null;
+    }
+
     eatTill(sub) {
         let content = this.content;
         let pos = content.indexOf(sub);

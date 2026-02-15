@@ -62,6 +62,20 @@ test('AssemblerStatement / 3', (t) => {
     t.deepEqual(toBuffer('nop 1'), nop);
     t.deepEqual(toBuffer('nop 0'), []);
     t.deepEqual(toBuffer('nop 90'), [].concat(...new Array(90).fill(nop)));
+    t.deepEqual(toBuffer('eax--'), toBuffer('dec eax'));
+    t.deepEqual(toBuffer('cf != cf'), toBuffer('cmc'));
+    t.end();
+});
+
+test('AssemblerStatement / 4', (t) => {
+    let cases = [
+        ['a = 1', 'a = 1'],
+    ];
+    for (let [inp, out] of cases) {
+        let lexer = new Lexer(inp);
+        let statement = new AssemblerStatement(lexer).tokenize();
+        t.equals(statement.stringify().shift(), out, inp);
+    }
     t.end();
 });
 
