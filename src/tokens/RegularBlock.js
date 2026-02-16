@@ -10,14 +10,14 @@ export default class RegularBlock extends Token {
             return null;
         }
         this.statements = [];
-        this.lexer.whitespaceCommentCollection();
+        this.lexer.wcc();
         while (true) {
             let statement = this.tokenizeStatement();
             if (statement === null) {
                 break;
             }
             this.statements.push(statement);
-            this.lexer.whitespaceCommentCollection();
+            this.lexer.wcc();
         }
         if (!this.lexer.eat('}')) {
             throw new InvalidTokenError(this.lexer, {expected: '}'});

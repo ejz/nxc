@@ -141,6 +141,10 @@ export default class Lexer {
         return whitespaceCommentCollection;
     }
 
+    wcc() {
+        return this.whitespaceCommentCollection();
+    }
+
     eatSpecialCharacter(sc) {
         let before = sc.startsWith(' ');
         let after = sc.endsWith(' ');

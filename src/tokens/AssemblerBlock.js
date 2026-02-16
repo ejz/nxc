@@ -7,23 +7,23 @@ import InvalidTokenError from '../errors/InvalidTokenError.js';
 export default class AssemblerBlock extends Token {
     tokenize() {
         let isOkay = this.lexer.try(() => {
-            if (!this.lexer.eat(kw.ASM)) {
-                return false;
-            }
-            return this.lexer.eatSpecialCharacter(' {');
+            return (
+                this.lexer.eat(kw.ASM)
+                && this.lexer.eatSpecialCharacter(' {')
+            );
         });
         if (!isOkay) {
             return null;
         }
         this.statements = [];
-        this.lexer.whitespaceCommentCollection();
+        this.lexer.wcc();
         while (true) {
-            let statement = this.tokenizeAssemblerStatement();
+            let statement = this.tokenizeStatement();
             if (statement === null) {
                 break;
             }
             this.statements.push(statement);
-            this.lexer.whitespaceCommentCollection();
+            this.lexer.wcc();
         }
         if (!this.lexer.eat('}')) {
             throw new InvalidTokenError(this.lexer, {expected: '}'});
@@ -31,7 +31,7 @@ export default class AssemblerBlock extends Token {
         return this.finalize();
     }
 
-    tokenizeAssemblerStatement() {
+    tokenizeStatement() {
         return new AssemblerStatement(this.lexer).tokenize();
     }
 
