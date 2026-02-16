@@ -1,6 +1,9 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+
+import readFile from './src/utils/readFile.js';
+import writeFile from './src/utils/writeFile.js';
+import makeFileExecutable from './src/utils/makeFileExecutable.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const dist = path.join(thisDirectory, 'dist');
@@ -27,11 +30,10 @@ export default {
     plugins: [{
         apply: (compiler) => {
             compiler.hooks.assetEmitted.tap('shabang', (file, {targetPath: target}) => {
-                let content = String(fs.readFileSync(target));
+                let content = readFile(target).toString();
                 content = shabang + '\n' + content.trim() + '\n';
-                fs.writeFileSync(target, content);
-                let mode = fs.statSync(target).mode & 0b111111111;
-                fs.chmodSync(target, mode | 0b001001001);
+                writeFile(target, content);
+                makeFileExecutable(target);
             });
         },
     }],
