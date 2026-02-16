@@ -29,6 +29,8 @@ test('AssemblerStatement / 1', (t) => {
         ['mov [eax*4--0x10]', 'mov [eax * 4 - -0x10]'],
         ['mov [eax*4+0xFF]', 'mov [eax * 4 + 0xFF]'],
         ['mov [0xFF+eax*4]', 'mov [eax * 4 + 0xFF]'],
+        ['l:', 'l:'],
+        ['l: mov 1, 2', 'l: mov 1, 2'],
     ];
     for (let [inp, out] of cases) {
         let lexer = new Lexer(inp);

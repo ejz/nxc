@@ -600,9 +600,9 @@ export const resolver = {
     'r/m16': rmClosure(register.r16, true),
     'r/m32': rmClosure(register.r32, true),
     'm': rmClosure([], true),
-    'rel8': relClosure(),
-    'rel16': relClosure(),
-    'rel32': relClosure(),
+    'rel8': relClosure(types.i8),
+    'rel16': relClosure(types.i16),
+    'rel32': relClosure(types.i32),
     'u16': immClosure(types.u16),
     'any': [() => true],
     'moffs8': moffsClosure([null, register.data]),
@@ -617,15 +617,81 @@ export const resolver = {
     ].map(regClosure)),
 };
 
-export function relClosure() {
-    let resolver = ({type: t, register: r, label: l}) => {
+export function toBuffer({opcode, args}, asmArgs) {
+    let opcodes = opcode.split(' ');
+    let [o, t] = opcodes.at(-1);
+    let hasMod = o === '/';
+    if (hasMod) {
+        opcodes.push('');
+    }
+    let opBuf = Buffer.from(opcodes.map((opcode) => {
+        let hex = parseInt(opcode, 16);
+        return isNaN(hex) ? 0 : hex;
+    }));
+    if (hasMod) {
+        Object.assign(opBuf, {
+            setRm,
+            setReg,
+            setMod,
+            setScale,
+            setIndex,
+            setBase,
+            useSib,
+        });
+        opBuf.useSib(false);
+        if (t !== 'r') {
+            t = parseInt(t);
+            opBuf.setReg(t);
+        }
+    }
+    let collect = [opBuf];
+    args.forEach((arg, i) => {
+        let [, composer = null] = resolver[arg];
+        if (composer === null) {
+            return;
+        }
+        let res = composer(asmArgs[i], opBuf);
+        if (res !== null) {
+            collect.push(res);
+        }
+    });
+    if (hasMod && !opBuf.useSib()) {
+        opBuf = opBuf.slice(0, -1);
+        collect.splice(0, 1, opBuf);
+    }
+    return collect;
+}
+
+export default {
+    ...arch,
+    isa,
+    resolver,
+    toBuffer,
+};
+
+export function relClosure(iN) {
+    let resolver = ({type: t, register: r, label: l, self}) => {
         if (!['register', 'label'].includes(t)) {
             return false;
         }
-        let name = {register: r, label: l}[t];
-        return false;
+        self.name = {register: r, label: l}[t];
+        return true;
     };
-    let composer = () => {
+    let composer = ({name: n}) => {
+        let buf = Buffer.alloc(iN.size);
+        buf.callback = ({offset, length, labels}) => {
+            let label = labels[n];
+            if (label === undefined) {
+                throw new Error;
+            }
+            offset += length;
+            let value = label - offset;
+            if (!iN.is(value)) {
+                throw new Error;
+            }
+            buf[iN.method](value);
+        };
+        return buf;
     };
     return [resolver, composer];
 }
@@ -649,50 +715,10 @@ export function moffsClosure(posSeg) {
     let composer = ({int: i}) => {
         let buf = Buffer.allocUnsafe(types.u32.size);
         buf[types.u32.method](i);
-        return [...buf];
+        return buf;
     };
     return [resolver, composer];
 }
-
-export function toBuffer({opcode, args}, asmArgs) {
-    let buf = [];
-    opcode.split(' ').forEach((op) => {
-        let [o, t] = op;
-        if (o !== '/') {
-            buf.push(parseInt(op, 16));
-            return;
-        }
-        buf.modRmIdx = buf.length;
-        buf.push(0);
-        buf.sibIdx = buf.length;
-        Object.assign(buf, {
-            setRm,
-            setReg,
-            setMod,
-            setScale,
-            setIndex,
-            setBase,
-        });
-        if (t !== 'r') {
-            buf.setReg(parseInt(t));
-        }
-    });
-    args.forEach((arg, i) => {
-        let [, composer = null] = resolver[arg];
-        if (composer === null) {
-            return;
-        }
-        buf.push(...composer(asmArgs[i], buf));
-    });
-    return Buffer.from(buf);
-}
-
-export default {
-    ...arch,
-    isa,
-    resolver,
-    toBuffer,
-};
 
 export function immClosure(uN = null, iN = null) {
     let resolver = ({type: t, integer: i, self}) => {
@@ -715,7 +741,7 @@ export function immClosure(uN = null, iN = null) {
     let composer = ({imm, int: i}) => {
         let buf = Buffer.allocUnsafe(imm.size);
         buf[imm.method](i);
-        return [...buf];
+        return buf;
     };
     return [resolver, composer];
 }
@@ -748,19 +774,18 @@ export function rmClosure(reg, acceptSib = false) {
                 return reg.includes(r);
             case 'sib':
                 return acceptSib && isSibOkay(s);
-            default:
-                return false;
         }
+        return false;
     };
-    let composer = ({type: t, register: r, sib: s}, buf) => {
+    let composer = ({type: t, register: r, sib: s}, opBuf) => {
         if (t === 'register') {
             if (acceptSib) {
-                buf.setMod('reg');
-                buf.setRm(r);
+                opBuf.setMod('reg');
+                opBuf.setRm(r);
             } else {
-                buf.setReg(r);
+                opBuf.setReg(r);
             }
-            return [];
+            return null;
         }
         // special cases:
         // 1) disp32 = ebp + disp0
@@ -783,15 +808,15 @@ export function rmClosure(reg, acceptSib = false) {
         disp ??= 0;
         let dispMode = disp === 0 && base !== 'ebp' ? 'disp0' : types.i8.is(disp) ? 'disp8' : 'disp32';
         if (index === null && base !== 'esp') {
-            buf.setRm(base ?? 'ebp');
+            opBuf.setRm(base ?? 'ebp');
         } else {
-            buf.setRm('esp');
-            buf.push(0); // sib
-            buf.setScale(scale ?? def);
-            buf.setIndex(index ?? 'esp');
-            buf.setBase(base ?? 'ebp');
+            opBuf.useSib(true); // sib
+            opBuf.setRm('esp');
+            opBuf.setScale(scale ?? def);
+            opBuf.setIndex(index ?? 'esp');
+            opBuf.setBase(base ?? 'ebp');
         }
-        buf.setMod(base === null ? 'disp0' : dispMode);
+        opBuf.setMod(base === null ? 'disp0' : dispMode);
         return disp2buffer(disp, base === null ? 'disp32' : dispMode);
     };
     return [resolver, composer];
@@ -829,13 +854,15 @@ export const rmRegDict = {
 };
 
 export function setRm(val) {
+    let idx = this.length - 2;
     val = rmRegDict[val];
-    this[this.modRmIdx] += val << 0;
+    this[idx] += val << 0;
 }
 
 export function setReg(val) {
+    let idx = this.length - 2;
     val = typeof val === 'string' ? rmRegDict[val] : val;
-    this[this.modRmIdx] += val << 3;
+    this[idx] += val << 3;
 }
 
 export const modDict = {
@@ -846,37 +873,48 @@ export const modDict = {
 };
 
 export function setMod(val) {
-    this[this.modRmIdx] += modDict[val] << 6;
+    let idx = this.length - 2;
+    this[idx] += modDict[val] << 6;
 }
 
 export function setBase(val) {
+    let idx = this.length - 1;
     val = rmRegDict[val];
-    this[this.sibIdx] += val << 0;
+    this[idx] += val << 0;
 }
 
 export function setIndex(val) {
+    let idx = this.length - 1;
     val = rmRegDict[val];
-    this[this.sibIdx] += val << 3;
+    this[idx] += val << 3;
 }
 
 export function setScale(val) {
+    let idx = this.length - 1;
     val = arch.scales.indexOf(val);
-    this[this.sibIdx] += val << 6;
+    this[idx] += val << 6;
+}
+
+export function useSib(setSib = undefined) {
+    if (setSib !== undefined) {
+        this.isSibUsed = setSib;
+    }
+    return this.isSibUsed;
 }
 
 export function disp2buffer(disp, mode) {
     switch (mode) {
         case 'disp0':
-            return [];
+            return null;
         case 'disp8': {
             let buffer = Buffer.allocUnsafe(types.i8.size);
             buffer[types.i8.method](disp);
-            return [...buffer];
+            return buffer;
         }
         case 'disp32': {
             let buffer = Buffer.allocUnsafe(types.i32.size);
             buffer[types.i32.method](disp);
-            return [...buffer];
+            return buffer;
         }
     }
     throw new Error;

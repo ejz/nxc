@@ -4,8 +4,6 @@ import AssemblerStatement from './AssemblerStatement.js';
 import Lexer from '../Lexer.js';
 import InvalidTokenError from '../errors/InvalidTokenError.js';
 
-const sumLen = (arr) => arr.reduce((acc, elem) => acc + elem.length, 0);
-
 export default class AssemblerBlock extends Token {
     tokenize() {
         let isOkay = this.lexer.try(() => {
@@ -47,17 +45,33 @@ export default class AssemblerBlock extends Token {
 
     toBuffer(arch) {
         let labels = Object.create(null);
-        let buffers = [];
+        let chunks = [];
+        let offset = 0;
+        let callbacks = [];
         for (let statement of this.statements) {
-            if (statement.label === undefined) {
-                buffers.push(statement.toBuffer(arch));
-                continue;
+            if (statement.label !== null) {
+                if (labels[statement.label] !== undefined) {
+                    throw new Error;
+                }
+                labels[statement.label] = offset;
             }
-            if (labels[statement.label] !== undefined) {
-                throw new Error;
-            }
-            labels[statement.label] = sumLen(buffers);
+            statement.toBuffer(arch).forEach((chunk) => {
+                let length = chunk.length;
+                if (chunk.callback !== undefined) {
+                    let chunkOffset = offset;
+                    callbacks.push(() => chunk.callback({
+                        offset: chunkOffset,
+                        length,
+                        labels,
+                    }));
+                }
+                chunks.push(chunk);
+                offset += length;
+            });
         }
-        return Buffer.concat(buffers);
+        callbacks.forEach((callback) => {
+            callback();
+        });
+        return Buffer.concat(chunks);
     }
 }

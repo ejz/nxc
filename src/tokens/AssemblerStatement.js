@@ -9,33 +9,44 @@ const toArray = (a) => isArray(a) ? a : [a];
 
 export default class AssemblerStatement extends Token {
     tokenize(args) {
-        return (
-            (args === undefined ? this.tokenizeLabel() : null)
-            ?? this.tokenizeOperation(args)
-            ?? this.tokenizeInstruction(args)
-        );
-    }
-
-    tokenizeLabel() {
-        let isOkay = this.lexer.try(() => {
-            this.label = this.eatLabel();
-            if (this.label === null) {
-                return false;
+        this.label = this.eatLabelDeclaration();
+        if (this.label !== null) {
+            if (this.lexer.eatEnd()) {
+                return this.finalize();
             }
-            return (
-                this.lexer.eat(':')
-                && this.lexer.eatEnd()
-            );
-        });
-        if (isOkay) {
+            let wcc = this.lexer.whitespaceCommentCollection();
+            if (wcc.isEmpty()) {
+                throw new Error;
+            }
+        }
+        if (this.eatFullOperation(args) || this.eatFullInstruction(args)) {
+            if (!this.lexer.eatEnd()) {
+                throw new Error;
+            }
             return this.finalize();
         }
-        delete this.label;
+        if (this.label !== null) {
+            throw new Error;
+        }
         return null;
     }
 
-    tokenizeOperation(args) {
-        let isOkay = this.lexer.try(() => {
+    eatLabelDeclaration() {
+        let label = null;
+        this.lexer.try(() => {
+            label = this.eatLabel();
+            if (label === null) {
+                return false;
+            }
+            return this.lexer.eat(':');
+        }, () => {
+            label = null;
+        });
+        return label;
+    }
+
+    eatFullOperation(args) {
+        return this.lexer.try(() => {
             let argument = this.eatAssemblerArgument(args);
             if (argument === null) {
                 return false;
@@ -46,35 +57,29 @@ export default class AssemblerStatement extends Token {
                 return false;
             }
             this.arguments.push(...this.eatAssemblerArguments(args));
-            return this.lexer.eatEnd();
+            return true;
+        }, () => {
+            delete this.operation;
+            delete this.arguments;
         });
-        if (isOkay) {
-            return this.finalize();
-        }
-        delete this.operation;
-        delete this.arguments;
-        return null;
     }
 
-    tokenizeInstruction(args) {
-        let isOkay = this.lexer.try(() => {
-            this.mnemo = this.eatMnemo();
-            if (this.mnemo === null) {
+    eatFullInstruction(args) {
+        return this.lexer.try(() => {
+            this.instruction = this.eatInstruction();
+            if (this.instruction === null) {
                 return false;
             }
-            let whitespaceCommentCollection = this.lexer.whitespaceCommentCollection();
+            let wcc = this.lexer.whitespaceCommentCollection();
             this.arguments = this.eatAssemblerArguments(args);
-            if (this.arguments.length !== 0 && !whitespaceCommentCollection.notEmpty()) {
+            if (this.arguments.length !== 0 && wcc.isEmpty()) {
                 throw new Error;
             }
-            return this.lexer.eatEnd();
+            return true;
+        }, () => {
+            delete this.instruction;
+            delete this.arguments;
         });
-        if (isOkay) {
-            return this.finalize();
-        }
-        delete this.mnemo;
-        delete this.arguments;
-        return null;
     }
 
     eatAssemblerArguments(args) {
@@ -135,8 +140,8 @@ export default class AssemblerStatement extends Token {
         return this.lexer.eatIdentifier(true);
     }
 
-    eatMnemo() {
-        let mnemo = {
+    eatInstruction() {
+        let instruction = {
             base: null,
             opsize: null,
         };
@@ -157,13 +162,13 @@ export default class AssemblerStatement extends Token {
         }
         if (parts.at(-1) === '.') {
             parts.pop();
-            mnemo.opsize = this.lexer.eatDecNum();
-            if (mnemo.opsize === null) {
+            instruction.opsize = this.lexer.eatDecNum();
+            if (instruction.opsize === null) {
                 throw new Error;
             }
         }
-        mnemo.base = parts.join('');
-        return mnemo;
+        instruction.base = parts.join('');
+        return instruction;
     }
 
     eatOperation() {
@@ -341,20 +346,26 @@ export default class AssemblerStatement extends Token {
     }
 
     stringify() {
-        let line = (
-            this.operation !== undefined
-            ? this.stringifyOperation()
-            : this.stringifyInstruction()
-        );
+        let line = null;
+        if (this.operation !== undefined) {
+            line = this.stringifyOperation();
+        }
+        if (this.instruction !== undefined) {
+            line = this.stringifyInstruction();
+        }
+        if (this.label !== null) {
+            line = this.label + ':' + (line !== null ? ' ' + line : '');
+        }
         return [line];
     }
 
     stringifyInstruction() {
+        let {base, opsize} = this.instruction;
         let space = this.arguments.length !== 0 ? ' ' : '';
         let map = (a) => this.stringifyArgument(a);
         return (
-            this.mnemo.base
-            + (this.mnemo.opsize !== null ? '.' + this.mnemo.opsize : '')
+            base
+            + (opsize !== null ? '.' + opsize : '')
             + space
             + this.arguments.map(map).join(', ')
         );
@@ -403,7 +414,10 @@ export default class AssemblerStatement extends Token {
         if (operation !== undefined) {
             return this.toBufferChild(arch, operation.alias);
         }
-        let {base, opsize} = this.mnemo;
+        if (this.instruction === undefined) {
+            return [];
+        }
+        let {base, opsize} = this.instruction;
         if (opsize === null) {
             let scheme = this.getScheme(arch, base);
             if (scheme !== undefined) {
@@ -415,7 +429,7 @@ export default class AssemblerStatement extends Token {
         }
         let opsizes = toArray(opsize ?? arch.opsizes);
         let possible = opsizes.map((opsize) => [base, opsize].join('.'));
-        let schemes = possible.map((mnemo) => this.getScheme(arch, mnemo));
+        let schemes = possible.map((instruction) => this.getScheme(arch, instruction));
         schemes = schemes.filter((scheme) => scheme !== undefined);
         if (schemes.length !== 1) {
             throw new Error;
@@ -426,7 +440,7 @@ export default class AssemblerStatement extends Token {
 
     toBufferChild(arch, instructions) {
         instructions = typeof instructions === 'function' ? instructions(this.arguments) : instructions;
-        let buffers = toArray(instructions).map((instruction) => {
+        return [].concat(...toArray(instructions).map((instruction) => {
             let lexer = new Lexer(instruction);
             let statement = new AssemblerStatement(lexer).tokenize(this.arguments);
             if (statement === null) {
@@ -436,8 +450,7 @@ export default class AssemblerStatement extends Token {
                 throw new Error;
             }
             return statement.toBuffer(arch);
-        });
-        return Buffer.concat(buffers);
+        }));
     }
 
     getScheme(arch, isaKey = null) {

@@ -3,8 +3,8 @@ export default class WhitespaceCommentCollection {
         this.collection = [];
     }
 
-    notEmpty() {
-        return this.collection.length !== 0;
+    isEmpty() {
+        return this.collection.length === 0;
     }
 
     gotNewline() {

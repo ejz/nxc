@@ -45,12 +45,15 @@ export default class Lexer {
         this.position += n;
     }
 
-    try(someFn) {
+    try(someFn, revert = null) {
         let state = this.getState();
         if (someFn()) {
             return true;
         }
         state.revert();
+        if (revert !== null) {
+            revert();
+        }
         return false;
     }
 
