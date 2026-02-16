@@ -68,7 +68,9 @@ test('Compiler / 2', (t) => {
         ['mov eax, ds:1000', 'mov eax, ds:0x3e8'],
         ['mov ax, ds:0x200', 'mov ax, ds:0x200'],
         ['l:; jmp.8 l', 'jmp 0x0'],
+        ['l:; jmp l', 'jmp 0x0'],
         ['l: jmp.8 l', 'jmp 0x0'],
+        ['jmp.8 l; l:', 'jmp 0x2'],
     ];
     let file = tmp('tmp-', '.bin');
     for (let [inp, out] of cases) {

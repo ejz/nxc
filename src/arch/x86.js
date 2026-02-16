@@ -181,6 +181,7 @@ export const isa = {
         {opcode: '9a', args: ['ptr16:32']},
         {opcode: 'ff /3', args: ['m16:32']},
     ],
+    'jmp': {alias: 'jmp.8 $0', args: 1},
     'jmp.8': [
         {opcode: 'eb', args: ['rel8']},
     ],
@@ -452,15 +453,6 @@ export const isa = {
         {opcode: 'c1 /4', args: ['r/m32', 'imm8']},
         {opcode: 'd3 /4', args: ['r/m32', 'cl']},
     ],
-    get ['sal.8']() {
-        return this['shl.8'];
-    },
-    get ['sal.16']() {
-        return this['shl.16'];
-    },
-    get ['sal.32']() {
-        return this['shl.32'];
-    },
     'sar.8': [
         {opcode: 'd0 /7', args: ['r/m8', '1']},
         {opcode: 'c0 /7', args: ['r/m8', 'imm8']},
@@ -552,6 +544,72 @@ export const isa = {
     'sti': {opcode: 'fb', args: []},
     'cld': {opcode: 'fc', args: []},
     'std': {opcode: 'fd', args: []},
+    'ja': {alias: 'ja.8 $0', args: 1},
+    'ja.8': {opcode: '77', args: ['rel8']},
+    'ja.16': {opcode: '66 0f 87', args: ['rel16']},
+    'ja.32': {opcode: '0f 87', args: ['rel32']},
+    'jae': {alias: 'jae.8 $0', args: 1},
+    'jae.8': {opcode: '73', args: ['rel8']},
+    'jae.16': {opcode: '66 0f 83', args: ['rel16']},
+    'jae.32': {opcode: '0f 83', args: ['rel32']},
+    'jb': {alias: 'jb.8 $0', args: 1},
+    'jb.8': {opcode: '72', args: ['rel8']},
+    'jb.16': {opcode: '66 0f 82', args: ['rel16']},
+    'jb.32': {opcode: '0f 82', args: ['rel32']},
+    'jbe': {alias: 'jbe.8 $0', args: 1},
+    'jbe.8': {opcode: '76', args: ['rel8']},
+    'jbe.16': {opcode: '66 0f 86', args: ['rel16']},
+    'jbe.32': {opcode: '0f 86', args: ['rel32']},
+    'jcxz': {opcode: '67 e3', args: ['rel8']},
+    'jecxz': {opcode: 'e3', args: ['rel8']},
+    'je': {alias: 'je.8 $0', args: 1},
+    'je.8': {opcode: '74', args: ['rel8']},
+    'je.16': {opcode: '66 0f 84', args: ['rel16']},
+    'je.32': {opcode: '0f 84', args: ['rel32']},
+    'jg': {alias: 'jg.8 $0', args: 1},
+    'jg.8': {opcode: '7f', args: ['rel8']},
+    'jg.16': {opcode: '66 0f 8f', args: ['rel16']},
+    'jg.32': {opcode: '0f 8f', args: ['rel32']},
+    'jge': {alias: 'jge.8 $0', args: 1},
+    'jge.8': {opcode: '7d', args: ['rel8']},
+    'jge.16': {opcode: '66 0f 8d', args: ['rel16']},
+    'jge.32': {opcode: '0f 8d', args: ['rel32']},
+    'jl': {alias: 'jl.8 $0', args: 1},
+    'jl.8': {opcode: '7c', args: ['rel8']},
+    'jl.16': {opcode: '66 0f 8c', args: ['rel16']},
+    'jl.32': {opcode: '0f 8c', args: ['rel32']},
+    'jle': {alias: 'jle.8 $0', args: 1},
+    'jle.8': {opcode: '7e', args: ['rel8']},
+    'jle.16': {opcode: '66 0f 8e', args: ['rel16']},
+    'jle.32': {opcode: '0f 8e', args: ['rel32']},
+    'jne': {alias: 'jne.8 $0', args: 1},
+    'jne.8': {opcode: '75', args: ['rel8']},
+    'jne.16': {opcode: '66 0f 85', args: ['rel16']},
+    'jne.32': {opcode: '0f 85', args: ['rel32']},
+    'jno': {alias: 'jno.8 $0', args: 1},
+    'jno.8': {opcode: '71', args: ['rel8']},
+    'jno.16': {opcode: '66 0f 81', args: ['rel16']},
+    'jno.32': {opcode: '0f 81', args: ['rel32']},
+    'jnp': {alias: 'jnp.8 $0', args: 1},
+    'jnp.8': {opcode: '7b', args: ['rel8']},
+    'jnp.16': {opcode: '66 0f 8b', args: ['rel16']},
+    'jnp.32': {opcode: '0f 8b', args: ['rel32']},
+    'jns': {alias: 'jns.8 $0', args: 1},
+    'jns.8': {opcode: '79', args: ['rel8']},
+    'jns.16': {opcode: '66 0f 89', args: ['rel16']},
+    'jns.32': {opcode: '0f 89', args: ['rel32']},
+    'jp': {alias: 'jp.8 $0', args: 1},
+    'jp.8': {opcode: '7a', args: ['rel8']},
+    'jp.16': {opcode: '66 0f 8a', args: ['rel16']},
+    'jp.32': {opcode: '0f 8a', args: ['rel32']},
+    'jo': {alias: 'jo.8 $0', args: 1},
+    'jo.8': {opcode: '70', args: ['rel8']},
+    'jo.16': {opcode: '66 0f 80', args: ['rel16']},
+    'jo.32': {opcode: '0f 80', args: ['rel32']},
+    'js': {alias: 'js.8 $0', args: 1},
+    'js.8': {opcode: '78', args: ['rel8']},
+    'js.16': {opcode: '66 0f 88', args: ['rel16']},
+    'js.32': {opcode: '0f 88', args: ['rel32']},
     '=': [
         {alias: 'clc', args: ['cf', '0']},
         {alias: 'stc', args: ['cf', '1']},
@@ -580,6 +638,23 @@ export const isa = {
         getSyscallAlias(3, 0x4),
     ],
 };
+
+Object.assign(isa, fullAlias('sal', 'shl'));
+Object.assign(isa, fullAlias('jnbe', 'ja'));
+Object.assign(isa, fullAlias('jnb', 'jae'));
+Object.assign(isa, fullAlias('jnc', 'jae'));
+Object.assign(isa, fullAlias('jc', 'jb'));
+Object.assign(isa, fullAlias('jnae', 'jb'));
+Object.assign(isa, fullAlias('jna', 'jbe'));
+Object.assign(isa, fullAlias('jecxz', 'jcxz'));
+Object.assign(isa, fullAlias('jz', 'je'));
+Object.assign(isa, fullAlias('jnle', 'jg'));
+Object.assign(isa, fullAlias('jnl', 'jge'));
+Object.assign(isa, fullAlias('jnge', 'jl'));
+Object.assign(isa, fullAlias('jng', 'jle'));
+Object.assign(isa, fullAlias('jnz', 'jne'));
+Object.assign(isa, fullAlias('jpo', 'jnp'));
+Object.assign(isa, fullAlias('jpe', 'jp'));
 
 export const resolver = {
     '0': rawClosure(0),
@@ -927,4 +1002,19 @@ export function getSyscallAlias(args, instr, first = 'ebx') {
     let map = (reg, i) => format('%s = $%s', reg, i);
     let alias = sysArgs.map(map).concat(instr);
     return {alias, args};
+}
+
+export function fullAlias(src, dst) {
+    let obj = {};
+    if (isa[dst] !== undefined) {
+        obj[src] = isa[dst];
+    }
+    for (let opsize of arch.opsizes) {
+        let srcKey = [src, opsize].join('.');
+        let dstKey = [dst, opsize].join('.');
+        if (isa[dstKey] !== undefined) {
+            obj[srcKey] = isa[dstKey];
+        }
+    }
+    return obj;
 }
