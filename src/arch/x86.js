@@ -8,6 +8,7 @@ export const arch = {
     scales: ['1', '2', '4', '8'],
     opsizes: ['8', '16', '32'],
     operations: ['=', '++', '--', '!='],
+    finalExit: 'syscall.exit',
 };
 
 export const register = {

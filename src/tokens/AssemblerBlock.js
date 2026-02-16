@@ -26,7 +26,7 @@ export default class AssemblerBlock extends Token {
             this.lexer.whitespaceCommentCollection();
         }
         if (!this.lexer.eat('}')) {
-            throw new InvalidTokenError(this.lexer, undefined, '}');
+            throw new InvalidTokenError(this.lexer, {expected: '}'});
         }
         return this.finalize();
     }

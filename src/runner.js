@@ -44,9 +44,8 @@ export default async function runner({
             case '-disable-color':
                 logger.enableColor = false;
                 return;
-            default:
-                throw new InvalidArgumentError(arg);
         }
+        throw new InvalidArgumentError(arg);
     });
     let command = positionals.shift();
     if (command === undefined) {

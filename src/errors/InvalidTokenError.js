@@ -1,13 +1,18 @@
 import NxcError from './NxcError.js';
 
 export default class InvalidTokenError extends NxcError {
-    constructor(lexer, catchLen = 1, expected = null) {
+    constructor(lexer, {
+        catchLen = 1,
+        expected = null,
+        errorFormat = '%s',
+        errorArgs = ['invalid token:'],
+    } = {}) {
         let parsed = lexer.backup.slice(0, lexer.position);
         let lines = parsed.split('\n');
         let len = lines.length;
         let pad = String(len).length;
-        let message = ['%s'];
-        let args = ['invalid token:'];
+        let message = [errorFormat];
+        let args = errorArgs.slice();
         if (expected !== null) {
             message[0] += ' expected %q';
             args.push(expected);
