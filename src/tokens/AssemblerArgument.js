@@ -4,30 +4,25 @@ import AssemblerLabel from './AssemblerLabel.js';
 
 export default class AssemblerArgument extends Token {
     tokenize() {
-        let token = this.#tokenize();
-        return token !== null ? token.finalize() : null;
-    }
-
-    #tokenize() {
         this.address = this.eatAddress();
         if (this.address !== null) {
-            return this;
+            return this.finalize();
         }
         this.integer = this.eatInteger();
         if (this.integer !== null) {
-            return this;
+            return this.finalize();
         }
         this.sib = this.eatSib();
         if (this.sib !== null) {
-            return this;
+            return this.finalize();
         }
         this.register = this.eatRegister();
         if (this.register !== null) {
-            return this;
+            return this.finalize();
         }
         this.label = this.eatLabel();
         if (this.label !== null) {
-            return this;
+            return this.finalize();
         }
         return null;
     }
@@ -77,16 +72,16 @@ export default class AssemblerArgument extends Token {
             if (parts !== null) {
                 plusMinus = this.eatPlusMinus();
                 if (plusMinus === null) {
-                    this.throw();
+                    this.lexer.error();
                 }
             }
             let part = this.eatSibPart();
             if (part === null) {
-                this.throw();
+                this.lexer.error();
             }
             part.minus = plusMinus === '-';
             if (part.minus && part.type !== 'integer') {
-                this.throw();
+                this.lexer.error();
             }
             parts ??= [];
             parts.push(part);
@@ -173,7 +168,7 @@ export default class AssemblerArgument extends Token {
         }
         let scale = this.lexer.eatDecNum();
         if (scale === null) {
-            this.throw();
+            this.lexer.error();
         }
         return scale;
     }
@@ -187,7 +182,7 @@ export default class AssemblerArgument extends Token {
             minus: false,
         };
         if (parts.length > 3) {
-            this.throw();
+            this.lexer.error();
         }
         for (let part of parts) {
             if (
@@ -199,7 +194,7 @@ export default class AssemblerArgument extends Token {
                 continue;
             }
             if (part.type !== 'register') {
-                this.throw();
+                this.lexer.error();
             }
             if (
                 part.scale !== null
@@ -218,8 +213,31 @@ export default class AssemblerArgument extends Token {
                 sib.index = part.register;
                 continue;
             }
-            this.throw();
+            this.lexer.error();
         }
         return sib;
+    }
+
+    static tokenizeArguments(lexer) {
+        let collect = [];
+        while (true) {
+            let argument = new AssemblerArgument(lexer).tokenize();
+            if (argument === null) {
+                if (collect.length === 0) {
+                    break;
+                }
+                lexer.error();
+            }
+            collect.push(argument);
+            if (!lexer.eatSpecialCharacter(' , ')) {
+                break;
+            }
+        }
+        return collect;
+    }
+
+    static stringifyArguments(collect) {
+        let map = (arg) => arg.stringify();
+        return collect.map(map).join(', ');
     }
 }

@@ -39,3 +39,11 @@ test('AssemblerArgument / 1', (t) => {
     }
     t.end();
 });
+
+test('AssemblerArgument / 2', (t) => {
+    let inp = 'a, b, 1, [10], _la';
+    let lexer = new Lexer(inp);
+    let got = AssemblerArgument.tokenizeArguments(lexer);
+    t.equals(AssemblerArgument.stringifyArguments(got), inp);
+    t.end();
+});

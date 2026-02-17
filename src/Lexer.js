@@ -1,5 +1,5 @@
-import LexerValidationError from './errors/LexerValidationError.js';
 import LexerError from './errors/LexerError.js';
+import LexerValidationError from './errors/LexerValidationError.js';
 import WhitespaceCommentCollection from './WhitespaceCommentCollection.js';
 import Comment from './tokens/Comment.js';
 import Whitespace from './tokens/Whitespace.js';
@@ -65,10 +65,13 @@ export default class Lexer {
         return false;
     }
 
-    look(someFn) {
+    look(someFn, revert = null) {
         let state = this.getState();
         let res = someFn();
         state.revert();
+        if (revert !== null) {
+            revert();
+        }
         return res;
     }
 

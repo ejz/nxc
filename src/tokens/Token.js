@@ -1,5 +1,3 @@
-import InvalidTokenError from '../errors/InvalidTokenError.js';
-
 export default class Token {
     constructor(lexer) {
         this.lexer = lexer;
