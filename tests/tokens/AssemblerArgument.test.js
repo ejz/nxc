@@ -29,6 +29,8 @@ test('AssemblerArgument / 1', (t) => {
         ['[eax*4--0x10]', '[eax * 4 - -0x10]'],
         ['[eax*4+0xFF]', '[eax * 4 + 0xFF]'],
         ['[0xFF+eax*4]', '[eax * 4 + 0xFF]'],
+        ['eax', 'eax'],
+        ['_label', '_label'],
     ];
     for (let [inp, out] of cases) {
         let lexer = new Lexer(inp);

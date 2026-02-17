@@ -8,6 +8,7 @@ import Lexer from '../src/Lexer.js';
 import Program from '../src/tokens/Program.js';
 import writeFile from '../src/utils/writeFile.js';
 import tmp from '../src/utils/tmp.js';
+import x86 from '../src/arch/x86.js';
 
 const binTmp = tmp('tmp-', '.bin');
 const objdump = 'objdump --no-show-raw-insn -b binary -M intel -m i386 -D %s';
@@ -16,7 +17,7 @@ test('Compiler / 1', (t) => {
     let compiler = new Compiler;
     let lex = new Lexer(`{{{}}} /* */ {;} {{;}{;}}`);
     let program = new Program(lex).tokenize();
-    compiler.normalize(program);
+    compiler.normalize(program, x86);
     t.equals(program.stringify(), '');
     t.end();
 });

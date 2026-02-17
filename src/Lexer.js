@@ -1,4 +1,5 @@
 import LexerValidationError from './errors/LexerValidationError.js';
+import LexerError from './errors/LexerError.js';
 import WhitespaceCommentCollection from './WhitespaceCommentCollection.js';
 import Comment from './tokens/Comment.js';
 import Whitespace from './tokens/Whitespace.js';
@@ -199,6 +200,10 @@ export default class Lexer {
                 || this.look(() => this.eat('}'))
             );
         });
+    }
+
+    error() {
+        throw new LexerError(this);
     }
 
     static indent(lines, c = 1, tab = ' '.repeat(4)) {

@@ -1,6 +1,6 @@
 import NxcError from './NxcError.js';
 
-export default class InvalidTokenError extends NxcError {
+export default class LexerError extends NxcError {
     constructor(lexer, {
         catchLen = 1,
         expected = null,

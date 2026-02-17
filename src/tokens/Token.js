@@ -23,8 +23,4 @@ export default class Token {
     fixStart(token) {
         this.start = token.start;
     }
-
-    throw() {
-        throw new InvalidTokenError(this.lexer);
-    }
 }
