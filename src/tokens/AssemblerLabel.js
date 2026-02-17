@@ -2,28 +2,24 @@ import Token from './Token.js';
 
 export default class AssemblerLabel extends Token {
     tokenize() {
-        this.name = null;
-        this.lexer.try(() => {
+        let isOkay = this.lexer.try(() => {
             this.name = this.eat();
             if (this.name === null) {
                 return false;
             }
             return this.lexer.eat(':');
-        }, () => {
-            this.name = null;
         });
-        if (this.name === null) {
-            return null;
-        }
-        return this.finalize();
+        return isOkay ? this.finalize() : null;
     }
 
     eat() {
-        return this.lexer.eatIdentifier(true);
+        return this.lexer.eatIdentifier({
+            upperCase: true,
+            underscore: true,
+        });
     }
 
     stringify() {
-        let line = this.name + ':';
-        return [line];
+        return this.name + ':';
     }
 }

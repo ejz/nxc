@@ -11,6 +11,13 @@ const isTokenConstructor = (ctor) => (
     ctor.prototype instanceof Token
     || ctor === Token
 );
+const identifier = {
+    // key: [upperCase, underscore]
+    [[true, true]]: /^[_a-zA-Z][_a-zA-Z0-9]*/,
+    [[true, false]]: /^[a-zA-Z][a-zA-Z0-9]*/,
+    [[false, true]]: /^[_a-z][_a-z0-9]*/,
+    [[false, false]]: /^[a-z][a-z0-9]*/,
+};
 
 export default class Lexer {
     constructor(input) {
@@ -152,13 +159,13 @@ export default class Lexer {
         sc = after ? sc.slice(0, -1) : sc;
         return this.try(() => {
             if (before) {
-                this.whitespaceCommentCollection();
+                this.wcc();
             }
             if (!this.eat(sc)) {
                 return false;
             }
             if (after) {
-                this.whitespaceCommentCollection();
+                this.wcc();
             }
             return true;
         });
@@ -176,14 +183,15 @@ export default class Lexer {
         return this.eatHexNum() ?? this.eatDecNum();
     }
 
-    eatIdentifier(withUpperCase = false) {
-        let regex = withUpperCase ? /^[a-zA-Z][a-zA-Z0-9]*/ : /^[a-z][a-z0-9]*/;
+    eatIdentifier({upperCase = false, underscore = false} = {}) {
+        let key = [upperCase, underscore];
+        let regex = identifier[key];
         return this.eatRegex(regex);
     }
 
     eatEnd() {
         return this.try(() => {
-            let wcc = this.whitespaceCommentCollection();
+            let wcc = this.wcc();
             return (
                 this.isEndOfFile()
                 || this.eat(';')
