@@ -3,7 +3,17 @@ import InternalError from '../errors/InternalError.js';
 import AssemblerLabel from './AssemblerLabel.js';
 
 export default class AssemblerArgument extends Token {
-    tokenize() {
+    tokenize(inputArgs = null) {
+        if (inputArgs !== null) {
+            let ref = this.eatRef();
+            if (ref !== null) {
+                let inputArg = inputArgs[ref];
+                if (inputArg === undefined) {
+                    throw new InternalError;
+                }
+                return inputArg;
+            }
+        }
         this.address = this.eatAddress();
         if (this.address !== null) {
             return this.finalize();
@@ -218,10 +228,22 @@ export default class AssemblerArgument extends Token {
         return sib;
     }
 
-    static tokenizeArguments(lexer) {
+    eatRef() {
+        let ref = null;
+        this.lexer.try(() => {
+            if (!this.lexer.eat('$')) {
+                return false;
+            }
+            ref = this.lexer.eatDecNum();
+            return ref !== null;
+        });
+        return ref;
+    }
+
+    static tokenizeArguments(lexer, inputArgs) {
         let collect = [];
         while (true) {
-            let argument = new AssemblerArgument(lexer).tokenize();
+            let argument = new AssemblerArgument(lexer).tokenize(inputArgs);
             if (argument === null) {
                 if (collect.length === 0) {
                     break;

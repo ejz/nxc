@@ -15,6 +15,7 @@ export default class Compiler {
         let lexer = new Lexer(buffer);
         let program = new Program(lexer).tokenize();
         this.normalize(program);
+        this.appendFinalExit(program, x86);
         let elf = new Elf(x86);
         let filter = (token, parent) => {
             if (parent !== program) {
@@ -55,5 +56,11 @@ export default class Compiler {
             list.splice(index, 1);
         }
         return found.length !== 0;
+    }
+
+    appendFinalExit(program, {finalExit}) {
+        let code = `asm{${finalExit}}`;
+        let assemblerBlock = new AssemblerBlock(new Lexer(code)).tokenize();
+        program.statements.push(assemblerBlock);
     }
 }

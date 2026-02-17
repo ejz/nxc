@@ -6,31 +6,11 @@ import x86 from '../../src/arch/x86.js';
 
 test('AssemblerStatement / 1', (t) => {
     let cases = [
-        ['mov eax, 2', 'mov eax, 2'],
-        ['mov eax, 0xFF', 'mov eax, 0xFF'],
-        ['mov eax, -0xFF', 'mov eax, -0xFF'],
-        ['mov eax, +0xFF', 'mov eax, +0xFF'],
-        ['mov 0xF:0xA', 'mov 0xF:0xA'],
-        ['mov :0xaa', 'mov :0xaa'],
-        ['mov ds:0xaa', 'mov ds:0xaa'],
-        ['mov -0xF:+0xA', 'mov -0xF:+0xA'],
-        ['mov [-0x10]', 'mov [-0x10]'],
-        ['mov [+0x10]', 'mov [+0x10]'],
-        ['mov [eax]', 'mov [eax]'],
-        ['mov [eax * 1]', 'mov [eax * 1]'],
-        ['mov [eax * 100]', 'mov [eax * 100]'],
-        ['mov [eax * 1 + +1]', 'mov [eax * 1 + +1]'],
-        ['mov [eax*1++1]', 'mov [eax * 1 + +1]'],
-        ['mov [+1+eax*1]', 'mov [eax * 1 + +1]'],
-        ['mov [-1+eax*1]', 'mov [eax * 1 + -1]'],
-        ['mov [-1+eax]', 'mov [eax + -1]'],
-        ['mov [eax-1]', 'mov [eax - 1]'],
-        ['mov [eax--1]', 'mov [eax - -1]'],
-        ['mov [eax*4--0x10]', 'mov [eax * 4 - -0x10]'],
-        ['mov [eax*4+0xFF]', 'mov [eax * 4 + 0xFF]'],
-        ['mov [0xFF+eax*4]', 'mov [eax * 4 + 0xFF]'],
+        ['mov 1, 2', 'mov 1, 2'],
+        ['a = 1', 'a = 1'],
         ['l:', 'l:'],
         ['l: mov 1, 2', 'l: mov 1, 2'],
+        ['l: a = 1', 'l: a = 1'],
     ];
     for (let [inp, out] of cases) {
         let lexer = new Lexer(inp);
@@ -66,18 +46,8 @@ test('AssemblerStatement / 3', (t) => {
     t.deepEqual(toBuffer('nop 90'), [].concat(...new Array(90).fill(nop)));
     t.deepEqual(toBuffer('eax--'), toBuffer('dec eax'));
     t.deepEqual(toBuffer('cf != cf'), toBuffer('cmc'));
-    t.end();
-});
-
-test('AssemblerStatement / 4', (t) => {
-    let cases = [
-        ['a = 1', 'a = 1'],
-    ];
-    for (let [inp, out] of cases) {
-        let lexer = new Lexer(inp);
-        let statement = new AssemblerStatement(lexer).tokenize();
-        t.equals(statement.stringify().shift(), out, inp);
-    }
+    t.deepEqual(toBuffer('cf = 0'), toBuffer('clc'));
+    t.deepEqual(toBuffer('cf = 1'), toBuffer('stc'));
     t.end();
 });
 

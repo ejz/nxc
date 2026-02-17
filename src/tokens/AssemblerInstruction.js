@@ -2,7 +2,7 @@ import Token from './Token.js';
 import AssemblerArgument from './AssemblerArgument.js';
 
 export default class AssemblerInstruction extends Token {
-    tokenize() {
+    tokenize(inputArgs) {
         let isOkay = this.lexer.try(() => {
             this.instruction = this.eatInstruction();
             if (this.instruction === null) {
@@ -10,7 +10,7 @@ export default class AssemblerInstruction extends Token {
             }
             this.opsize = this.eatOperandSize();
             let wcc = this.lexer.wcc();
-            this.arguments = this.tokenizeArguments();
+            this.arguments = this.tokenizeArguments(inputArgs);
             if (this.arguments.length !== 0 && wcc.isEmpty()) {
                 this.lexer.error();
             }
@@ -19,8 +19,8 @@ export default class AssemblerInstruction extends Token {
         return isOkay ? this.finalize() : null;
     }
 
-    tokenizeArguments() {
-        return AssemblerArgument.tokenizeArguments(this.lexer);
+    tokenizeArguments(inputArgs) {
+        return AssemblerArgument.tokenizeArguments(this.lexer, inputArgs);
     }
 
     eatInstruction() {

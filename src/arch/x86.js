@@ -746,17 +746,14 @@ export default {
 };
 
 export function relClosure(iN) {
-    let resolver = ({type: t, register: r, label: l, self}) => {
-        if (!['register', 'label'].includes(t)) {
-            return false;
-        }
-        self.name = {register: r, label: l}[t];
-        return true;
+    let resolver = ({register = null, label = null}) => {
+        return register !== null || label !== null;
     };
-    let composer = ({name: n}) => {
+    let composer = ({register = null, label = null}) => {
+        let name = register ?? label;
         let buf = Buffer.alloc(iN.size);
         buf.callback = ({offset, length, labels}) => {
-            let label = labels[n];
+            let label = labels[name];
             if (label === undefined) {
                 throw new Error;
             }
@@ -773,11 +770,12 @@ export function relClosure(iN) {
 }
 
 export function moffsClosure(posSeg) {
-    let resolver = ({type: t, address: a, self}) => {
-        if (t !== 'address') {
+    let resolver = (asmArg) => {
+        let {address = null} = asmArg;
+        if (address === null) {
             return false;
         }
-        let [seg, off] = a;
+        let [seg, off] = address;
         if (!posSeg.includes(seg)) {
             return false;
         }
@@ -785,81 +783,85 @@ export function moffsClosure(posSeg) {
         if (!types.u32.is(int)) {
             return false;
         }
-        self.int = int;
+        asmArg.int = int;
         return true;
     };
-    let composer = ({int: i}) => {
+    let composer = ({int}) => {
         let buf = Buffer.allocUnsafe(types.u32.size);
-        buf[types.u32.method](i);
+        buf[types.u32.method](int);
         return buf;
     };
     return [resolver, composer];
 }
 
 export function immClosure(uN = null, iN = null) {
-    let resolver = ({type: t, integer: i, self}) => {
-        if (t !== 'integer') {
+    let resolver = (asmArg) => {
+        let {integer = null} = asmArg;
+        if (integer === null) {
             return false;
         }
-        let int = parseInt(i);
+        let int = parseInt(integer);
         if (uN !== null && uN.is(int)) {
-            self.int = int;
-            self.imm = uN;
+            asmArg.int = int;
+            asmArg.imm = uN;
             return true;
         }
         if (iN !== null && iN.is(int)) {
-            self.int = int;
-            self.imm = iN;
+            asmArg.int = int;
+            asmArg.imm = iN;
             return true;
         }
         return false;
     };
-    let composer = ({imm, int: i}) => {
+    let composer = ({imm, int}) => {
         let buf = Buffer.allocUnsafe(imm.size);
-        buf[imm.method](i);
+        buf[imm.method](int);
         return buf;
     };
     return [resolver, composer];
 }
 
 export function rawClosure(int) {
-    let resolver = ({type: t, integer: i}) => {
-        if (t !== 'integer') {
+    let resolver = ({integer = null}) => {
+        if (integer === null) {
             return false;
         }
-        let v = parseInt(i);
-        return v === int;
+        let value = parseInt(integer);
+        return value === int;
     };
     return [resolver];
 }
 
 export function regClosure(reg) {
-    let resolver = ({type: t, register: r}) => {
-        if (t !== 'register') {
+    let resolver = ({register = null}) => {
+        if (register === null) {
             return false;
         }
-        return r === reg;
+        return register === reg;
     };
     return [reg, [resolver]];
 }
 
 export function rmClosure(reg, acceptSib = false) {
-    let resolver = ({type: t, register: r, sib: s}) => {
-        switch (t) {
-            case 'register':
-                return reg.includes(r);
-            case 'sib':
-                return acceptSib && isSibOkay(s);
+    let resolver = ({register = null, sib = null}) => {
+        if (register !== null) {
+            return reg.includes(register);
+        }
+        if (sib !== null && acceptSib) {
+            if (!isSibOkay(sib)) {
+                throw new Error('invalid sib');
+            }
+            return true;
         }
         return false;
     };
-    let composer = ({type: t, register: r, sib: s}, opBuf) => {
-        if (t === 'register') {
+    let composer = ({register, sib}, opBuf) => {
+        if (register !== null) {
             if (acceptSib) {
                 opBuf.setMod('reg');
-                opBuf.setRm(r);
+                opBuf.setRm(register);
             } else {
-                opBuf.setReg(r);
+                opBuf.setReg(register);
             }
             return null;
         }
@@ -870,7 +872,7 @@ export function rmClosure(reg, acceptSib = false) {
         // 4) swap [ebp + esp] -> [esp + ebp]
         // 5) [eax * 1] -> [eax]
         let [def] = arch.scales;
-        let {scale, base, index, disp} = s;
+        let {scale, base, index, disp} = sib;
         if (scale === null && index === 'esp' && base !== 'esp') {
             [index, base] = [base, index];
         }
