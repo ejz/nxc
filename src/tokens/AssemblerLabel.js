@@ -3,7 +3,7 @@ import Token from './Token.js';
 export default class AssemblerLabel extends Token {
     tokenize() {
         let isOkay = this.lexer.try(() => {
-            this.name = this.eat();
+            this.name = this.eatLabel();
             if (this.name === null) {
                 return false;
             }
@@ -12,7 +12,7 @@ export default class AssemblerLabel extends Token {
         return isOkay ? this.finalize() : null;
     }
 
-    eat() {
+    eatLabel() {
         return this.lexer.eatIdentifier({
             upperCase: true,
             underscore: true,

@@ -104,7 +104,7 @@ export default class AssemblerArgument extends Token {
     }
 
     eatLabel() {
-        return AssemblerLabel.prototype.eat.bind(this)();
+        return AssemblerLabel.prototype.eatLabel.bind(this)();
     }
 
     stringify() {

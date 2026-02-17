@@ -2,7 +2,7 @@ import WhitespaceComment from './WhitespaceComment.js';
 
 export default class Whitespace extends WhitespaceComment {
     tokenize() {
-        let content = this.eat();
+        let content = this.eatWhitespace();
         if (content === null) {
             return null;
         }
@@ -10,7 +10,7 @@ export default class Whitespace extends WhitespaceComment {
         return this.finalize();
     }
 
-    eat() {
+    eatWhitespace() {
         return this.lexer.eatWhitespace();
     }
 }

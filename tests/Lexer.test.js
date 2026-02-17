@@ -72,3 +72,18 @@ test('Lexer / 3', (t) => {
     t.equals(res4.length, 1);
     t.end();
 });
+
+test('Lexer / 4', (t) => {
+    {
+        let lex = new Lexer('a.b.c.1');
+        let ident = lex.eatIdentifier();
+        t.equals(ident, 'a');
+    }
+    {
+        let lex = new Lexer('a.b.c.1');
+        let ident = lex.eatIdentifier({multiple: '.'});
+        t.equals(ident, 'a.b.c');
+        t.equals(lex.content, '.1');
+    }
+    t.end();
+});

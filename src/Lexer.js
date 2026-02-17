@@ -187,10 +187,36 @@ export default class Lexer {
         return this.eatHexNum() ?? this.eatDecNum();
     }
 
-    eatIdentifier({upperCase = false, underscore = false} = {}) {
+    eatIdentifier({upperCase = false, underscore = false, multiple = null} = {}) {
         let key = [upperCase, underscore];
         let regex = identifier[key];
-        return this.eatRegex(regex);
+        let parts = null;
+        while (true) {
+            let part = null;
+            if (parts === null) {
+                part = this.eatRegex(regex);
+            } else {
+                this.try(() => {
+                    if (!this.eat(multiple)) {
+                        return false;
+                    }
+                    part = this.eatRegex(regex);
+                    return part !== null;
+                });
+            }
+            if (part === null) {
+                break;
+            }
+            parts ??= [];
+            parts.push(part);
+            if (multiple === null) {
+                break;
+            }
+        }
+        if (parts === null) {
+            return null;
+        }
+        return parts.join(multiple ?? '');
     }
 
     eatEnd() {
