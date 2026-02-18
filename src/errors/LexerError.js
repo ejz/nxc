@@ -46,7 +46,7 @@ export default class LexerError extends NxcError {
                 message[message.length - 1] += '%color';
                 args.push([line === '' ? 'bgRed' : 'inverse', ' ']);
             }
-            catchLen = Math.min(catchLen, tail.length);
+            catchLen = Math.min(catchLen, tail.length) || 1;
             color.push('bold');
             message.push(format);
             args.push([[], ' '.repeat(lineNum.length)]);

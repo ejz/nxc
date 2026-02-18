@@ -4,7 +4,7 @@ export default function execute(cmd, {
     shell = false,
     stdio = ['ignore', 'pipe', 'ignore'],
     ...rest
-}) {
+} = {}) {
     let bin = cmd.shift();
     let child = child_process.spawn(bin, cmd, {shell, stdio, ...rest});
     let stdout = [];
