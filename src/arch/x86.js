@@ -1,4 +1,8 @@
 import {format} from 'node:util';
+import InvalidLabelNameError from '../errors/InvalidLabelNameError.js';
+import InvalidLabelOffsetError from '../errors/InvalidLabelOffsetError.js';
+import SibValidationError from '../errors/SibValidationError.js';
+import InternalError from '../errors/InternalError.js';
 
 import * as types from '../types.js';
 
@@ -755,12 +759,12 @@ export function relClosure(iN) {
         buf.callback = ({offset, length, labels}) => {
             let label = labels[name];
             if (label === undefined) {
-                throw new Error;
+                throw new InvalidLabelNameError(name);
             }
             offset += length;
             let value = label - offset;
             if (!iN.is(value)) {
-                throw new Error;
+                throw new InvalidLabelOffsetError(name, value);
             }
             buf[iN.method](value);
         };
@@ -849,7 +853,7 @@ export function rmClosure(reg, acceptSib = false) {
         }
         if (sib !== null && acceptSib) {
             if (!isSibOkay(sib)) {
-                throw new Error('invalid sib');
+                throw new SibValidationError;
             }
             return true;
         }
@@ -877,7 +881,7 @@ export function rmClosure(reg, acceptSib = false) {
             [index, base] = [base, index];
         }
         if (index === 'esp') {
-            throw new Error;
+            throw new SibValidationError;
         }
         if (scale === def && index !== null && base === null) {
             base = index;
@@ -995,7 +999,7 @@ export function disp2buffer(disp, mode) {
             return buffer;
         }
     }
-    throw new Error;
+    throw new InternalError;
 }
 
 export function getSyscallAlias(args, instr, first = 'ebx') {

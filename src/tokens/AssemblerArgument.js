@@ -192,7 +192,7 @@ export default class AssemblerArgument extends Token {
             minus: false,
         };
         if (parts.length > 3) {
-            throw this.lexer.error();
+            throw this.error();
         }
         for (let part of parts) {
             if (
@@ -204,7 +204,7 @@ export default class AssemblerArgument extends Token {
                 continue;
             }
             if (part.type !== 'register') {
-                throw this.lexer.error();
+                throw this.error();
             }
             if (
                 part.scale !== null
@@ -223,7 +223,7 @@ export default class AssemblerArgument extends Token {
                 sib.index = part.register;
                 continue;
             }
-            throw this.lexer.error();
+            throw this.error();
         }
         return sib;
     }

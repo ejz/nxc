@@ -3,6 +3,7 @@ import Lexer from '../Lexer.js';
 import AssemblerLabel from './AssemblerLabel.js';
 import AssemblerOperation from './AssemblerOperation.js';
 import AssemblerInstruction from './AssemblerInstruction.js';
+import InternalError from '../errors/InternalError.js';
 
 const isArray = Array.isArray;
 const toArray = (a) => isArray(a) ? a : [a];
@@ -15,7 +16,7 @@ export default class AssemblerStatement extends Token {
                 return this.finalize();
             }
             if (this.lexer.wcc().isEmpty()) {
-                this.lexer.error();
+                throw this.lexer.error();
             }
         }
         this.operation = this.tokenizeOperation(inputArgs);
@@ -23,12 +24,12 @@ export default class AssemblerStatement extends Token {
         let isOkay = this.operation !== null || this.instruction !== null;
         if (isOkay) {
             if (!this.lexer.eatEnd()) {
-                this.lexer.error();
+                throw this.lexer.error();
             }
             return this.finalize();
         }
         if (this.label !== null) {
-            this.lexer.error();
+            throw this.lexer.error();
         }
         return null;
     }
@@ -70,7 +71,7 @@ export default class AssemblerStatement extends Token {
         if (o !== null) {
             let scheme = this.getScheme(arch, o.operation, o.arguments);
             if (scheme === undefined) {
-                throw new Error;
+                throw o.error();
             }
             return this.toBufferChild(arch, scheme.alias, o.arguments);
         }
@@ -94,7 +95,7 @@ export default class AssemblerStatement extends Token {
         });
         schemes = schemes.filter((scheme) => scheme !== undefined);
         if (schemes.length !== 1) {
-            throw new Error;
+            throw i.error();
         }
         let [scheme] = schemes;
         return arch.toBuffer(scheme, i.arguments);
@@ -106,10 +107,10 @@ export default class AssemblerStatement extends Token {
             let lexer = new Lexer(ins);
             let statement = new AssemblerStatement(lexer).tokenize(myArguments);
             if (statement === null) {
-                throw new Error;
+                throw new InternalError;
             }
             if (!lexer.isEndOfFile()) {
-                throw new Error;
+                throw new InternalError;
             }
             return statement.toBuffer(arch);
         }));

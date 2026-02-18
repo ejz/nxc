@@ -11,6 +11,7 @@ export default class LexerError extends NxcError {
         args = 'invalid token:',
         position = null,
         context = 2,
+        nxcError = null,
     } = {}) {
         message = toArray(message).slice();
         args = toArray(args).slice();
@@ -24,6 +25,10 @@ export default class LexerError extends NxcError {
         if (expected !== null) {
             message[0] += ' expected %q';
             args.push(expected);
+        }
+        if (nxcError !== null) {
+            message[0] += ' %r';
+            args.push([nxcError.message, ...nxcError.arguments]);
         }
         let format = ' %color %color %r';
         lines.forEach((line, i) => {

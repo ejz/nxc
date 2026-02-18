@@ -48,6 +48,33 @@ export default class Lexer {
         return this.content.length === 0;
     }
 
+    rewind(position) {
+        this.position = position;
+        this.content = this.backup.slice(this.position);
+    }
+
+    getContext(count) {
+        let {backup, position} = this;
+        let lines = backup.split('\n');
+        let idx = null;
+        let pos = null;
+        let cursor = 0;
+        for (let [i, line] of lines.entries()) {
+            let l = line.length;
+            let ex = cursor;
+            cursor += l + 1;
+            if (position < cursor) {
+                pos = position - ex;
+                idx = i;
+                break;
+            }
+        }
+        let from = Math.max(idx - count, 0);
+        let to = Math.min(lines.length - 1, idx + count);
+        lines = lines.slice(from, to + 1);
+        return {lines, shift: from, ptr: idx - from, idx, pos};
+    }
+
     move(n) {
         this.content = this.content.slice(n);
         this.position += n;

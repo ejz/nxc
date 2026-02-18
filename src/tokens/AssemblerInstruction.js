@@ -9,10 +9,11 @@ export default class AssemblerInstruction extends Token {
                 return false;
             }
             this.opsize = this.eatOperandSize();
+            let position = this.position;
             let wcc = this.lexer.wcc();
             this.arguments = this.tokenizeArguments(inputArgs);
             if (this.arguments.length !== 0 && wcc.isEmpty()) {
-                this.lexer.error();
+                throw this.lexer.error(position);
             }
             return true;
         });

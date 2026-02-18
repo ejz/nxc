@@ -18,10 +18,7 @@ export default class RegularBlock extends Token {
             this.statements.push(statement);
             this.lexer.wcc();
         }
-        if (!this.lexer.eat('}')) {
-            throw new Error;
-            // throw new InvalidTokenError(this.lexer, {expected: '}'});
-        }
+        this.lexer.expect('}');
         return this.finalize();
     }
 

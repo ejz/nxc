@@ -24,7 +24,7 @@ export default class Token {
         this.start = token.start;
     }
 
-    error() {
-        return new TokenError(this);
+    error(nxcError) {
+        return new TokenError(this, {nxcError});
     }
 }

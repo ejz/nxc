@@ -2,6 +2,8 @@ import Token from './Token.js';
 import {kw} from '../constants.js';
 import AssemblerStatement from './AssemblerStatement.js';
 import Lexer from '../Lexer.js';
+import NxcError from '../errors/NxcError.js';
+import InternalError from '../errors/InternalError.js';
 
 export default class AssemblerBlock extends Token {
     tokenize() {
@@ -53,7 +55,16 @@ export default class AssemblerBlock extends Token {
                 }
                 labels[name] = offset;
             }
-            statement.toBuffer(arch).forEach((chunk) => {
+            let buffers = [];
+            try {
+                buffers = statement.toBuffer(arch);
+            } catch (e) {
+                if (!(e instanceof NxcError)) {
+                    throw new InternalError;
+                }
+                throw statement.error(e);
+            }
+            buffers.forEach((chunk) => {
                 let length = chunk.length;
                 if (chunk.callback !== undefined) {
                     let chunkOffset = offset;
