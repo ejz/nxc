@@ -7,7 +7,7 @@ export default function parseArgv(argv, cb) {
             i++;
             break;
         }
-        if (arg.startsWith('-')) {
+        if (arg.startsWith('-') && arg !== '-') {
             i += cb(arg, next) ?? 0;
             continue;
         }

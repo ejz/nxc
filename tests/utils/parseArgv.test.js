@@ -6,6 +6,7 @@ test('parseArgv / 1', (t) => {
     let cases = [
         [[], []],
         [['arg'], ['arg']],
+        [['-'], ['-']],
         [['arg', 'foo'], ['arg', 'foo']],
         [['-b', 'foo'], ['foo']],
         [['--', 'foo'], ['foo']],
