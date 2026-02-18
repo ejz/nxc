@@ -3,6 +3,7 @@ import {kw} from '../constants.js';
 import AssemblerStatement from './AssemblerStatement.js';
 import Lexer from '../Lexer.js';
 import NxcError from '../errors/NxcError.js';
+import LexerError from '../errors/LexerError.js';
 import InternalError from '../errors/InternalError.js';
 
 export default class AssemblerBlock extends Token {
@@ -55,12 +56,15 @@ export default class AssemblerBlock extends Token {
                 }
                 labels[name] = offset;
             }
-            let buffers = [];
+            let buffers;
             try {
                 buffers = statement.toBuffer(arch);
             } catch (e) {
+                if (e instanceof LexerError) {
+                    throw e;
+                }
                 if (!(e instanceof NxcError)) {
-                    throw new InternalError;
+                    throw e;
                 }
                 throw statement.error(e);
             }

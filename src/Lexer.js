@@ -264,8 +264,8 @@ export default class Lexer {
         });
     }
 
-    error() {
-        return new LexerError(this);
+    error(opts) {
+        return new LexerError(this, opts);
     }
 
     static indent(lines, c = 1, tab = ' '.repeat(4)) {

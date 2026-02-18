@@ -8,9 +8,9 @@ export default class LexerError extends NxcError {
         catchLen = 1,
         expected = null,
         message = '%s',
-        args = 'invalid token:',
+        args = 'invalid token',
         position = null,
-        context = 2,
+        context = 3,
         nxcError = null,
     } = {}) {
         message = toArray(message).slice();
@@ -23,11 +23,11 @@ export default class LexerError extends NxcError {
         let {lines, ptr, shift, pos} = lexer.getContext(context);
         let pad = String(lines.length + shift).length;
         if (expected !== null) {
-            message[0] += ' expected %q';
+            message[0] += ': expected %q';
             args.push(expected);
         }
         if (nxcError !== null) {
-            message[0] += ' %r';
+            message[0] += ': %r';
             args.push([nxcError.message, ...nxcError.arguments]);
         }
         let format = ' %color %color %r';
@@ -41,10 +41,12 @@ export default class LexerError extends NxcError {
             if (i !== ptr) {
                 return;
             }
-            if (line === '') {
+            let tail = line.slice(pos);
+            if (tail === '') {
                 message[message.length - 1] += '%color';
-                args.push(['bgRed', ' ']);
+                args.push([line === '' ? 'bgRed' : 'inverse', ' ']);
             }
+            catchLen = Math.min(catchLen, tail.length);
             color.push('bold');
             message.push(format);
             args.push([[], ' '.repeat(lineNum.length)]);
