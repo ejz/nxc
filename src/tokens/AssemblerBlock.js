@@ -2,7 +2,6 @@ import Token from './Token.js';
 import {kw} from '../constants.js';
 import AssemblerStatement from './AssemblerStatement.js';
 import Lexer from '../Lexer.js';
-import InvalidTokenError from '../errors/InvalidTokenError.js';
 
 export default class AssemblerBlock extends Token {
     tokenize() {
@@ -25,9 +24,7 @@ export default class AssemblerBlock extends Token {
             this.statements.push(statement);
             this.lexer.wcc();
         }
-        if (!this.lexer.eat('}')) {
-            throw new InvalidTokenError(this.lexer, {expected: '}'});
-        }
+        this.lexer.expect('}');
         return this.finalize();
     }
 
@@ -50,10 +47,11 @@ export default class AssemblerBlock extends Token {
         let callbacks = [];
         for (let statement of this.statements) {
             if (statement.label !== null) {
-                if (labels[statement.label] !== undefined) {
-                    throw new Error;
+                let name = statement.label.name;
+                if (labels[name] !== undefined) {
+                    throw statement.label.error();
                 }
-                labels[statement.label] = offset;
+                labels[name] = offset;
             }
             statement.toBuffer(arch).forEach((chunk) => {
                 let length = chunk.length;

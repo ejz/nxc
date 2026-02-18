@@ -87,3 +87,46 @@ test('Lexer / 4', (t) => {
     }
     t.end();
 });
+
+test('Lexer / 5', (t) => {
+    {
+        let lex = new Lexer('123');
+        lex.eat('1');
+        lex.eat('2');
+        lex.rewind(1);
+        t.equals(lex.eat('2'), true);
+    }
+    {
+        let lex = new Lexer('1');
+        t.equals(lex.getContext(0).idx, 0);
+        lex.eatRegex(/^\S/);
+        t.equals(lex.getContext(0).idx, 0);
+    }
+    {
+        let lex = new Lexer('\n');
+        t.equals(lex.getContext(0).idx, 0);
+        lex.eatRegex(/^\s/);
+        t.equals(lex.getContext(0).idx, 1);
+    }
+    {
+        let lex = new Lexer('1\n2\n3\n4\n5');
+        t.equals(lex.getContext(0).idx, 0);
+        lex.eatRegex(/^\S/);
+        t.equals(lex.getContext(0).idx, 0);
+        lex.eatRegex(/^\s/);
+        t.equals(lex.getContext(0).idx, 1);
+        lex.eatRegex(/^\S/);
+        t.equals(lex.getContext(0).idx, 1);
+        t.deepEqual(lex.getContext(0).lines, ['2']);
+    }
+    {
+        let lex = new Lexer('foo\nbar');
+        lex.eatRegex(/^\S+/);
+        lex.eatRegex(/^\s/);
+        t.equals(lex.getContext(0).idx, 1);
+        t.equals(lex.getContext(0).pos, 0);
+        lex.eat('ba');
+        t.equals(lex.getContext(0).pos, 2);
+    }
+    t.end();
+});

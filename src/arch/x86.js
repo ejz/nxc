@@ -855,7 +855,7 @@ export function rmClosure(reg, acceptSib = false) {
         }
         return false;
     };
-    let composer = ({register, sib}, opBuf) => {
+    let composer = ({register = null, sib = null}, opBuf) => {
         if (register !== null) {
             if (acceptSib) {
                 opBuf.setMod('reg');
@@ -901,7 +901,7 @@ export function rmClosure(reg, acceptSib = false) {
 }
 
 export function isSibOkay(sib) {
-    let {scale, base, index, disp, minus, self} = sib;
+    let {scale, base, index, disp, minus} = sib;
     if (scale !== null && !arch.scales.includes(scale)) {
         return false;
     }
@@ -917,7 +917,7 @@ export function isSibOkay(sib) {
         if (!types.i32.is(int)) {
             return false;
         }
-        self.disp = int;
+        sib.disp = int;
         return true;
     }
     return base !== null || index !== null;

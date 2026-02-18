@@ -112,6 +112,12 @@ export default class Lexer {
         return true;
     }
 
+    expect(expected) {
+        if (!this.eat(expected)) {
+            throw this.error({expected});
+        }
+    }
+
     eatOneOf(...many) {
         return many.find(this.eat.bind(this)) ?? null;
     }
@@ -232,7 +238,7 @@ export default class Lexer {
     }
 
     error() {
-        throw new LexerError(this);
+        return new LexerError(this);
     }
 
     static indent(lines, c = 1, tab = ' '.repeat(4)) {

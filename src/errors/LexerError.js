@@ -1,55 +1,57 @@
 import NxcError from './NxcError.js';
 
+const isArray = Array.isArray;
+const toArray = (a) => isArray(a) ? a : [a];
+
 export default class LexerError extends NxcError {
     constructor(lexer, {
         catchLen = 1,
         expected = null,
-        errorFormat = '%s',
-        errorArgs = ['invalid token:'],
+        message = '%s',
+        args = 'invalid token:',
+        position = null,
+        context = 2,
     } = {}) {
-        let parsed = lexer.backup.slice(0, lexer.position);
-        let lines = parsed.split('\n');
-        let len = lines.length;
-        let pad = String(len).length;
-        let message = [errorFormat];
-        let args = errorArgs.slice();
+        message = toArray(message).slice();
+        args = toArray(args).slice();
+        let lexerState = null;
+        if (position !== null) {
+            lexerState = lexer.getState();
+            lexer.rewind(position);
+        }
+        let {lines, ptr, shift, pos} = lexer.getContext(context);
+        let pad = String(lines.length + shift).length;
         if (expected !== null) {
             message[0] += ' expected %q';
             args.push(expected);
         }
-        lines = lines.slice(-4);
-        let repeat = 0;
+        let format = ' %color %color %r';
         lines.forEach((line, i) => {
-            let n = len - lines.length + i + 1;
-            let isLast = n === len;
-            let nn = String(n).padStart(pad, ' ');
-            let format = ' %color %color %s';
-            message.push(format);
+            let lineNum = String(i + 1 + shift).padStart(pad, ' ');
             let color = ['blue'];
-            if (isLast) {
-                color.push('bold');
-            }
-            args.push([color, nn]);
+            args.push([color, lineNum]);
             args.push(['blue', '|']);
-            args.push(line);
-            if (isLast) {
-                repeat = format.replace(/%\S+/g, '').length;
-                repeat += args.at(-1).length;
-                repeat += args.at(-2)[1].length;
-                repeat += args.at(-3)[1].length;
+            args.push(['%s', line]);
+            message.push(format);
+            if (i !== ptr) {
+                return;
             }
+            if (line === '') {
+                message[message.length - 1] += '%color';
+                args.push(['bgRed', ' ']);
+            }
+            color.push('bold');
+            message.push(format);
+            args.push([[], ' '.repeat(lineNum.length)]);
+            args.push(['blue', '|']);
+            args.push([
+                ' '.repeat(pos) + '%color',
+                [['red', 'bold'], '^'.repeat(catchLen)],
+            ]);
         });
-        let token = lexer.content.slice(0, catchLen);
-        if (token === '') {
-            message[message.length - 1] += '%color';
-            args.push(['bgRed', ' ']);
-            catchLen = 1;
-        } else {
-            message[message.length - 1] += '%s';
-            args.push(token);
+        if (lexerState !== null) {
+            lexerState.revert();
         }
-        message.push(' '.repeat(repeat) + '%color');
-        args.push([['red', 'bold'], '^'.repeat(catchLen)]);
         message = message.join('\n');
         super(message, ...args);
     }

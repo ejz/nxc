@@ -1,3 +1,5 @@
+import TokenError from '../errors/TokenError.js';
+
 export default class Token {
     constructor(lexer) {
         this.lexer = lexer;
@@ -20,5 +22,9 @@ export default class Token {
 
     fixStart(token) {
         this.start = token.start;
+    }
+
+    error() {
+        return new TokenError(this);
     }
 }

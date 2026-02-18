@@ -1,6 +1,5 @@
 import Token from './Token.js';
 import RegularBlock from './RegularBlock.js';
-import InvalidTokenError from '../errors/InvalidTokenError.js';
 
 export default class Program extends Token {
     tokenize() {
@@ -9,7 +8,7 @@ export default class Program extends Token {
         while (!this.lexer.isEndOfFile()) {
             let statement = this.tokenizeStatement();
             if (statement === null) {
-                throw new InvalidTokenError(this.lexer);
+                throw this.lexer.error();
             }
             this.statements.push(statement);
             this.lexer.whitespaceCommentCollection();

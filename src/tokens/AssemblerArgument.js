@@ -82,16 +82,16 @@ export default class AssemblerArgument extends Token {
             if (parts !== null) {
                 plusMinus = this.eatPlusMinus();
                 if (plusMinus === null) {
-                    this.lexer.error();
+                    throw this.lexer.error();
                 }
             }
             let part = this.eatSibPart();
             if (part === null) {
-                this.lexer.error();
+                throw this.lexer.error();
             }
             part.minus = plusMinus === '-';
             if (part.minus && part.type !== 'integer') {
-                this.lexer.error();
+                throw this.lexer.error();
             }
             parts ??= [];
             parts.push(part);
@@ -178,7 +178,7 @@ export default class AssemblerArgument extends Token {
         }
         let scale = this.lexer.eatDecNum();
         if (scale === null) {
-            this.lexer.error();
+            throw this.lexer.error();
         }
         return scale;
     }
@@ -192,7 +192,7 @@ export default class AssemblerArgument extends Token {
             minus: false,
         };
         if (parts.length > 3) {
-            this.lexer.error();
+            throw this.lexer.error();
         }
         for (let part of parts) {
             if (
@@ -204,7 +204,7 @@ export default class AssemblerArgument extends Token {
                 continue;
             }
             if (part.type !== 'register') {
-                this.lexer.error();
+                throw this.lexer.error();
             }
             if (
                 part.scale !== null
@@ -223,7 +223,7 @@ export default class AssemblerArgument extends Token {
                 sib.index = part.register;
                 continue;
             }
-            this.lexer.error();
+            throw this.lexer.error();
         }
         return sib;
     }
@@ -248,7 +248,7 @@ export default class AssemblerArgument extends Token {
                 if (collect.length === 0) {
                     break;
                 }
-                lexer.error();
+                throw lexer.error();
             }
             collect.push(argument);
             if (!lexer.eatSpecialCharacter(' , ')) {

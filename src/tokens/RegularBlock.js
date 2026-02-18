@@ -2,7 +2,6 @@ import Lexer from '../Lexer.js';
 import Token from './Token.js';
 import EmptyStatement from './EmptyStatement.js';
 import AssemblerBlock from './AssemblerBlock.js';
-import InvalidTokenError from '../errors/InvalidTokenError.js';
 
 export default class RegularBlock extends Token {
     tokenize() {
@@ -20,7 +19,8 @@ export default class RegularBlock extends Token {
             this.lexer.wcc();
         }
         if (!this.lexer.eat('}')) {
-            throw new InvalidTokenError(this.lexer, {expected: '}'});
+            throw new Error;
+            // throw new InvalidTokenError(this.lexer, {expected: '}'});
         }
         return this.finalize();
     }
