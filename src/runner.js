@@ -2,7 +2,7 @@ import Logger, {LogLevel} from './Logger.js';
 import parseArgv from './utils/parseArgv.js';
 import * as commands from './commands.js';
 import asyncExecute from './utils/asyncExecute.js';
-import NxcError from './errors/NxcError.js';
+import AppError from './errors/AppError.js';
 import InvalidArgumentError from './errors/InvalidArgumentError.js';
 import InvalidCommandError from './errors/InvalidCommandError.js';
 import NoCommandError from './errors/NoCommandError.js';
@@ -22,7 +22,7 @@ export default async function runner({
     logger.logLevel = LogLevel.Log;
     logger.enableColor = isStderrStreamTerminal;
     onError((e) => {
-        if (e instanceof NxcError) {
+        if (e instanceof AppError) {
             logger.error(e.message, ...e.arguments);
             e = new Error;
         }

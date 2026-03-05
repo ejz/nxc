@@ -2,7 +2,7 @@ import Token from './Token.js';
 import {kw} from '../constants.js';
 import AssemblerStatement from './AssemblerStatement.js';
 import Lexer from '../Lexer.js';
-import NxcError from '../errors/NxcError.js';
+import AppError from '../errors/AppError.js';
 import LexerError from '../errors/LexerError.js';
 import InternalError from '../errors/InternalError.js';
 
@@ -63,7 +63,7 @@ export default class AssemblerBlock extends Token {
                 if (e instanceof LexerError) {
                     throw e;
                 }
-                if (!(e instanceof NxcError)) {
+                if (!(e instanceof AppError)) {
                     throw e;
                 }
                 throw statement.error(e);

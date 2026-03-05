@@ -1,3 +1,5 @@
+import AppError from './errors/AppError.js';
+
 const newObj = (obj, fn) => {
     let r = {};
     for (let k in obj) {
@@ -151,14 +153,37 @@ export const formatter = {
         let arg = args[ptr];
         return JSON.stringify(arg);
     },
+    /* error */
+    e(args, ptr, logLevel, logger) {
+        let arg = args[ptr];
+        if (arg instanceof AppError) {
+            return logger.formatLog(logLevel, [arg.message, arg.arguments]);
+        }
+        return logger.formatLog(logLevel, ['%s', [arg.message]]);
+    },
+    /* time */
+    t(args, ptr) {
+        let arg = args[ptr];
+        let t = new Date - arg;
+        return t > 0 ? '(+' + t.toFixed() + ')' : '';
+    },
+    /* decorate */
+    d(args, ptr, logLevel, logger) {
+        let arg = args[ptr];
+        let [head, tail] = arg.shift();
+        let out = logger.formatLog(logLevel, arg);
+        return (out !== '' ? head : '') + out + (out !== '' ? tail : '');
+    },
     /* recursive */
     r(args, ptr, logLevel, logger) {
         let arg = args[ptr];
         return logger.formatLog(logLevel, arg);
     },
+    /* prefix */
     get prefix() {
         return this.r;
     },
+    /* message */
     get message() {
         return this.r;
     },
