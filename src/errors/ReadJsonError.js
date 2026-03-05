@@ -1,6 +1,6 @@
-import NxcError from './NxcError.js';
+import AppError from './AppError.js';
 
-export default class ReadJsonError extends NxcError {
+export default class ReadJsonError extends AppError {
     constructor(file) {
         super('read json from %q failed', file);
     }

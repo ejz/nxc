@@ -1,8 +1,7 @@
-import NxcError from './NxcError.js';
+import AppError from './AppError.js';
 
-export default class InvalidLabelNameError extends NxcError {
+export default class InvalidLabelNameError extends AppError {
     constructor(name) {
-        let message = 'invalid label name %q';
-        super(message, name);
+        super('invalid label name %q', name);
     }
 }

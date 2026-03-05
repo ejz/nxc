@@ -1,6 +1,6 @@
-import NxcError from './NxcError.js';
+import AppError from './AppError.js';
 
-export default class NoOutputFileError extends NxcError {
+export default class NoOutputFileError extends AppError {
     constructor() {
         super('output file is not provided');
     }

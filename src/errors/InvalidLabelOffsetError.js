@@ -1,8 +1,7 @@
-import NxcError from './NxcError.js';
+import AppError from './AppError.js';
 
-export default class InvalidLabelOffsetError extends NxcError {
+export default class InvalidLabelOffsetError extends AppError {
     constructor(name, offset) {
-        let message = 'invalid label %q offset %q';
-        super(message, name, offset);
+        super('invalid label %q offset %q', name, offset);
     }
 }

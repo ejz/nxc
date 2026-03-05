@@ -1,6 +1,6 @@
-import NxcError from './NxcError.js';
+import AppError from './AppError.js';
 
-export default class InvalidArgumentError extends NxcError {
+export default class InvalidArgumentError extends AppError {
     constructor(arg) {
         super('invalid argument %q', arg);
     }

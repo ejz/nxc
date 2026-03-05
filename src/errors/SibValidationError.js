@@ -1,6 +1,6 @@
-import NxcError from './NxcError.js';
+import AppError from './AppError.js';
 
-export default class SibValidationError extends NxcError {
+export default class SibValidationError extends AppError {
     constructor() {
         let message = 'sib validation error';
         super(message);

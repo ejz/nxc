@@ -1,6 +1,6 @@
-import NxcError from './NxcError.js';
+import AppError from './AppError.js';
 
-export default class InvalidInputFileError extends NxcError {
+export default class InvalidInputFileError extends AppError {
     constructor() {
         super('invalid input file');
     }

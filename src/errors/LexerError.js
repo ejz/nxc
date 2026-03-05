@@ -1,9 +1,9 @@
-import NxcError from './NxcError.js';
+import AppError from './AppError.js';
 
 const isArray = Array.isArray;
 const toArray = (a) => isArray(a) ? a : [a];
 
-export default class LexerError extends NxcError {
+export default class LexerError extends AppError {
     constructor(lexer, {
         catchLen = 1,
         expected = null,
