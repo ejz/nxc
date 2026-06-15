@@ -1,30 +1,39 @@
-import TokenError from '../errors/TokenError.js';
+// import TokenError from '../errors/TokenError.js';
 
 export default class Token {
-    constructor(lexer) {
+    constructor(name, lexer) {
+        this.name = name;
         this.lexer = lexer;
         this.start = this.position;
-        this.end = this.position;
+        this.end = null;
+    }
+
+    finalize({position = this.position, ...rest} = {}) {
+        this.end = position;
+        Object.assign(this, rest);
+        return this;
     }
 
     get position() {
         return this.lexer.position;
     }
 
-    finalize() {
-        this.end = this.position;
-        return this;
+    get content() {
+        return this.lexer.content.slice(this.start, this.end ?? this.start);
     }
 
-    is(...ctors) {
-        return ctors.some((ctor) => this instanceof ctor);
-    }
+    // get position() {
+    //     return ;
+    // }
+    // is(...ctors) {
+    //     return ctors.some((ctor) => this instanceof ctor);
+    // }
 
-    fixStart(token) {
-        this.start = token.start;
-    }
+    // fixStart(token) {
+    //     this.start = token.start;
+    // }
 
-    error(nxcError) {
-        return new TokenError(this, {nxcError});
-    }
+    // error(nxcError) {
+    //     return new TokenError(this, {nxcError});
+    // }
 }

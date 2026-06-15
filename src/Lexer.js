@@ -1,360 +1,96 @@
-import LexerError from './errors/LexerError.js';
-import LexerValidationError from './errors/LexerValidationError.js';
-import WhitespaceCommentCollection from './WhitespaceCommentCollection.js';
-import Comment from './tokens/Comment.js';
-import Whitespace from './tokens/Whitespace.js';
-import Token from './tokens/Token.js';
+// import LexerError from './errors/LexerError.js';
+// import LexerValidationError from './errors/LexerValidationError.js';
+// import WhitespaceCommentCollection from './WhitespaceCommentCollection.js';
+// import Comment from './tokens/Comment.js';
+// import Whitespace from './tokens/Whitespace.js';
+// import Token from './tokens/Token.js';
 
-const isArray = Array.isArray;
-const isToken = (token) => token instanceof Token;
-const isTokenArray = (array) => isArray(array) && array.every(isToken);
-const isTokenConstructor = (ctor) => (
-    ctor.prototype instanceof Token
-    || ctor === Token
-);
-const identifier = {
-    // key: [upperCase, underscore]
-    [[true, true]]: /^[_a-zA-Z][_a-zA-Z0-9]*/,
-    [[true, false]]: /^[a-zA-Z][a-zA-Z0-9]*/,
-    [[false, true]]: /^[_a-z][_a-z0-9]*/,
-    [[false, false]]: /^[a-z][a-z0-9]*/,
-};
+// const isArray = Array.isArray;
+// const isToken = (token) => token instanceof Token;
+// const isTokenArray = (array) => isArray(array) && array.every(isToken);
+// const isTokenConstructor = (ctor) => (
+//     ctor.prototype instanceof Token
+//     || ctor === Token
+// );
+// const identifier = {
+//     // key: [upperCase, underscore]
+//     [[true, true]]: /^[_a-zA-Z][_a-zA-Z0-9]*/,
+//     [[true, false]]: /^[a-zA-Z][a-zA-Z0-9]*/,
+//     [[false, true]]: /^[_a-z][_a-z0-9]*/,
+//     [[false, false]]: /^[a-z][a-z0-9]*/,
+// };
+// if (Buffer.isBuffer(input)) {
+//     this.validate(input);
+//     input = input.toString();
+//     input = this.replaceCrLf(input);
+// }
+// this.backup = this.content;
 
 export default class Lexer {
-    constructor(input) {
-        if (Buffer.isBuffer(input)) {
-            this.validate(input);
-            input = input.toString();
-            input = this.replaceCrLf(input);
-        }
-        this.content = input;
-        this.position = 0;
-        this.backup = this.content;
-    }
-
-    getState() {
-        return {
-            lexer: this,
-            content: this.content,
-            position: this.position,
-            revert() {
-                this.lexer.content = this.content;
-                this.lexer.position = this.position;
-            },
-        };
-    }
-
-    isEndOfFile() {
-        return this.content.length === 0;
-    }
-
-    rewind(position) {
+    constructor(content, position = 0) {
+        this.content = content;
         this.position = position;
-        this.content = this.backup.slice(this.position);
     }
 
-    getContext(count) {
-        let {backup, position} = this;
-        let lines = backup.split('\n');
-        let idx = null;
-        let pos = null;
-        let cursor = 0;
-        for (let [i, line] of lines.entries()) {
-            let l = line.length;
-            let ex = cursor;
-            cursor += l + 1;
-            if (position < cursor) {
-                pos = position - ex;
-                idx = i;
-                break;
-            }
-        }
-        let from = Math.max(idx - count, 0);
-        let to = Math.min(lines.length - 1, idx + count);
-        lines = lines.slice(from, to + 1);
-        return {lines, shift: from, ptr: idx - from, idx, pos};
+    proceed(shift) {
+        this.position += shift;
     }
 
-    move(n) {
-        this.content = this.content.slice(n);
-        this.position += n;
-    }
+    // getState() {
+    //     return {
+    //         lexer: this,
+    //         content: this.content,
+    //         position: this.position,
+    //         revert() {
+    //             this.lexer.content = this.content;
+    //             this.lexer.position = this.position;
+    //         },
+    //     };
+    // }
 
-    try(someFn, revert = null) {
-        let state = this.getState();
-        if (someFn()) {
-            return true;
-        }
-        state.revert();
-        if (revert !== null) {
-            revert();
-        }
-        return false;
-    }
+    // isEOF() {
+    //     return this.content.length === this.position;
+    // }
 
-    look(someFn, revert = null) {
-        let state = this.getState();
-        let res = someFn();
-        state.revert();
-        if (revert !== null) {
-            revert();
-        }
-        return res;
-    }
+    // eatChar(char) {
+    //     if (this.content[this.position] === char) {
+    //         return this.proceed();
+    //     }
+    //     return false;
+    // }
 
-    validate(buffer) {
-        for (let i = 0; i < buffer.length; i++) {
-            let byte = buffer[i];
-            if (byte > 0x7f) {
-                throw new LexerValidationError(byte, i);
-            }
-        }
-    }
-
-    replaceCrLf(content) {
-        let [head, ...tails] = content.split('\r');
-        return head + tails.map((tail) => {
-            if (!tail.startsWith('\n')) {
-                tail = '\n' + tail;
-            }
-            return tail;
-        }).join('');
-    }
-
-    eatRegex(regex) {
-        let match = this.content.match(regex);
-        if (match === null) {
-            return null;
-        }
-        let [m] = match;
-        this.move(m.length);
-        return m;
-    }
-
-    eat(smth) {
-        if (!this.content.startsWith(smth)) {
+    eat(string) {
+        if (!this.content.startsWith(string, this.position)) {
             return false;
         }
-        this.move(smth.length);
+        this.proceed(string.length);
         return true;
     }
 
-    expect(expected) {
-        if (!this.eat(expected)) {
-            throw this.error({expected});
-        }
-    }
-
-    eatOneOf(...many) {
-        return many.find(this.eat.bind(this)) ?? null;
-    }
-
-    eatTill(sub) {
-        let content = this.content;
-        let pos = content.indexOf(sub);
-        if (pos === -1) {
+    eatTill(...subs) {
+        let tail = this.content.slice(this.position);
+        let pos = Infinity;
+        let found = null;
+        subs.forEach((sub) => {
+            let idx = tail.indexOf(sub);
+            if (idx === -1) {
+                return;
+            }
+            if (idx < pos) {
+                pos = idx;
+                found = sub;
+            }
+        });
+        if (found === null) {
             return null;
         }
-        let body = content.slice(0, pos);
-        this.move(pos);
-        return body;
+        this.proceed(pos);
+        return [tail.slice(0, pos), found];
     }
 
     eatAll() {
-        let content = this.content;
-        this.move(content.length);
-        return content;
-    }
-
-    eatWhitespace() {
-        return this.eatRegex(/^[ \t\n]+/);
-    }
-
-    whitespaceCommentCollection() {
-        let whitespaceCommentCollection = new WhitespaceCommentCollection();
-        while (true) {
-            let token = (
-                new Comment(this).tokenize()
-                ?? new Whitespace(this).tokenize()
-            );
-            if (token === null) {
-                break;
-            }
-            whitespaceCommentCollection.push(token);
-        }
-        return whitespaceCommentCollection;
-    }
-
-    wcc() {
-        return this.whitespaceCommentCollection();
-    }
-
-    eatSpecialCharacter(sc) {
-        let before = sc.startsWith(' ');
-        let after = sc.endsWith(' ');
-        sc = before ? sc.slice(1) : sc;
-        sc = after ? sc.slice(0, -1) : sc;
-        return this.try(() => {
-            if (before) {
-                this.wcc();
-            }
-            if (!this.eat(sc)) {
-                return false;
-            }
-            if (after) {
-                this.wcc();
-            }
-            return true;
-        });
-    }
-
-    eatDecNum() {
-        return this.eatRegex(/^(0|[1-9][0-9]*)/);
-    }
-
-    eatHexNum() {
-        return this.eatRegex(/^0x[0-9a-fA-F]+/);
-    }
-
-    eatNum() {
-        return this.eatHexNum() ?? this.eatDecNum();
-    }
-
-    eatIdentifier({upperCase = false, underscore = false, multiple = null} = {}) {
-        let key = [upperCase, underscore];
-        let regex = identifier[key];
-        let parts = null;
-        while (true) {
-            let part = null;
-            if (parts === null) {
-                part = this.eatRegex(regex);
-            } else {
-                this.try(() => {
-                    if (!this.eat(multiple)) {
-                        return false;
-                    }
-                    part = this.eatRegex(regex);
-                    return part !== null;
-                });
-            }
-            if (part === null) {
-                break;
-            }
-            parts ??= [];
-            parts.push(part);
-            if (multiple === null) {
-                break;
-            }
-        }
-        if (parts === null) {
-            return null;
-        }
-        return parts.join(multiple ?? '');
-    }
-
-    eatEnd() {
-        return this.try(() => {
-            let wcc = this.wcc();
-            return (
-                this.isEndOfFile()
-                || this.eat(';')
-                || wcc.gotNewline()
-                || this.look(() => this.eat('}'))
-            );
-        });
-    }
-
-    error(opts) {
-        return new LexerError(this, opts);
-    }
-
-    static indent(lines, c = 1, tab = ' '.repeat(4)) {
-        return lines.map((line) => tab.repeat(c) + line);
-    }
-
-    static walk(token, cb, parent = null, list = null) {
-        let res = cb(token, parent, list);
-        [res = 1] = [res];
-        if ([0, -1].includes(res)) {
-            return res;
-        }
-        let children = Lexer.children(token);
-        for (let [child, list] of children) {
-            let res = Lexer.walk(child, cb, token, list);
-            if (res === -1) {
-                return res;
-            }
-        }
-    }
-
-    static children(token) {
-        let collect = [];
-        for (let key of Object.keys(token)) {
-            let child = token[key];
-            if (isToken(child)) {
-                collect.push([child, null, key]);
-                continue;
-            }
-            if (isTokenArray(child)) {
-                for (let element of child) {
-                    collect.push([element, child, key]);
-                }
-                continue;
-            }
-        }
-        return collect;
-    }
-
-    static find(token, ...ctors) {
-        let filter = null;
-        if (ctors.length !== 0) {
-            [filter] = ctors;
-            if (isTokenConstructor(filter)) {
-                filter = null;
-            } else {
-                ctors.shift();
-            }
-        }
-        let collector = [];
-        Lexer.walk(token, (...args) => {
-            let [token] = args;
-            if (!token.is(...ctors)) {
-                return;
-            }
-            if (filter === null) {
-                collector.push(args);
-                return;
-            }
-            let res = filter(...args);
-            [res = false] = [res];
-            if (typeof res !== 'boolean') {
-                return res;
-            }
-            if (res) {
-                collector.push(args);
-            }
-            return;
-        });
-        return collector;
-    }
-
-    static findOne(token, ...ctors) {
-        let filter = null;
-        if (ctors.length !== 0) {
-            [filter] = ctors;
-            if (isTokenConstructor(filter)) {
-                filter = null;
-            } else {
-                ctors.shift();
-            }
-        }
-        let one = null;
-        Lexer.find(token, (...args) => {
-            if (filter === null || filter(...args)) {
-                one = args;
-                return -1;
-            }
-        }, ...ctors);
-        return one;
+        let tail = this.content.slice(this.position);
+        this.proceed(tail.length);
+        return tail;
     }
 }
