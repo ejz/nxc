@@ -12,19 +12,20 @@
 //     ctor.prototype instanceof Token
 //     || ctor === Token
 // );
-// const identifier = {
-//     // key: [upperCase, underscore]
-//     [[true, true]]: /^[_a-zA-Z][_a-zA-Z0-9]*/,
-//     [[true, false]]: /^[a-zA-Z][a-zA-Z0-9]*/,
-//     [[false, true]]: /^[_a-z][_a-z0-9]*/,
-//     [[false, false]]: /^[a-z][a-z0-9]*/,
-// };
 // if (Buffer.isBuffer(input)) {
 //     this.validate(input);
 //     input = input.toString();
 //     input = this.replaceCrLf(input);
 // }
 // this.backup = this.content;
+
+const identifier = {
+    // key: [upperCase, underscore]
+    [[true, true]]: /^[_a-zA-Z][_a-zA-Z0-9]*/,
+    [[true, false]]: /^[a-zA-Z][a-zA-Z0-9]*/,
+    [[false, true]]: /^[_a-z][_a-z0-9]*/,
+    [[false, false]]: /^[a-z][a-z0-9]*/,
+};
 
 export default class Lexer {
     constructor(content, position = 0) {
@@ -36,28 +37,9 @@ export default class Lexer {
         this.position += shift;
     }
 
-    // getState() {
-    //     return {
-    //         lexer: this,
-    //         content: this.content,
-    //         position: this.position,
-    //         revert() {
-    //             this.lexer.content = this.content;
-    //             this.lexer.position = this.position;
-    //         },
-    //     };
-    // }
-
-    // isEOF() {
-    //     return this.content.length === this.position;
-    // }
-
-    // eatChar(char) {
-    //     if (this.content[this.position] === char) {
-    //         return this.proceed();
-    //     }
-    //     return false;
-    // }
+    isEOF() {
+        return this.content.length === this.position;
+    }
 
     eat(string) {
         if (!this.content.startsWith(string, this.position)) {
@@ -67,12 +49,12 @@ export default class Lexer {
         return true;
     }
 
-    eatTill(...subs) {
-        let tail = this.content.slice(this.position);
+    eatTill(...subs) { // todo: handle reorder correctly
+        let content = this.content.slice(this.position);
         let pos = Infinity;
         let found = null;
         subs.forEach((sub) => {
-            let idx = tail.indexOf(sub);
+            let idx = content.indexOf(sub);
             if (idx === -1) {
                 return;
             }
@@ -85,12 +67,70 @@ export default class Lexer {
             return null;
         }
         this.proceed(pos);
-        return [tail.slice(0, pos), found];
+        return [content.slice(0, pos), found];
     }
 
     eatAll() {
-        let tail = this.content.slice(this.position);
-        this.proceed(tail.length);
-        return tail;
+        let content = this.content.slice(this.position);
+        this.proceed(content.length);
+        return content;
+    }
+
+    eatIdentifier({upperCase = false, underscore = false, multiple = null} = {}) {
+        let regex = identifier[[upperCase, underscore]];
+        let parts = null;
+        while (true) {
+            let part = null;
+            if (parts === null) {
+                part = this.eatRegex(regex);
+            } else {
+                this.try(() => {
+                    if (!this.eat(multiple)) {
+                        return false;
+                    }
+                    part = this.eatRegex(regex);
+                    return part !== null;
+                });
+            }
+            if (part === null) {
+                break;
+            }
+            parts ??= [];
+            parts.push(part);
+            if (multiple === null) {
+                break;
+            }
+        }
+        if (parts === null) {
+            return null;
+        }
+        return parts.join(multiple ?? '');
+    }
+
+    eatRegex(regex) {
+        let content = this.content.slice(this.position);
+        let match = content.match(regex);
+        if (match === null) {
+            return null;
+        }
+        let [m] = match;
+        this.proceed(m.length);
+        return m;
+    }
+
+    try(fn) {
+        let position = this.position;
+        if (fn()) {
+            return true;
+        }
+        this.position = position;
+        return false;
+    }
+
+    look(fn) {
+        let position = this.position;
+        let res = fn();
+        this.position = position;
+        return res;
     }
 }

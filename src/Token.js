@@ -1,9 +1,10 @@
 // import TokenError from '../errors/TokenError.js';
 
 export default class Token {
-    constructor(name, lexer) {
+    constructor(name, lexer, parent) {
         this.name = name;
         this.lexer = lexer;
+        this.parent = parent;
         this.start = this.position;
         this.end = null;
     }
@@ -20,6 +21,19 @@ export default class Token {
 
     get content() {
         return this.lexer.content.slice(this.start, this.end ?? this.start);
+    }
+
+    stringify() {
+        if (this.children !== undefined) {
+            return this.children.map((child) => child.stringify()).join('');
+        }
+        if (this.rawString !== undefined) {
+            return this.rawString;
+        }
+        if (this.child !== undefined) {
+            return this.child.stringify();
+        }
+        return '';
     }
 
     // get position() {
