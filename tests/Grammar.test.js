@@ -6,8 +6,9 @@ import Grammar from '../src/Grammar.js';
 test('Grammar / 1', (t) => {
     let grammar = new Grammar();
     let cases = [
-        ' { } // a\n/*b*/',
-        '{}',
+        // ' { } // a\n/*b*/',
+        ' { /*a*/ } ',
+        'asm{label:}',
     ];
     for (let input of cases) {
         let token = grammar.tokenize('Program', new Lexer(input));

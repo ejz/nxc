@@ -18,10 +18,15 @@ export default class Grammar {
         let ctorKey = key.split('.').shift();
         let withToken = (fn) => {
             return (lexer, parent) => {
+                // if (!/newline|comment|string|space/i.test(key)) console.log(key);
+                // if (key === 'AssemblerStatementWhitespaceCommentCollectionCollection')
+                // if (parent && parent.name.includes('Collection'))
+                    // console.log(parent/*?.children?.length*/);
                 let ctor = this.constructors[ctorKey] ?? Token;
                 let token = new ctor(key, lexer, parent);
                 let position = lexer.position;
                 token = fn(token, this);
+                // console.log({token});
                 if (token === null) {
                     lexer.position = position;
                     return null;

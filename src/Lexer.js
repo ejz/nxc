@@ -1,24 +1,3 @@
-// import LexerError from './errors/LexerError.js';
-// import LexerValidationError from './errors/LexerValidationError.js';
-// import WhitespaceCommentCollection from './WhitespaceCommentCollection.js';
-// import Comment from './tokens/Comment.js';
-// import Whitespace from './tokens/Whitespace.js';
-// import Token from './tokens/Token.js';
-
-// const isArray = Array.isArray;
-// const isToken = (token) => token instanceof Token;
-// const isTokenArray = (array) => isArray(array) && array.every(isToken);
-// const isTokenConstructor = (ctor) => (
-//     ctor.prototype instanceof Token
-//     || ctor === Token
-// );
-// if (Buffer.isBuffer(input)) {
-//     this.validate(input);
-//     input = input.toString();
-//     input = this.replaceCrLf(input);
-// }
-// this.backup = this.content;
-
 const identifier = {
     // key: [upperCase, underscore]
     [[true, true]]: /^[_a-zA-Z][_a-zA-Z0-9]*/,
@@ -37,7 +16,7 @@ export default class Lexer {
         this.position += shift;
     }
 
-    isEOF() {
+    isEof() {
         return this.content.length === this.position;
     }
 
@@ -132,5 +111,17 @@ export default class Lexer {
         let res = fn();
         this.position = position;
         return res;
+    }
+
+    eatDecNum() {
+        return this.eatRegex(/^(0|[1-9][0-9]*)/);
+    }
+
+    eatHexNum() {
+        return this.eatRegex(/^0x[0-9a-fA-F]+/);
+    }
+
+    eatNum() {
+        return this.eatHexNum() ?? this.eatDecNum();
     }
 }
