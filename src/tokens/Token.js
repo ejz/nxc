@@ -1,5 +1,3 @@
-// import TokenError from '../errors/TokenError.js';
-
 export default class Token {
     constructor(name, lexer, parent) {
         this.name = name;
@@ -27,27 +25,12 @@ export default class Token {
         if (this.children !== undefined) {
             return this.children.map((child) => child.stringify()).join('');
         }
-        if (this.value !== undefined) {
-            return this.value;
-        }
         if (this.child !== undefined) {
             return this.child.stringify();
         }
-        return '';
+        if (this.value !== undefined) {
+            return this.value;
+        }
+        throw new Error;
     }
-
-    // get position() {
-    //     return ;
-    // }
-    // is(...ctors) {
-    //     return ctors.some((ctor) => this instanceof ctor);
-    // }
-
-    // fixStart(token) {
-    //     this.start = token.start;
-    // }
-
-    // error(nxcError) {
-    //     return new TokenError(this, {nxcError});
-    // }
 }

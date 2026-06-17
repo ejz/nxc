@@ -1,4 +1,4 @@
-import Token from './Token.js';
+import Token from './tokens/Token.js';
 import {tokens, constructors} from './grammar.js';
 
 export default class Grammar {
@@ -46,6 +46,7 @@ export default class Grammar {
                 let children = [];
                 while (true) {
                     let child = this.tokens[value](token.lexer, token);
+                    // console.log(key, child);
                     if (child === null) {
                         break;
                     }
@@ -57,15 +58,25 @@ export default class Grammar {
                 return token.finalize({children});
             });
         }
-        if (value.includes(',')) {
+        if (!value.includes('|')) {
             return withToken((token) => {
                 let children = [];
-                let result = value.split(',').every((value) => {
+                let assertion = false;
+                let lastValue = null;
+                let result = value.split(' ').every((value) => {
+                    if (value === '^') {
+                        assertion = true;
+                        return true;
+                    }
+                    lastValue = value;
                     let child = this.tokens[value](token.lexer, token);
                     children.push(child);
                     return child !== null;
                 });
                 if (!result) {
+                    if (assertion) {
+                        throw new Error;
+                    }
                     return null;
                 }
                 return token.finalize({children});
@@ -73,7 +84,7 @@ export default class Grammar {
         }
         return withToken((token) => {
             let child = null;
-            let result = value.split('|').some((value) => {
+            let result = value.split(' | ').some((value) => {
                 child = this.tokens[value](token.lexer, token);
                 return child !== null;
             });

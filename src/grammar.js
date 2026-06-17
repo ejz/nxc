@@ -13,11 +13,18 @@ const constructors = {};
 const stringTokens = {};
 const aliasTokens = {};
 const repeatTokens = {};
+const keywordTokens = {};
+const eatValue = (value) => (token) => {
+    return token.lexer.eat(value) ? token.finalize({value}) : null;
+};
 const toStringToken = (value) => {
     let key = 'String.' + Object.keys(stringTokens).length;
-    stringTokens[key] = (token) => {
-        return token.lexer.eat(value) ? token.finalize({value}) : null;
-    };
+    stringTokens[key] = eatValue(value);
+    return key;
+};
+const toKeywordToken = (value) => {
+    let key = 'Keyword.' + Object.keys(keywordTokens).length;
+    keywordTokens[key] = eatValue(value);
     return key;
 };
 const toAliasToken = (value) => {
@@ -31,30 +38,26 @@ const toRepeatToken = (value) => {
     return key;
 };
 
-const parts = grammarContent.split(/(\w+)\s*=\s*/).slice(1);
+const parts = grammarContent.replace(/#\s*\S+/g, '').split(/(\w+)\s*->\s*/).slice(1);
 
 for (let i = 0; i < parts.length; i += 2) {
     let name = parts[i];
-    let desc = parts[i + 1];
-    while (true) {
-        let bk = desc;
-        desc = desc.trim();
-        desc = desc.replace(/'.*?'/g, (m) => {
-            return toStringToken(eval(m));
-        });
-        desc = desc.replace(/\((.*?)\)/g, (m, p) => {
-            return toAliasToken(p);
-        });
-        desc = desc.replace(/\S+\*/g, (m) => {
-            return toRepeatToken(m);
-        });
-        desc = desc.replace(/\s*\|\s*/g, '|');
-        desc = desc.replace(/\s+/g, ' ');
-        if (bk === desc) {
-            break;
-        }
-    }
-    tokens[name] = desc;
+    let descriptor = parts[i + 1];
+    descriptor = descriptor.replace(/'.*?'/g, (m) => {
+        return toStringToken(eval(m));
+    });
+    descriptor = descriptor.replace(/`(.*?)`/g, (m, p) => {
+        return toKeywordToken(p);
+    });
+    descriptor = descriptor.trim();
+    descriptor = descriptor.replace(/\s+/g, ' ');
+    descriptor = descriptor.replace(/\((.*?)\)/g, (m, p) => {
+        return toAliasToken(p);
+    });
+    descriptor = descriptor.replace(/\S+\*/g, (m) => {
+        return toRepeatToken(m);
+    });
+    tokens[name] = descriptor;
 }
 
 tokens.SinglelineCommentBody = SinglelineCommentBody.resolve;
@@ -63,14 +66,14 @@ constructors.SinglelineCommentBody = SinglelineCommentBody;
 tokens.MultilineCommentBody = MultilineCommentBody.resolve;
 constructors.MultilineCommentBody = MultilineCommentBody;
 
-Object.assign(tokens, stringTokens, aliasTokens, repeatTokens);
+Object.assign(tokens, stringTokens, keywordTokens, aliasTokens, repeatTokens);
+
+console.log({tokens});
 
 export {tokens, constructors};
 // console.log(parts);
 
-// const CR = '\r';
-// const LF = '\n';
-// const CRLF = CR + LF;
+
 // const TAB = '\t';
 // const SPACE = ' ';
 // const strings = {};
@@ -246,23 +249,6 @@ export const constructors = {
             return this.child.gotNewline();
         }
     },
-    SinglelineComment: class extends Token {
-        stringify() {
-            return '//' + this.comment + (this.newline ?? '');
-        }
-
-        gotNewline() {
-            return this.newline !== null;
-        }
-    },
-    MultilineComment: class extends Token {
-        stringify() {
-            return '/*' + this.comment + '* /';
-        }
-
-        gotNewline() {
-            return this.comment.includes(CR) || this.comment.includes(LF);
-        }
-    },
+    
 };
 */

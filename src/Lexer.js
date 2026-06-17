@@ -28,7 +28,29 @@ export default class Lexer {
         return true;
     }
 
-    eatTill(...subs) { // todo: handle reorder correctly
+    eatAll() {
+        let content = this.content.slice(this.position);
+        this.proceed(content.length);
+        return content;
+    }
+
+    try(fn) {
+        let position = this.position;
+        if (fn()) {
+            return true;
+        }
+        this.position = position;
+        return false;
+    }
+
+    look(fn) {
+        let position = this.position;
+        let res = fn();
+        this.position = position;
+        return res;
+    }
+
+    eatTill(...subs) {
         let content = this.content.slice(this.position);
         let pos = Infinity;
         let found = null;
@@ -49,42 +71,36 @@ export default class Lexer {
         return [content.slice(0, pos), found];
     }
 
-    eatAll() {
-        let content = this.content.slice(this.position);
-        this.proceed(content.length);
-        return content;
-    }
-
-    eatIdentifier({upperCase = false, underscore = false, multiple = null} = {}) {
-        let regex = identifier[[upperCase, underscore]];
-        let parts = null;
-        while (true) {
-            let part = null;
-            if (parts === null) {
-                part = this.eatRegex(regex);
-            } else {
-                this.try(() => {
-                    if (!this.eat(multiple)) {
-                        return false;
-                    }
-                    part = this.eatRegex(regex);
-                    return part !== null;
-                });
-            }
-            if (part === null) {
-                break;
-            }
-            parts ??= [];
-            parts.push(part);
-            if (multiple === null) {
-                break;
-            }
-        }
-        if (parts === null) {
-            return null;
-        }
-        return parts.join(multiple ?? '');
-    }
+    // eatIdentifier({upperCase = false, underscore = false, multiple = null} = {}) {
+    //     let regex = identifier[[upperCase, underscore]];
+    //     let parts = null;
+    //     while (true) {
+    //         let part = null;
+    //         if (parts === null) {
+    //             part = this.eatRegex(regex);
+    //         } else {
+    //             this.try(() => {
+    //                 if (!this.eat(multiple)) {
+    //                     return false;
+    //                 }
+    //                 part = this.eatRegex(regex);
+    //                 return part !== null;
+    //             });
+    //         }
+    //         if (part === null) {
+    //             break;
+    //         }
+    //         parts ??= [];
+    //         parts.push(part);
+    //         if (multiple === null) {
+    //             break;
+    //         }
+    //     }
+    //     if (parts === null) {
+    //         return null;
+    //     }
+    //     return parts.join(multiple ?? '');
+    // }
 
     eatRegex(regex) {
         let content = this.content.slice(this.position);
@@ -97,31 +113,15 @@ export default class Lexer {
         return m;
     }
 
-    try(fn) {
-        let position = this.position;
-        if (fn()) {
-            return true;
-        }
-        this.position = position;
-        return false;
-    }
+    // eatDecimalNumber() {
+    //     return this.eatRegex(/^(0|[1-9][0-9]*)/);
+    // }
 
-    look(fn) {
-        let position = this.position;
-        let res = fn();
-        this.position = position;
-        return res;
-    }
+    // eatHexadecimalNumber() {
+    //     return this.eatRegex(/^0x[0-9a-fA-F]+/);
+    // }
 
-    eatDecNum() {
-        return this.eatRegex(/^(0|[1-9][0-9]*)/);
-    }
-
-    eatHexNum() {
-        return this.eatRegex(/^0x[0-9a-fA-F]+/);
-    }
-
-    eatNum() {
-        return this.eatHexNum() ?? this.eatDecNum();
-    }
+    // eatNumber() {
+    //     return this.eatHexadecimalNumber() ?? this.eatDecimalNumber();
+    // }
 }

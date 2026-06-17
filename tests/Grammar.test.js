@@ -6,12 +6,23 @@ import Grammar from '../src/Grammar.js';
 test('Grammar / 1', (t) => {
     let grammar = new Grammar();
     let cases = [
-        // ' { } // a\n/*b*/',
-        ' { /*a*/ } ',
-        'asm{label:}',
+        ['Comment', '// a'],
+        ['Comment', '/* b */'],
+        ['Whitespace', ' '],
+        ['Program', '{}'],
+        ['Program', ' { } '],
+        ['Program', ' {/* */} '],
+        ['Program', ' {//\n} '],
+        ['Program', '/*', true],
+        ['Program', '{', true],
     ];
-    for (let input of cases) {
-        let token = grammar.tokenize('Program', new Lexer(input));
+    for (let [tt, input, error] of cases) {
+        let fn = () => grammar.tokenize(tt, new Lexer(input));
+        if (error) {
+            t.throws(fn);
+            continue;
+        }
+        let token = fn();
         t.equals(token.stringify(), input);
     }
     t.end();
