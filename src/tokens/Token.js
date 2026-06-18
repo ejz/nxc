@@ -26,6 +26,9 @@ export default class Token {
             return this.children.map((child) => child.stringify()).join('');
         }
         if (this.child !== undefined) {
+            if (this.child === null) {
+                return '';
+            }
             return this.child.stringify();
         }
         if (this.value !== undefined) {

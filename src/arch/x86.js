@@ -13,6 +13,7 @@ export const arch = {
     opsizes: ['8', '16', '32'],
     operations: ['=', '++', '--', '!='],
     finalExit: 'syscall.exit',
+    noOp: 'nop',
 };
 
 export const register = {

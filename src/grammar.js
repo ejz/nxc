@@ -11,6 +11,7 @@ import MultilineCommentBody from './tokens/MultilineCommentBody.js';
 import StandaloneAssemblerLabelEnd from './tokens/StandaloneAssemblerLabelEnd.js';
 import Sep from './tokens/Sep.js';
 import SepOpt from './tokens/SepOpt.js';
+import AssemblerOperand from './tokens/AssemblerOperand.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, 'grammar');
@@ -18,9 +19,8 @@ const grammarContent = fs.readFileSync(grammarFile).toString();
 const tokens = {};
 const constructors = {};
 const stringTokens = {};
-const aliasTokens = {};
-const repeatTokens = {};
 const keywordTokens = {};
+const referenceTokens = {};
 const eatValue = (value) => (token) => {
     return token.lexer.eat(value) ? token.finalize({value}) : null;
 };
@@ -34,16 +34,27 @@ const toKeywordToken = (value) => {
     keywordTokens[key] = eatValue(value);
     return key;
 };
-const toAliasToken = (value) => {
-    let key = 'Alias.' + Object.keys(aliasTokens).length;
-    aliasTokens[key] = value;
+const toReferenceToken = (value) => {
+    let key = 'Reference.' + Object.keys(referenceTokens).length;
+    referenceTokens[key] = value;
     return key;
 };
-const toRepeatToken = (value) => {
-    let key = 'Repeat.' + Object.keys(repeatTokens).length;
-    repeatTokens[key] = value;
-    return key;
-};
+const normalizeDescriptor = (descriptor) => {
+    let backup = descriptor;
+    descriptor = descriptor.replace(/[^\s()]+[*+?]/g, (m) => {
+        if (m.length === backup.length) {
+            return m;
+        }
+        return toReferenceToken(m);
+    });
+    descriptor = descriptor.replace(/\(\s*([^()]*?)\s*\)/g, (m, p) => {
+        return toReferenceToken(p);
+    });
+    if (descriptor !== backup) {
+        return normalizeDescriptor(descriptor);
+    }
+    return descriptor.trim();
+}
 
 const parts = grammarContent.replace(/#\s*\S+/g, '').split(/(\w+)\s*->\s*/).slice(1);
 
@@ -51,10 +62,6 @@ for (let i = 0; i < parts.length; i += 2) {
     let name = parts[i];
     let descriptor = parts[i + 1];
     descriptor = descriptor.trim();
-    if (descriptor === '!') {
-        tokens[name] = descriptor;
-        continue;
-    }
     if (descriptor.startsWith('/') && descriptor.endsWith('/')) {
         tokens[name] = eval(descriptor);
         continue;
@@ -66,22 +73,14 @@ for (let i = 0; i < parts.length; i += 2) {
         return toKeywordToken(p);
     });
     descriptor = descriptor.replace(/\s+/g, ' ');
-    descriptor = descriptor.replace(/\((.*?)\)/g, (m, p) => {
-        return toAliasToken(p);
-    });
-    let bk = descriptor;
-    descriptor = descriptor.replace(/\S+\*/g, (m) => {
-        if (m.length === bk.length) {
-            return m;
-        }
-        return toRepeatToken(m);
-    });
+    descriptor = normalizeDescriptor(descriptor);
     tokens[name] = descriptor;
 }
 
 tokens.SinglelineCommentBody = SinglelineCommentBody.resolve;
 tokens.MultilineCommentBody = MultilineCommentBody.resolve;
 tokens.StandaloneAssemblerLabelEnd = StandaloneAssemblerLabelEnd.resolve;
+tokens.AssemblerOperand = AssemblerOperand.resolve;
 
 constructors.Comment = Comment;
 constructors.Whitespace = Whitespace;
@@ -92,8 +91,9 @@ constructors.MultilineCommentBody = MultilineCommentBody;
 constructors.StandaloneAssemblerLabelEnd = StandaloneAssemblerLabelEnd;
 constructors.Sep = Sep;
 constructors.SepOpt = SepOpt;
+constructors.AssemblerOperand = AssemblerOperand;
 
-Object.assign(tokens, stringTokens, keywordTokens, aliasTokens, repeatTokens);
+Object.assign(tokens, stringTokens, keywordTokens, referenceTokens);
 
 console.log({tokens});
 

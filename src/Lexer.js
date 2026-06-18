@@ -1,11 +1,3 @@
-const identifier = {
-    // key: [upperCase, underscore]
-    [[true, true]]: /^[_a-zA-Z][_a-zA-Z0-9]*/,
-    [[true, false]]: /^[a-zA-Z][a-zA-Z0-9]*/,
-    [[false, true]]: /^[_a-z][_a-z0-9]*/,
-    [[false, false]]: /^[a-z][a-z0-9]*/,
-};
-
 export default class Lexer {
     constructor(content, position = 0) {
         this.content = content;
@@ -32,6 +24,11 @@ export default class Lexer {
         let content = this.content.slice(this.position);
         this.proceed(content.length);
         return content;
+    }
+
+    eatOneOf(...many) {
+        let eat = this.eat.bind(this);
+        return many.find(eat) ?? null;
     }
 
     try(fn) {
@@ -71,37 +68,6 @@ export default class Lexer {
         return [content.slice(0, pos), found];
     }
 
-    // eatIdentifier({upperCase = false, underscore = false, multiple = null} = {}) {
-    //     let regex = identifier[[upperCase, underscore]];
-    //     let parts = null;
-    //     while (true) {
-    //         let part = null;
-    //         if (parts === null) {
-    //             part = this.eatRegex(regex);
-    //         } else {
-    //             this.try(() => {
-    //                 if (!this.eat(multiple)) {
-    //                     return false;
-    //                 }
-    //                 part = this.eatRegex(regex);
-    //                 return part !== null;
-    //             });
-    //         }
-    //         if (part === null) {
-    //             break;
-    //         }
-    //         parts ??= [];
-    //         parts.push(part);
-    //         if (multiple === null) {
-    //             break;
-    //         }
-    //     }
-    //     if (parts === null) {
-    //         return null;
-    //     }
-    //     return parts.join(multiple ?? '');
-    // }
-
     eatRegex(regex) {
         let content = this.content.slice(this.position);
         let match = content.match(regex);
@@ -112,16 +78,4 @@ export default class Lexer {
         this.proceed(m.length);
         return m;
     }
-
-    // eatDecimalNumber() {
-    //     return this.eatRegex(/^(0|[1-9][0-9]*)/);
-    // }
-
-    // eatHexadecimalNumber() {
-    //     return this.eatRegex(/^0x[0-9a-fA-F]+/);
-    // }
-
-    // eatNumber() {
-    //     return this.eatHexadecimalNumber() ?? this.eatDecimalNumber();
-    // }
 }

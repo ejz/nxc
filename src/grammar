@@ -14,16 +14,67 @@ Whitespace -> ' ' | '\t' | Newline
 Newline -> '\r\n' | '\r' | '\n'
 SinglelineComment -> '//' SinglelineCommentBody
 MultilineComment -> '/*' MultilineCommentBody ^ '*/'
+SinglelineCommentBody -> !
+MultilineCommentBody -> !
 
 # AssemblerBlock
 
 AssemblerBlock -> `asm` SepOpt '{' ^ SepOpt (AssemblerStatement SepOpt)* '}'
 AssemblerStatement ->
-    StandaloneAssemblerLabel
+    AssemblerStandaloneLabel
     | AssemblerOperation
     | AssemblerInstruction
-StandaloneAssemblerLabel -> AssemblerLabel StandaloneAssemblerLabelEnd
+AssemblerStandaloneLabel -> AssemblerLabel AssemblerStandaloneLabelEnd
 AssemblerLabel -> AssemblerLabelName ':'
 AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
-AssemblerOperation -> !
+AssemblerStandaloneLabelEnd -> !
+
+# AssemblerOperation
+
+AssemblerOperation ->
+    (AssemblerLabel AssemblerLabelEnd)?
+    AssemblerArgument
+    SepOpt AssemblerOperand SepOpt
+    ^
+    AssemblerArgument
+    (Comma AssemblerArgument)*
+    End
+AssemblerLabelEnd -> !
+AssemblerOperand -> !
+AssemblerArgument ->
+    AssemblerReference
+    | AssemblerAddress
+    | AssemblerInteger
+    | AssemblerScaleIndexBase
+    | AssemblerRegister
+    | AssemblerLabelName
+AssemblerReference -> '$' DecNum
+AssemblerAddress -> AssemblerAddressSegment? ':' ^ AssemblerAddressOffset
+AssemblerAddressSegment -> AssemblerRegister | Num
+AssemblerAddressOffset -> Num
+AssemblerInteger -> Int
+AssemblerRegister -> /^[a-z][a-z0-9]*/
+
+# AssemblerScaleIndexBase
+
+AssemblerScaleIndexBase -> '[' SepOpt AssemblerScaleIndexBaseBody SepOpt ']'
+AssemblerScaleIndexBaseBody -> (
+    (SepOpt AssemblerScaleIndexBaseBodyOperand SepOpt)?
+    AssemblerScaleIndexBaseBodyPart
+)+
+AssemblerScaleIndexBaseBodyOperand -> '+' | '-' | '*'
+AssemblerScaleIndexBaseBodyPart -> AssemblerRegister | Num
+
+# AssemblerInstruction
+
 AssemblerInstruction -> !
+
+# Generic
+
+End -> !
+Comma -> SepOpt ',' SepOpt
+DecNum -> /^(0|[1-9][0-9]*)/
+HexNum -> /^0x[0-9a-fA-F]+/
+Num -> HexNum | DecNum
+Int -> Sign? Num
+Sign -> '+' | '-'

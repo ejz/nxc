@@ -47,8 +47,9 @@ export default class Grammar {
         }
         let star = value.endsWith('*');
         let plus = value.endsWith('+');
+        let ques = value.endsWith('?');
         let tail = value.slice(0, -1);
-        if (star || plus) {
+        if (star || plus || ques) {
             value = tail;
             return withToken((token) => {
                 let children = [];
@@ -58,6 +59,13 @@ export default class Grammar {
                         break;
                     }
                     children.push(child);
+                    if (ques) {
+                        break;
+                    }
+                }
+                if (ques) {
+                    let [child = null] = children;
+                    return token.finalize({child});
                 }
                 if (plus && children.length === 0) {
                     return null;
@@ -92,6 +100,7 @@ export default class Grammar {
         return withToken((token) => {
             let child = null;
             let result = value.split(' | ').some((value) => {
+                console.log({value});
                 child = this.tokens[value](token.lexer, token);
                 return child !== null;
             });

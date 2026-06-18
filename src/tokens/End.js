@@ -1,6 +1,6 @@
 import Token from './Token.js';
 
-export default class StandaloneAssemblerLabelEnd extends Token {
+export default class End extends Token {
     static resolve(token, grammar) {
         let lex = token.lexer;
         let sep;
@@ -12,6 +12,9 @@ export default class StandaloneAssemblerLabelEnd extends Token {
                 || lex.look(() => lex.eat('}'))
             );
         });
+        // a:}
+        // a: ;}
+        // a: a = 1}
         if (!res) {
             return null;
         }
