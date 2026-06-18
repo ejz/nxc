@@ -8,13 +8,16 @@ test('Grammar / 1', (t) => {
     let cases = [
         ['Comment', '// a'],
         ['Comment', '/* b */'],
+        ['Comment', '/*', true],
         ['Whitespace', ' '],
         ['Program', '{}'],
-        ['Program', ' { } '],
+        ['Program', '{', true],
         ['Program', ' {/* */} '],
         ['Program', ' {//\n} '],
-        ['Program', '/*', true],
-        ['Program', '{', true],
+        ['AssemblerBlock', 'asm{}'],
+        ['AssemblerBlock', 'asm{', true],
+        ['AssemblerBlock', 'asm{a:}'],
+        ['AssemblerBlock', 'asm{a:\nb:}'],
     ];
     for (let [tt, input, error] of cases) {
         let fn = () => grammar.tokenize(tt, new Lexer(input));
