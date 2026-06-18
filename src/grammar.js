@@ -2,8 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+import Comment from './tokens/Comment.js';
+import Whitespace from './tokens/Whitespace.js';
+import SinglelineComment from './tokens/SinglelineComment.js';
 import SinglelineCommentBody from './tokens/SinglelineCommentBody.js';
+import MultilineComment from './tokens/MultilineComment.js';
 import MultilineCommentBody from './tokens/MultilineCommentBody.js';
+import StandaloneAssemblerLabelEnd from './tokens/StandaloneAssemblerLabelEnd.js';
+import Sep from './tokens/Sep.js';
+import SepOpt from './tokens/SepOpt.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, 'grammar');
@@ -43,28 +50,48 @@ const parts = grammarContent.replace(/#\s*\S+/g, '').split(/(\w+)\s*->\s*/).slic
 for (let i = 0; i < parts.length; i += 2) {
     let name = parts[i];
     let descriptor = parts[i + 1];
+    descriptor = descriptor.trim();
+    if (descriptor === '!') {
+        tokens[name] = descriptor;
+        continue;
+    }
+    if (descriptor.startsWith('/') && descriptor.endsWith('/')) {
+        tokens[name] = eval(descriptor);
+        continue;
+    }
     descriptor = descriptor.replace(/'.*?'/g, (m) => {
         return toStringToken(eval(m));
     });
     descriptor = descriptor.replace(/`(.*?)`/g, (m, p) => {
         return toKeywordToken(p);
     });
-    descriptor = descriptor.trim();
     descriptor = descriptor.replace(/\s+/g, ' ');
     descriptor = descriptor.replace(/\((.*?)\)/g, (m, p) => {
         return toAliasToken(p);
     });
+    let bk = descriptor;
     descriptor = descriptor.replace(/\S+\*/g, (m) => {
+        if (m.length === bk.length) {
+            return m;
+        }
         return toRepeatToken(m);
     });
     tokens[name] = descriptor;
 }
 
 tokens.SinglelineCommentBody = SinglelineCommentBody.resolve;
-constructors.SinglelineCommentBody = SinglelineCommentBody;
-
 tokens.MultilineCommentBody = MultilineCommentBody.resolve;
+tokens.StandaloneAssemblerLabelEnd = StandaloneAssemblerLabelEnd.resolve;
+
+constructors.Comment = Comment;
+constructors.Whitespace = Whitespace;
+constructors.SinglelineComment = SinglelineComment;
+constructors.SinglelineCommentBody = SinglelineCommentBody;
+constructors.MultilineComment = MultilineComment;
 constructors.MultilineCommentBody = MultilineCommentBody;
+constructors.StandaloneAssemblerLabelEnd = StandaloneAssemblerLabelEnd;
+constructors.Sep = Sep;
+constructors.SepOpt = SepOpt;
 
 Object.assign(tokens, stringTokens, keywordTokens, aliasTokens, repeatTokens);
 

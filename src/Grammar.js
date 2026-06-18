@@ -18,15 +18,10 @@ export default class Grammar {
         let ctorKey = key.split('.').shift();
         let withToken = (fn) => {
             return (lexer, parent) => {
-                // if (!/newline|comment|string|space/i.test(key)) console.log(key);
-                // if (key === 'AssemblerStatementWhitespaceCommentCollectionCollection')
-                // if (parent && parent.name.includes('Collection'))
-                    // console.log(parent/*?.children?.length*/);
                 let ctor = this.constructors[ctorKey] ?? Token;
                 let token = new ctor(key, lexer, parent);
                 let position = lexer.position;
                 token = fn(token, this);
-                // console.log({token});
                 if (token === null) {
                     lexer.position = position;
                     return null;
@@ -34,6 +29,19 @@ export default class Grammar {
                 return token;
             };
         };
+        if (value === '!') {
+            return () => null;
+        }
+        if (value instanceof RegExp) {
+            let regex = value;
+            return withToken((token) => {
+                let value = token.lexer.eatRegex(regex);
+                if (value === null) {
+                    return null;
+                }
+                return token.finalize({value});
+            });
+        }
         if (typeof value === 'function') {
             return withToken(value);
         }
@@ -46,7 +54,6 @@ export default class Grammar {
                 let children = [];
                 while (true) {
                     let child = this.tokens[value](token.lexer, token);
-                    // console.log(key, child);
                     if (child === null) {
                         break;
                     }

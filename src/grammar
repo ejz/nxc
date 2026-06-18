@@ -17,40 +17,13 @@ MultilineComment -> '/*' MultilineCommentBody ^ '*/'
 
 # AssemblerBlock
 
-AssemblerBlock -> `asm` SepOpt '{' ^ SepOpt (AssemblerStatement End)* '}'
+AssemblerBlock -> `asm` SepOpt '{' ^ SepOpt (AssemblerStatement SepOpt)* '}'
 AssemblerStatement ->
     StandaloneAssemblerLabel
     | AssemblerOperation
     | AssemblerInstruction
-StandaloneAssemblerLabel -> AssemblerLabel
+StandaloneAssemblerLabel -> AssemblerLabel StandaloneAssemblerLabelEnd
 AssemblerLabel -> AssemblerLabelName ':'
 AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
-
-# End
-
-End -> (Sep & GotNewline) | (SepOpt ';' SepOpt) | (SepOpt ?'}')
-
-return this.try(() => {
-            let wcc = this.wcc();
-            return (
-                this.isEndOfFile()
-                || this.eat(';')
-                || wcc.gotNewline()
-                || this.look(() => this.eat('}'))
-            );
-        });
-
-sequence(
-        '',
-        'End',
-    ),
-    (token) {
-        let value = token.lexer.eatIdentifier({
-            upperCase: true,
-            underscore: true,
-        });
-        if (value === null) {
-            return null;
-        }
-        return token.finalize({rawValue: value});
-    },
+AssemblerOperation -> !
+AssemblerInstruction -> !
