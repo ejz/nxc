@@ -90,6 +90,10 @@ export default class Grammar {
                 });
                 if (!result) {
                     if (assertion) {
+                        console.log(token.lexer, token.lexer.content.slice(token.lexer.position));
+                        if (token.lexer.isEof()) {
+                            throw new Error;
+                        }
                         throw new Error;
                     }
                     return null;

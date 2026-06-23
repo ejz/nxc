@@ -8,10 +8,10 @@ import SinglelineComment from './tokens/SinglelineComment.js';
 import SinglelineCommentBody from './tokens/SinglelineCommentBody.js';
 import MultilineComment from './tokens/MultilineComment.js';
 import MultilineCommentBody from './tokens/MultilineCommentBody.js';
-import StandaloneAssemblerLabelEnd from './tokens/StandaloneAssemblerLabelEnd.js';
 import Sep from './tokens/Sep.js';
 import SepOpt from './tokens/SepOpt.js';
 import AssemblerOperand from './tokens/AssemblerOperand.js';
+import AssemblerLabelEnd from './tokens/AssemblerLabelEnd.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, 'grammar');
@@ -77,21 +77,24 @@ for (let i = 0; i < parts.length; i += 2) {
     tokens[name] = descriptor;
 }
 
-tokens.SinglelineCommentBody = SinglelineCommentBody.resolve;
-tokens.MultilineCommentBody = MultilineCommentBody.resolve;
-tokens.StandaloneAssemblerLabelEnd = StandaloneAssemblerLabelEnd.resolve;
+constructors.AssemblerLabelEnd = AssemblerLabelEnd;
+tokens.AssemblerLabelEnd = AssemblerLabelEnd.resolve;
+
+constructors.AssemblerOperand = AssemblerOperand;
 tokens.AssemblerOperand = AssemblerOperand.resolve;
+
+constructors.SinglelineCommentBody = SinglelineCommentBody;
+tokens.SinglelineCommentBody = SinglelineCommentBody.resolve;
+
+constructors.MultilineCommentBody = MultilineCommentBody;
+tokens.MultilineCommentBody = MultilineCommentBody.resolve;
 
 constructors.Comment = Comment;
 constructors.Whitespace = Whitespace;
 constructors.SinglelineComment = SinglelineComment;
-constructors.SinglelineCommentBody = SinglelineCommentBody;
 constructors.MultilineComment = MultilineComment;
-constructors.MultilineCommentBody = MultilineCommentBody;
-constructors.StandaloneAssemblerLabelEnd = StandaloneAssemblerLabelEnd;
 constructors.Sep = Sep;
 constructors.SepOpt = SepOpt;
-constructors.AssemblerOperand = AssemblerOperand;
 
 Object.assign(tokens, stringTokens, keywordTokens, referenceTokens);
 

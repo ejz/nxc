@@ -22,24 +22,30 @@ MultilineCommentBody -> !
 AssemblerBlock -> `asm` SepOpt '{' ^ SepOpt (AssemblerStatement SepOpt)* '}'
 AssemblerStatement ->
     AssemblerStandaloneLabel
+    | AssemblerEmptyStatement
     | AssemblerOperation
     | AssemblerInstruction
-AssemblerStandaloneLabel -> AssemblerLabel AssemblerStandaloneLabelEnd
+AssemblerStandaloneLabel -> AssemblerLabel AssemblerLabelEnd
+AssemblerInlineLabel -> AssemblerLabel Sep
 AssemblerLabel -> AssemblerLabelName ':'
 AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
-AssemblerStandaloneLabelEnd -> !
+AssemblerLabelEnd -> !
+
+# AssemblerEmptyStatement
+
+AssemblerEmptyStatement -> AssemblerInlineLabel? AssemblerEmptyStatementBody
+AssemblerEmptyStatementBody -> ';'
 
 # AssemblerOperation
 
-AssemblerOperation ->
-    (AssemblerLabel AssemblerLabelEnd)?
+AssemblerOperation -> AssemblerInlineLabel? AssemblerOperationBody
+AssemblerOperationBody ->
     AssemblerArgument
     SepOpt AssemblerOperand SepOpt
     ^
     AssemblerArgument
     (Comma AssemblerArgument)*
     End
-AssemblerLabelEnd -> !
 AssemblerOperand -> !
 AssemblerArgument ->
     AssemblerReference
