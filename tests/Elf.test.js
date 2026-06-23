@@ -3,7 +3,7 @@ import test from 'tape';
 import Elf from '../src/Elf.js';
 
 test('Elf / 1', (t) => {
-    let elf = new Elf();
+    let elf = new Elf;
     elf.push(Buffer.from('f'));
     elf.push(Buffer.from('o'));
     elf.push(Buffer.from('o'));

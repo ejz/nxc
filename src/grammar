@@ -5,8 +5,8 @@ Statement ->
     EmptyStatement
     | RegularBlock
     | AssemblerBlock
-RegularBlock -> '{' ^ SepOpt (Statement SepOpt)* '}'
 EmptyStatement -> ';'
+RegularBlock -> '{' ^ SepOpt (Statement SepOpt)* '}'
 SepOpt -> (Whitespace | Comment)*
 Sep -> (Whitespace | Comment)+
 SameLineSep -> !
@@ -43,9 +43,8 @@ AssemblerOperationBody ->
     AssemblerArgument
     SepOpt AssemblerOperand SepOpt
     ^
-    AssemblerArgument
-    (Comma AssemblerArgument)*
-    (Term | End)
+    AssemblerArguments
+    TermEnd
 AssemblerOperand -> !
 AssemblerArgument ->
     AssemblerReference
@@ -60,6 +59,7 @@ AssemblerAddressSegment -> AssemblerRegister | Num
 AssemblerAddressOffset -> Num
 AssemblerInteger -> Int
 AssemblerRegister -> /^[a-z][a-z0-9]*/
+AssemblerArguments -> AssemblerArgument (Comma AssemblerArgument)*
 
 # AssemblerScaleIndexBase
 
@@ -77,15 +77,17 @@ AssemblerInstruction -> AssemblerInlineLabel? AssemblerInstructionBody
 AssemblerInstructionBody ->
     AssemblerInstructionName
     AssemblerInstructionOperandSize?
-    AssemblerInstructionArguments
+    AssemblerInstructionArguments?
+    TermEnd
 AssemblerInstructionName -> AssemblerInstructionNamePart ('.' AssemblerInstructionNamePart)*
 AssemblerInstructionNamePart -> /^[a-zA-Z][a-zA-Z0-9]*/
 AssemblerInstructionOperandSize -> '.' DecNum
-AssemblerInstructionArguments -> !
+AssemblerInstructionArguments -> SameLineSep AssemblerArguments
 
 # Generic
 
 End -> !
+TermEnd -> Term | End
 Term -> SameLineSep? ';'
 Comma -> SepOpt ',' SepOpt
 DecNum -> /^(0|[1-9][0-9]*)/
