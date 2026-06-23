@@ -1,4 +1,4 @@
-import tape from 'tape'
+import tape from 'tape';
 import tapePromise from 'tape-promise';
 
 import runner from '../src/runner.js';
