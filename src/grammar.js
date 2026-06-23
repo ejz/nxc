@@ -12,7 +12,7 @@ import Sep from './tokens/Sep.js';
 import SepOpt from './tokens/SepOpt.js';
 import AssemblerOperand from './tokens/AssemblerOperand.js';
 import End from './tokens/End.js';
-import Term from './tokens/Term.js';
+import SameLineSep from './tokens/SameLineSep.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, 'grammar');
@@ -81,8 +81,8 @@ for (let i = 0; i < parts.length; i += 2) {
 constructors.End = End;
 tokens.End = End.resolve;
 
-constructors.Term = Term;
-tokens.Term = Term.resolve;
+constructors.SameLineSep = SameLineSep;
+tokens.SameLineSep = SameLineSep.resolve;
 
 constructors.AssemblerOperand = AssemblerOperand;
 tokens.AssemblerOperand = AssemblerOperand.resolve;
@@ -102,187 +102,4 @@ constructors.SepOpt = SepOpt;
 
 Object.assign(tokens, stringTokens, keywordTokens, referenceTokens);
 
-console.log({tokens});
-
 export {tokens, constructors};
-// console.log(parts);
-
-
-// const TAB = '\t';
-// const SPACE = ' ';
-// const strings = {};
-// const choice = (...arr) => arr.join('|');
-// const sequence = (...arr) => arr.join(',');
-// const multiple = (s) => s + '*';
-
-// const keyword = (kw, k = kw) => string(kw, k, 'Keyword');
-/*
-Object.assign({
-    'Program': sequence(
-        'WhitespaceCommentCollection',
-        'StatementWhitespaceCommentCollectionCollection',
-    ),
-    'StatementWhitespaceCommentCollectionCollection': multiple('StatementWhitespaceCommentCollection'),
-    'StatementWhitespaceCommentCollection': sequence(
-        'Statement',
-        'WhitespaceCommentCollection',
-    ),
-    'Statement': choice(
-        'AssemblerBlock',
-        'EmptyStatement',
-        'RegularBlock',
-    ),
-    'RegularBlock': sequence(
-        string('{', 'openCurlyBrace'),
-        'WhitespaceCommentCollection',
-        'StatementWhitespaceCommentCollectionCollection',
-        string('}', 'closeCurlyBrace'),
-    ),
-    'EmptyStatement': string(';', 'semicolon'),
-    'WhitespaceCommentCollection': multiple('WhitespaceComment'),
-    'WhitespaceComment': choice(
-        'Whitespace',
-        'Comment',
-    ),
-    //
-    //
-    //
-    'AssemblerBlock': sequence(
-        keyword('asm'),
-        'WhitespaceCommentCollection',
-        string('{', 'openCurlyBrace'),
-        'WhitespaceCommentCollection',
-        'AssemblerStatementWhitespaceCommentCollectionCollection',
-        string('}', 'closeCurlyBrace'),
-    ),
-    'AssemblerStatementWhitespaceCommentCollectionCollection': multiple('AssemblerStatementWhitespaceCommentCollection'),
-    'AssemblerStatementWhitespaceCommentCollection': sequence(
-        'AssemblerStatement',
-        'WhitespaceCommentCollection',
-    ),
-    'AssemblerStatement': choice(
-        'StandaloneAssemblerLabel',
-        'AssemblerOperation',
-        // 'AssemblerInstruction',
-    ),
-    'AssemblerOperation': sequence(
-        'AssemblerArgument',
-        'AssemblerOperand',
-        'AssemblerArgumentCollection',
-    ),
-    'AssemblerArgumentCollection': sequence(
-        'AssemblerArgument',
-        'CommaAssemblerArgumentCollection',
-    ),
-    'CommaAssemblerArgumentCollection': multiple('CommaAssemblerArgument'),
-    'CommaAssemblerArgument': sequence(
-        'Comma',
-        'AssemblerArgument',
-    ),
-    'Comma': sequence(
-        'WhitespaceCommentCollection',
-        string(',', 'comma'),
-        'WhitespaceCommentCollection',
-    ),
-    'AssemblerArgument': choice(
-        'AssemblerReference',
-        'AssemblerAddress',
-        'AssemblerInteger',
-        'AssemblerScaleIndexBase',
-        'AssemblerRegister',
-        'AssemblerLabelName',
-    ),
-    'AssemblerAddress': sequence(
-        'AssemblerAddressSegment',
-        string(':', 'colon'),
-        'AssemblerAddressOffset',
-    ),
-    'AssemblerReference': sequence(
-        string('$', 'dollar'),
-        'DecimalNumber',
-    ),
-    'StandaloneAssemblerLabel': sequence(
-        'AssemblerLabel',
-        'End',
-    ),
-    'AssemblerLabel': sequence(
-        'AssemblerLabelName',
-        string(':', 'colon'),
-    ),
-    AssemblerLabelName(token) {
-        let value = token.lexer.eatIdentifier({
-            upperCase: true,
-            underscore: true,
-        });
-        if (value === null) {
-            return null;
-        }
-        return token.finalize({rawValue: value});
-    },
-    DecimalNumber(token) {
-        let value = token.lexer.eatDecimalNumber();
-        if (value === null) {
-            return null;
-        }
-        return token.finalize({rawValue: value});
-    },
-    End(token, grammar) {
-        let lex = token.lexer;
-        let hasEnd = false;
-        let res = lex.try(() => {
-            let wcc = grammar.tokenize('WhitespaceCommentCollection', lex);
-            return (
-                lex.isEof()
-                || wcc.gotNewline()
-                || (hasEnd = lex.eat(';'))
-                || lex.look(() => lex.eat('}'))
-            );
-        });
-        if (!res) {
-            return null;
-        }
-        return token.finalize({hasEnd});
-    },
-
-    'Comment': choice(
-        'SinglelineComment',
-        'MultilineComment',
-    ),
-    'Whitespace': choice(
-        string(SPACE, 'space'),
-        string(TAB, 'tab'),
-        'Newline',
-    ),
-    'Newline': choice(
-        string(CRLF, 'crlf'),
-        string(CR, 'cr'),
-        string(LF, 'lf'),
-    ),
-}, strings);
-
-export const constructors = {
-    End: class extends Token {
-        stringify() {
-            return this.hasEnd ? ';' : '';
-        }
-    },
-    WhitespaceCommentCollection: class extends Token {
-        gotNewline() {
-            return this.children.some((token) => {
-                return token.child.gotNewline();
-            });
-        }
-    },
-    Whitespace: class extends Token {
-        gotNewline() {
-            return this.child.name === 'Newline';
-        }
-    },
-    Comment: class extends Token {
-        gotNewline() {
-            return this.child.gotNewline();
-        }
-    },
-    
-};
-*/

@@ -9,6 +9,7 @@ RegularBlock -> '{' ^ SepOpt (Statement SepOpt)* '}'
 EmptyStatement -> ';'
 SepOpt -> (Whitespace | Comment)*
 Sep -> (Whitespace | Comment)+
+SameLineSep -> !
 Comment -> SinglelineComment | MultilineComment
 Whitespace -> ' ' | '\t' | Newline
 Newline -> '\r\n' | '\r' | '\n'
@@ -26,7 +27,7 @@ AssemblerStatement ->
     | AssemblerOperation
     | AssemblerInstruction
 AssemblerStandaloneLabel -> AssemblerLabel End
-AssemblerInlineLabel -> AssemblerLabel Sep
+AssemblerInlineLabel -> AssemblerLabel SameLineSep
 AssemblerLabel -> AssemblerLabelName ':'
 AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
 
@@ -77,15 +78,15 @@ AssemblerInstructionBody ->
     AssemblerInstructionName
     AssemblerInstructionOperandSize?
     AssemblerInstructionArguments
+AssemblerInstructionName -> AssemblerInstructionNamePart ('.' AssemblerInstructionNamePart)*
+AssemblerInstructionNamePart -> /^[a-zA-Z][a-zA-Z0-9]*/
+AssemblerInstructionOperandSize -> '.' DecNum
 AssemblerInstructionArguments -> !
-# AssemblerArgument
-# (Comma AssemblerArgument)*
-# (Term | End)
 
 # Generic
 
 End -> !
-Term -> !
+Term -> SameLineSep? ';'
 Comma -> SepOpt ',' SepOpt
 DecNum -> /^(0|[1-9][0-9]*)/
 HexNum -> /^0x[0-9a-fA-F]+/
