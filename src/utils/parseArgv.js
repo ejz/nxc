@@ -45,7 +45,7 @@ export default function parseArgv(argv, dict) {
     return [argv.slice(i), ready];
 }
 
-export function splitDict(dict) {
+function splitDict(dict) {
     let split = {};
     for (let k in dict) {
         let v = dict[k];
