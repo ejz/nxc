@@ -25,11 +25,10 @@ AssemblerStatement ->
     | AssemblerEmptyStatement
     | AssemblerOperation
     | AssemblerInstruction
-AssemblerStandaloneLabel -> AssemblerLabel AssemblerLabelEnd
+AssemblerStandaloneLabel -> AssemblerLabel End
 AssemblerInlineLabel -> AssemblerLabel Sep
 AssemblerLabel -> AssemblerLabelName ':'
 AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
-AssemblerLabelEnd -> !
 
 # AssemblerEmptyStatement
 
@@ -45,7 +44,7 @@ AssemblerOperationBody ->
     ^
     AssemblerArgument
     (Comma AssemblerArgument)*
-    End
+    Term End
 AssemblerOperand -> !
 AssemblerArgument ->
     AssemblerReference
@@ -78,6 +77,7 @@ AssemblerInstruction -> !
 # Generic
 
 End -> !
+Term -> !
 Comma -> SepOpt ',' SepOpt
 DecNum -> /^(0|[1-9][0-9]*)/
 HexNum -> /^0x[0-9a-fA-F]+/

@@ -6,30 +6,45 @@ import Grammar from '../src/Grammar.js';
 test('Grammar / 1', (t) => {
     let grammar = new Grammar();
     let cases = [
+        ['Comment', '//'],
+        ['Comment', '//\n'],
         ['Comment', '// a'],
+        ['Comment', '// a\n'],
+        ['Comment', '/**/'],
+        ['Comment', '/* \n */'],
         ['Comment', '/* b */'],
         ['Comment', '/*', true],
         ['Whitespace', ' '],
+        ['Whitespace', '\n'],
+        ['Whitespace', '\r\n'],
         ['Program', '{}'],
         ['Program', '{', true],
         ['Program', ' {/* */} '],
         ['Program', ' {//\n} '],
+        ['AssemblerStandaloneLabel', 'label:'],
         ['AssemblerBlock', 'asm{}'],
+        ['AssemblerBlock', 'asm{ }'],
         ['AssemblerBlock', 'asm{', true],
-        ['AssemblerBlock', 'asm{a:}'],
-        ['AssemblerBlock', 'asm{a:\nb:}'],
+        ['AssemblerBlock', 'asm{/**/}'],
+        ['AssemblerBlock', 'asm{label:}'],
+        ['AssemblerBlock', 'asm{ label: }'],
+        ['AssemblerBlock', 'asm{ \n label: \n }'],
+        ['AssemblerBlock', 'asm{ \n a: \n b: \n }'],
+        ['AssemblerBlock', 'asm{a: b:}', true],
+        ['AssemblerBlock', 'asm{ /**/ a: /*\n*/ b: /**/ }'],
         ['AssemblerBlock', 'asm{a = 1}'],
-        ['AssemblerBlock', 'asm{a = 1;b = 2}'],
         ['AssemblerBlock', 'asm{a =}', true],
     ];
     for (let [tt, input, error] of cases) {
-        let fn = () => grammar.tokenize(tt, new Lexer(input));
+        let lexer = new Lexer(input);
+        let fn = () => grammar.tokenize(tt, lexer);
         if (error) {
             t.throws(fn);
             continue;
         }
         let token = fn();
         t.equals(token.stringify(), input);
+        t.equals(lexer.isEof(), true);
     }
     t.end();
 });

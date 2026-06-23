@@ -11,7 +11,8 @@ import MultilineCommentBody from './tokens/MultilineCommentBody.js';
 import Sep from './tokens/Sep.js';
 import SepOpt from './tokens/SepOpt.js';
 import AssemblerOperand from './tokens/AssemblerOperand.js';
-import AssemblerLabelEnd from './tokens/AssemblerLabelEnd.js';
+import End from './tokens/End.js';
+import Term from './tokens/Term.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, 'grammar');
@@ -77,8 +78,11 @@ for (let i = 0; i < parts.length; i += 2) {
     tokens[name] = descriptor;
 }
 
-constructors.AssemblerLabelEnd = AssemblerLabelEnd;
-tokens.AssemblerLabelEnd = AssemblerLabelEnd.resolve;
+constructors.End = End;
+tokens.End = End.resolve;
+
+constructors.Term = Term;
+tokens.Term = Term.resolve;
 
 constructors.AssemblerOperand = AssemblerOperand;
 tokens.AssemblerOperand = AssemblerOperand.resolve;

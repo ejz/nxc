@@ -1,6 +1,6 @@
 import Token from './Token.js';
 
-export default class AssemblerLabelEnd extends Token {
+export default class End extends Token {
     static resolve(token, grammar) {
         let lex = token.lexer;
         let res = lex.look(() => {
