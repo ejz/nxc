@@ -1,11 +1,8 @@
-import Logger, {LogLevel} from './Logger.js';
-import parseArgv from './utils/parseArgv.js';
-import * as commands from './commands.js';
-import asyncExecute from './utils/asyncExecute.js';
-import AppError from './errors/AppError.js';
-import InvalidArgumentError from './errors/InvalidArgumentError.js';
-import InvalidCommandError from './errors/InvalidCommandError.js';
-import NoCommandError from './errors/NoCommandError.js';
+import Logger, {LogLevel} from '../src/utils/Logger.js';
+import asyncExecute from '../src/utils/asyncExecute.js';
+import parseArgv from '../src/utils/parseArgv.js';
+import InvalidCommandError from '../src/errors/InvalidCommandError.js';
+import NoCommandError from '../src/errors/NoCommandError.js';
 
 export default async function runner({
     argv,
@@ -14,49 +11,39 @@ export default async function runner({
     isStderrStreamTerminal,
     prefixLogger = true,
     onError,
-    commands: _commands = commands,
+    commands,
 }) {
     let echoFn = (msg) => consoleError('%s', msg);
     let logger = new Logger(echoFn);
     logger = prefixLogger ? logger.prefix('%llc', '(%llt)') : logger;
     logger.logLevel = LogLevel.Log;
     logger.enableColor = isStderrStreamTerminal;
-    onError((e) => {
-        if (e instanceof AppError) {
-            logger.error(e.message, ...e.arguments);
-            e = new Error;
-        }
-        return e;
-    });
-    let positionals = parseArgv(argv, (arg) => {
-        switch (arg) {
-            case '-d':
-            case '-debug':
-                logger.logLevel = LogLevel.Debug;
-                return;
-            case '-q':
-            case '-quiet':
-                logger.logLevel = LogLevel.Error;
-                return;
-            case '-enable-color':
-                logger.enableColor = true;
-                return;
-            case '-disable-color':
-                logger.enableColor = false;
-                return;
-        }
-        throw new InvalidArgumentError(arg);
+    onError((e) => logger.error('%e', e));
+    let [positionals] = parseArgv(argv, {
+        'd|debug': () => {
+            logger.logLevel = LogLevel.Debug;
+        },
+        'q|quiet': () => {
+            logger.logLevel = LogLevel.Error;
+        },
+        'enable-color': () => {
+            logger.enableColor = true;
+        },
+        'disable-color': () => {
+            logger.enableColor = false;
+        },
     });
     let command = positionals.shift();
     if (command === undefined) {
         throw new NoCommandError;
     }
-    let commandFn = _commands[command];
+    let commandFn = commands[command];
     if (commandFn === undefined) {
         throw new InvalidCommandError(command);
     }
-    logger.debug('command `%s` ready to run ..', command);
+    logger.debug('command %q ready to run ..', command);
     let options = {...self, logger, positionals};
     options.self = options;
     return asyncExecute(commandFn, options);
 }
+

@@ -1,4 +1,4 @@
-import AppError from '../../utils/errors/AppError.js';
+import AppError from '../errors/AppError.js';
 
 const newObj = (obj, fn) => {
     let r = {};
