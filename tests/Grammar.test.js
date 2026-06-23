@@ -33,6 +33,8 @@ test('Grammar / 1', (t) => {
         ['AssemblerBlock', 'asm{a: b:}', true],
         ['AssemblerBlock', 'asm{ /**/ a: /*\n*/ b: /**/ }'],
         ['AssemblerBlock', 'asm{a = 1}'],
+        ['AssemblerBlock', 'asm{a = 1;b = 2}'],
+        ['AssemblerBlock', 'asm{a = 1 ; b = 2}'],
         ['AssemblerBlock', 'asm{a =}', true],
     ];
     for (let [tt, input, error] of cases) {

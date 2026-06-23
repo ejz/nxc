@@ -44,7 +44,7 @@ AssemblerOperationBody ->
     ^
     AssemblerArgument
     (Comma AssemblerArgument)*
-    Term End
+    (Term | End)
 AssemblerOperand -> !
 AssemblerArgument ->
     AssemblerReference
@@ -54,7 +54,7 @@ AssemblerArgument ->
     | AssemblerRegister
     | AssemblerLabelName
 AssemblerReference -> '$' DecNum
-AssemblerAddress -> AssemblerAddressSegment? ':' ^ AssemblerAddressOffset
+AssemblerAddress -> AssemblerAddressSegment? ':' AssemblerAddressOffset
 AssemblerAddressSegment -> AssemblerRegister | Num
 AssemblerAddressOffset -> Num
 AssemblerInteger -> Int
@@ -72,7 +72,15 @@ AssemblerScaleIndexBaseBodyPart -> AssemblerRegister | Num
 
 # AssemblerInstruction
 
-AssemblerInstruction -> !
+AssemblerInstruction -> AssemblerInlineLabel? AssemblerInstructionBody
+AssemblerInstructionBody ->
+    AssemblerInstructionName
+    AssemblerInstructionOperandSize?
+    AssemblerInstructionArguments
+AssemblerInstructionArguments -> !
+# AssemblerArgument
+# (Comma AssemblerArgument)*
+# (Term | End)
 
 # Generic
 
