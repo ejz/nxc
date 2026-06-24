@@ -39,7 +39,7 @@ export default class Grammar {
         grammarFileContent = fs.readFileSync(grammarFile).toString(),
         defaultTokenContructor = Token,
         tokenConstructors = tokenCtors,
-    }) {
+    } = {}) {
         this.grammarFileContent = grammarFileContent;
         this.defaultTokenContructor = defaultTokenContructor;
         this.tokenConstructors = tokenConstructors;
@@ -57,6 +57,7 @@ export default class Grammar {
         ;
         let nameString = 0;
         let nameKeyword = 0;
+        let references = {};
         let pairs = content.split(/(\w+)\s*->\s*/).slice(1);
         for (let i = 0; i < pairs.length; i += 2) {
             let [name, descriptor] = pairs.slice(i);
@@ -88,13 +89,12 @@ export default class Grammar {
                 return this.populateToken(name, eatValue(keyword));
             });
             descriptor = descriptor.replace(/\s+/g, ' ');
-            let references = {};
             let value = this.normalizeTokenDescriptor(descriptor, references);
             this.populateToken(name, value);
-            for (let name in references) {
-                let value = references[name];
-                this.populateToken(name, value);
-            }
+        }
+        for (let name in references) {
+            let value = references[name];
+            this.populateToken(name, value);
         }
     }
 
@@ -123,26 +123,17 @@ export default class Grammar {
     }
 
     castDescriptorToResolver(descriptor) {
-        let getter = (v) => {
-            if (v === '^') {
-                return v;
-            }
-            let fn = this.tokens[v];
-            if (fn === undefined) {
-                throw new InternalError;
-            }
-            return fn;
-        };
         let star = descriptor.endsWith('*');
         let plus = descriptor.endsWith('+');
         let ques = descriptor.endsWith('?');
         let pipe = descriptor.includes('|');
         let tail = descriptor.slice(0, -1);
         if (star || plus || ques) {
-            let value = tail;
-            let fn = getter(value);
+            let name = tail;
+            let fn = null;
             return (token) => {
                 let children = [];
+                fn ??= this.getToken(name);
                 while (true) {
                     let child = fn(token.lexer, token);
                     if (child === null) {
@@ -164,9 +155,11 @@ export default class Grammar {
             };
         }
         if (pipe) {
-            let fns = descriptor.split(' | ').map(getter);
+            let names = descriptor.split(' | ');
+            let fns = null;
             return (token) => {
                 let child = null;
+                fns ??= names.map((name) => this.getToken(name));
                 let result = fns.some((fn) => {
                     child = fn(token.lexer, token);
                     return child !== null;
@@ -177,10 +170,14 @@ export default class Grammar {
                 return token.finalize({child});
             };
         }
-        let fns = descriptor.split(' ').map(getter);
+        let names = descriptor.split(' ');
+        let fns = null;
         return (token) => {
             let children = [];
             let assertion = false;
+            fns ??= names.map((name) => {
+                return name === '^' ? name : this.getToken(name);
+            });
             let result = fns.every((fn) => {
                 if (fn === '^') {
                     assertion = true;
@@ -210,7 +207,8 @@ export default class Grammar {
         let nullRes = () => null;
         let res = gramRes ?? ctorRes ?? nullRes;
         let resolve = (lexer, parent) => {
-            let token = new constructor(key, lexer, parent);
+            // console.log({name, lexer, t: this.tokens});
+            let token = new constructor(name, lexer, parent);
             lexer.try(() => {
                 token = res(token, this);
                 return token !== null;
@@ -221,7 +219,15 @@ export default class Grammar {
         return name;
     }
 
+    getToken(name) {
+        let fn = this.tokens[name];
+        if (fn === undefined) {
+            throw new InternalError;
+        }
+        return fn;
+    }
+
     tokenize(key, lexer) {
-        return this.tokens[key](lexer, null);
+        return this.getToken(key)(lexer, null);
     }
 }

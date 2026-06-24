@@ -4,7 +4,7 @@ import InvalidLabelOffsetError from '../errors/InvalidLabelOffsetError.js';
 import InternalError from '../errors/InternalError.js';
 import ScaleIndexBaseValidationError from '../errors/ScaleIndexBaseValidationError.js';
 
-import * as types from '../types.js';
+import * as types from './types.js';
 
 export const arch = {
     name: 'x86',
