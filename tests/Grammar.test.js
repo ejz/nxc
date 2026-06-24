@@ -1,7 +1,10 @@
-import test from 'tape';
+import tape from 'tape';
+import tapePromise from 'tape-promise';
 
 import Lexer from '../src/Lexer.js';
 import Grammar from '../src/Grammar.js';
+
+const test = tapePromise.default(tape);
 
 test('Grammar / 1', (t) => {
     let grammar = new Grammar();
@@ -41,6 +44,7 @@ test('Grammar / 1', (t) => {
         ['AssemblerBlock', 'asm{one.1}'],
         ['AssemblerBlock', 'asm{one.1 a}'],
         ['AssemblerBlock', 'asm{one.1 a, b}'],
+        ['AssemblerBlock', 'asm{arg [eax + ebx * 2 + 0x4]}'],
     ];
     for (let [tt, input, error] of cases) {
         let lexer = new Lexer(input);

@@ -1,4 +1,4 @@
-import {u8, u16, u32} from '../types.js';
+import {u8, u16, u32} from '../arch/types.js';
 
 export default function bufferCursor(buf) {
     return {

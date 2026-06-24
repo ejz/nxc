@@ -1,6 +1,9 @@
-import test from 'tape';
+import tape from 'tape';
+import tapePromise from 'tape-promise';
 
 import Elf from '../src/Elf.js';
+
+const test = tapePromise.default(tape);
 
 test('Elf / 1', (t) => {
     let elf = new Elf;

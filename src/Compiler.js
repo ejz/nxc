@@ -1,8 +1,8 @@
-// import Lexer from './Lexer.js';
 // import Program from './tokens/Program.js';
 // import AssemblerBlock from './tokens/AssemblerBlock.js';
 // import RegularBlock from './tokens/RegularBlock.js';
 // import EmptyStatement from './tokens/EmptyStatement.js';
+import Lexer from './Lexer.js';
 import x86 from './arch/x86.js';
 import Elf from './Elf.js';
 import Grammar from './Grammar.js';
@@ -18,53 +18,58 @@ export default class Compiler {
         let lexer = new Lexer(content);
         let grammar = new Grammar();
         let elf = new Elf(x86);
-        // let program = new Program(lexer).tokenize();
-        // this.normalize(program);
-        // this.appendFinalExit(program, x86);
-        // let filter = (token, parent) => {
-        //     if (parent !== program) {
-        //         throw new Error;
-        //     }
-        //     return true;
-        // };
-        // let assemblerBlocks = Lexer.find(program, filter, AssemblerBlock);
-        // for (let [assemblerBlock] of assemblerBlocks) {
-        //     elf.push(assemblerBlock.toBuffer(x86));
-        // }
+        let program = grammar.tokenize('Program', lexer);
+        if (!lexer.isEof()) {
+            throw new Error;
+        }
+        this.normalize(program);
+        this.appendFinalExit(program, x86);
+        let filter = (token, parent) => {
+            if (parent !== program) {
+                throw new Error;
+            }
+            return true;
+        };
+        let assemblerBlocks = Lexer.find(program, filter, 'AssemblerBlock');
+        for (let [assemblerBlock] of assemblerBlocks) {
+            elf.push(assemblerBlock.toBuffer(x86));
+        }
         return elf.toBuffer();
     }
 
-    // normalize(program) {
-    //     while (
-    //         this.removeEmptyBlock(program)
-    //         || this.removeEmptyStatement(program)
-    //     ) ;
-    // }
+    normalize(program) {
+        while (
+            this.removeEmptyBlock(program)
+            || this.removeEmptyStatement(program)
+        ) ;
+    }
 
-    // removeEmptyBlock(program) {
-    //     let filter = ({statements}) => statements.length === 0;
-    //     let found = Lexer.findOne(program, filter, RegularBlock, AssemblerBlock);
-    //     if (found === null) {
-    //         return false;
-    //     }
-    //     let [token, , list] = found;
-    //     let index = list.indexOf(token);
-    //     list.splice(index, 1);
-    //     return true;
-    // }
+    removeEmptyBlock(program) {
+        return false;
+        // let filter = ({statements}) => statements.length === 0;
+        // let found = Lexer.findOne(program, filter, RegularBlock, AssemblerBlock);
+        // if (found === null) {
+        //     return false;
+        // }
+        // let [token, , list] = found;
+        // let index = list.indexOf(token);
+        // list.splice(index, 1);
+        // return true;
+    }
 
-    // removeEmptyStatement(program) {
-    //     let found = Lexer.find(program, EmptyStatement);
-    //     for (let [token, , list] of found) {
-    //         let index = list.indexOf(token);
-    //         list.splice(index, 1);
-    //     }
-    //     return found.length !== 0;
-    // }
+    removeEmptyStatement(program) {
+        return false;
+        // let found = Lexer.find(program, EmptyStatement);
+        // for (let [token, , list] of found) {
+        //     let index = list.indexOf(token);
+        //     list.splice(index, 1);
+        // }
+        // return found.length !== 0;
+    }
 
-    // appendFinalExit(program, {finalExit}) {
-    //     let code = `asm{${finalExit}}`;
-    //     let assemblerBlock = new AssemblerBlock(new Lexer(code)).tokenize();
-    //     program.statements.push(assemblerBlock);
-    // }
+    appendFinalExit(program, {finalExit}) {
+        // let code = `asm{${finalExit}}`;
+        // let assemblerBlock = new AssemblerBlock(new Lexer(code)).tokenize();
+        // program.statements.push(assemblerBlock);
+    }
 }

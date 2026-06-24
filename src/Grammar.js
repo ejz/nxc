@@ -82,12 +82,11 @@ export default class Grammar {
             descriptor = descriptor.replace(/'.*?'/g, (m) => {
                 let string = eval(m);
                 let name = 'String.' + (nameString++);
-                return this.setTokenResolver(name, eatValue(string));
+                return this.setTokenResolver(name, eatValue(string), m);
             });
             descriptor = descriptor.replace(/`(.*?)`/g, (m, p) => {
-                let keyword = p;
                 let name = 'Keyword.' + (nameKeyword++);
-                return this.setTokenResolver(name, eatValue(keyword));
+                return this.setTokenResolver(name, eatValue(p), m);
             });
             descriptor = descriptor.replace(/\s+/g, ' ');
             let des = this.dereferenceTokenDescriptor(descriptor, references);
