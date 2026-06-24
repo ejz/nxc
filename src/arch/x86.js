@@ -1,8 +1,8 @@
 import {format} from 'node:util';
 import InvalidLabelNameError from '../errors/InvalidLabelNameError.js';
 import InvalidLabelOffsetError from '../errors/InvalidLabelOffsetError.js';
-import SibValidationError from '../errors/SibValidationError.js';
 import InternalError from '../errors/InternalError.js';
+import ScaleIndexBaseValidationError from '../errors/ScaleIndexBaseValidationError.js';
 
 import * as types from '../types.js';
 
@@ -854,7 +854,7 @@ export function rmClosure(reg, acceptSib = false) {
         }
         if (sib !== null && acceptSib) {
             if (!isSibOkay(sib)) {
-                throw new SibValidationError;
+                throw new ScaleIndexBaseValidationError;
             }
             return true;
         }
@@ -882,7 +882,7 @@ export function rmClosure(reg, acceptSib = false) {
             [index, base] = [base, index];
         }
         if (index === 'esp') {
-            throw new SibValidationError;
+            throw new ScaleIndexBaseValidationError;
         }
         if (scale === def && index !== null && base === null) {
             base = index;
