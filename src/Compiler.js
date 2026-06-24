@@ -1,8 +1,8 @@
-import Lexer from './Lexer.js';
-import Program from './tokens/Program.js';
-import AssemblerBlock from './tokens/AssemblerBlock.js';
-import RegularBlock from './tokens/RegularBlock.js';
-import EmptyStatement from './tokens/EmptyStatement.js';
+// import Lexer from './Lexer.js';
+// import Program from './tokens/Program.js';
+// import AssemblerBlock from './tokens/AssemblerBlock.js';
+// import RegularBlock from './tokens/RegularBlock.js';
+// import EmptyStatement from './tokens/EmptyStatement.js';
 import x86 from './arch/x86.js';
 import Elf from './Elf.js';
 
