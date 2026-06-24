@@ -16,10 +16,6 @@ export default class Token {
         return this;
     }
 
-    is(...ctors) {
-        return ctors.some((ctor) => this instanceof ctor);
-    }
-
     fixStart(token) {
         this.start = token.start;
     }

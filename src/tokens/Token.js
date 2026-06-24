@@ -1,3 +1,5 @@
+import InternalError from '../errors/InternalError.js';
+
 export default class Token {
     constructor(name, lexer, parent) {
         this.name = name;
@@ -34,6 +36,10 @@ export default class Token {
         if (this.value !== undefined) {
             return this.value;
         }
-        throw new Error;
+        throw new InternalError;
+    }
+
+    is(...ctors) {
+        return ctors.some((ctor) => this instanceof ctor);
     }
 }
