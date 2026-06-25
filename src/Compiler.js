@@ -2,7 +2,7 @@
 // import AssemblerBlock from './tokens/AssemblerBlock.js';
 // import RegularBlock from './tokens/RegularBlock.js';
 // import EmptyStatement from './tokens/EmptyStatement.js';
-import Lexer from './Lexer.js';
+import Lexer, {LexerWalk} from './Lexer.js';
 import x86 from './arch/x86.js';
 import Elf from './Elf.js';
 import Grammar from './Grammar.js';
@@ -16,21 +16,33 @@ export default class Compiler {
         let decoder = new TextDecoder('utf-8', {ignoreBOM: false});
         let content = decoder.decode(buffer);
         let lexer = new Lexer(content);
+        lexer.validate();
         let grammar = new Grammar();
         let elf = new Elf(x86);
         let program = grammar.tokenize('Program', lexer);
         if (!lexer.isEof()) {
+            console.log(lexer);
             throw new Error;
         }
         this.normalize(program);
         this.appendFinalExit(program, x86);
-        let filter = (token, parent) => {
-            if (parent !== program) {
-                throw new Error;
-            }
-            return true;
-        };
-        let assemblerBlocks = Lexer.find(program, filter, 'AssemblerBlock');
+        let assemblerBlocks = [];
+        // Lexer.collect(program, (token) => {
+        //     if (token === program) {
+        //         return;
+        //     }
+        //     if (token.name === 'SepOpt') {
+        //         return;
+        //     }
+        //     if (token.parent !== program) {
+        //         throw new Error;
+        //     }
+        //     console.log(token, grammar.tokenDescriptors);
+        //     if (token.name !== 'AssemblerBlock') {
+        //         throw new Error;
+        //     }
+        //     return [LexerWalk.Ignore, true];
+        // });
         for (let [assemblerBlock] of assemblerBlocks) {
             elf.push(assemblerBlock.toBuffer(x86));
         }

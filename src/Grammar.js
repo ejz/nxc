@@ -225,7 +225,7 @@ export default class Grammar {
         return res;
     }
 
-    tokenize(name, lexer) {
-        return this.getTokenResolver(name)(lexer, null);
+    tokenize(name, lexer, parent = null) {
+        return this.getTokenResolver(name)(lexer, parent);
     }
 }

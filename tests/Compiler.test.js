@@ -29,7 +29,8 @@ const getCompiler = (o) => {
 
 test('Compiler / 1', (t) => {
     let compiler = getCompiler();
-    let buf = compiler.compile('');
+    console.log(Buffer.from([128, 129, 200, 200]));
+    let buf = compiler.compile(Buffer.from([128, 129, 200, 200]));
     console.log(buf);
     // let lex = new Lexer(`{{{}}} /* */ {;} {{;}{;}}`);
     // let program = new Program(lex).tokenize();
