@@ -39,7 +39,19 @@ export default class Token {
         throw new InternalError;
     }
 
-    is(...ctors) {
-        return ctors.some((ctor) => this instanceof ctor);
+    getChildren() {
+        if (this.children !== undefined) {
+            return this.children;
+        }
+        if (this.child !== undefined) {
+            if (this.child === null) {
+                return [];
+            }
+            return this.child.getChildren();
+        }
+        if (this.value !== undefined) {
+            return [];
+        }
+        throw new InternalError;
     }
 }

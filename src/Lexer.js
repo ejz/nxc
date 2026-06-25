@@ -128,14 +128,13 @@ export default class Lexer {
         return m;
     }
 
-    static walk(token, cb, list = null) {
-        let res = cb(token, list);
+    static walk(token, cb) {
+        let res = cb(token);
         if ([LexerWalk.Ignore, LexerWalk.Stop].includes(res)) {
             return res;
         }
-        let children = Lexer.children(token);
-        for (let [child, list] of children) {
-            let res = Lexer.walk(child, cb, list);
+        for (let child of token.getChildren()) {
+            let res = Lexer.walk(child, cb);
             if (res === LexerWalk.Stop) {
                 return res;
             }
@@ -144,27 +143,6 @@ export default class Lexer {
 
     error(opts) {
         return new LexerError(this, opts);
-    }
-
-    static children(token) {
-        let collect = [];
-        for (let key of Object.keys(token)) {
-            if (key === 'parent') {
-                continue;
-            }
-            let child = token[key];
-            if (isToken(child)) {
-                collect.push([child, null]);
-                continue;
-            }
-            if (isTokenArray(child)) {
-                for (let element of child) {
-                    collect.push([element, child]);
-                }
-                continue;
-            }
-        }
-        return collect;
     }
 
     static collect(token, filter) {

@@ -7,10 +7,6 @@ import tapePromise from 'tape-promise';
 import Compiler from '../src/Compiler.js';
 import Lexer from '../src/Lexer.js';
 import Logger from '../src/utils/Logger.js';
-// import Program from '../src/tokens/Program.js';
-// import writeFile from '../src/utils/writeFile.js';
-// import tmp from '../src/utils/tmp.js';
-// import x86 from '../src/arch/x86.js';
 
 const test = tapePromise.default(tape);
 const noop = () => {};
@@ -21,24 +17,24 @@ const getCompiler = (o) => {
     };
     let compiler = new Compiler(o);
     let compile = compiler.compile.bind(compiler);
-    compiler.compile = (c) => compile(typeof c === 'string' ? Buffer.from(c) : c);
+    compiler.compile = (c) => compile(Buffer.isBuffer(c) ? c : Buffer.from(c));
     return compiler;
 };
-// const binTmp = tmp('tmp-', '.bin');
-// const objdump = 'objdump --no-show-raw-insn -b binary -M intel -m i386 -D %s';
 
 test('Compiler / 1', (t) => {
     let compiler = getCompiler();
-    console.log(Buffer.from([128, 129, 200, 200]));
-    let buf = compiler.compile(Buffer.from([128, 129, 200, 200]));
-    console.log(buf);
-    // let lex = new Lexer(`{{{}}} /* */ {;} {{;}{;}}`);
-    // let program = new Program(lex).tokenize();
-    // compiler.normalize(program, x86);
-    // t.equals(program.stringify(), '');
+    t.throws(() => compiler.compile([128]));
+    let elf = compiler.compile('');
+    t.equal(elf.slice(1, 4).toString(), 'ELF');
     t.end();
 });
 
+// import Program from '../src/tokens/Program.js';
+// import writeFile from '../src/utils/writeFile.js';
+// import tmp from '../src/utils/tmp.js';
+// import x86 from '../src/arch/x86.js';
+// const binTmp = tmp('tmp-', '.bin');
+// const objdump = 'objdump --no-show-raw-insn -b binary -M intel -m i386 -D %s';
 // test('Compiler / 2', (t) => {
 //     let cases = [
 //         ['int 0x80', 'int 0x80'],

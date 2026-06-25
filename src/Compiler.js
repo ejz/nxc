@@ -25,22 +25,22 @@ export default class Compiler {
         this.normalize(program);
         this.appendFinalExit(program, x86);
         let assemblerBlocks = [];
-        // Lexer.collect(program, (token) => {
-        //     if (token === program) {
-        //         return;
-        //     }
-        //     if (token.name === 'SepOpt') {
-        //         return;
-        //     }
-        //     if (token.parent !== program) {
-        //         throw new Error;
-        //     }
-        //     console.log(token, grammar.tokenDescriptors);
-        //     if (token.name !== 'AssemblerBlock') {
-        //         throw new Error;
-        //     }
-        //     return [LexerWalk.Ignore, true];
-        // });
+        Lexer.collect(program, (token) => {
+            if (token === program) {
+                return;
+            }
+            // if (token.name === 'SepOpt') {
+            //     return;
+            // }
+            //     if (token.parent !== program) {
+            //         throw new Error;
+            //     }
+            // console.log(token, grammar.tokenDescriptors);
+            // if (token.name !== 'AssemblerBlock') {
+            //     throw new Error;
+            // }
+            // return [LexerWalk.Ignore, true];
+        });
         for (let [assemblerBlock] of assemblerBlocks) {
             elf.push(assemblerBlock.toBuffer(x86));
         }
