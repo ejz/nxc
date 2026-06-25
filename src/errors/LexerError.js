@@ -6,41 +6,42 @@ const toArray = (a) => isArray(a) ? a : [a];
 export default class LexerError extends AppError {
     constructor(lexer, {
         catchLen = 1,
-        expected = null,
+        // expected = null,
         message = '%s',
         args = 'invalid token',
-        position = null,
+        // position = null,
         context = 3,
-        nxcError = null,
+        // nxcError = null,
     } = {}) {
         message = toArray(message).slice();
         args = toArray(args).slice();
-        let lexerState = null;
-        if (position !== null) {
-            lexerState = lexer.getState();
-            lexer.rewind(position);
-        }
+        // let lexerState = null;
+        // if (position !== null) {
+        //     lexerState = lexer.getState();
+        //     lexer.rewind(position);
+        // }
         let {lines, ptr, shift, pos} = lexer.getContext(context);
         let pad = String(lines.length + shift).length;
-        if (expected !== null) {
-            message[0] += ': expected %q';
-            args.push(expected);
-        }
-        if (nxcError !== null) {
-            message[0] += ': %r';
-            args.push([nxcError.message, ...nxcError.arguments]);
-        }
+        // if (expected !== null) {
+        //     message[0] += ': expected %q';
+        //     args.push(expected);
+        // }
+        // if (nxcError !== null) {
+        //     message[0] += ': %r';
+        //     args.push([nxcError.message, ...nxcError.arguments]);
+        // }
         let format = ' %color %color %r';
         lines.forEach((line, i) => {
             let lineNum = String(i + 1 + shift).padStart(pad, ' ');
             let color = ['blue'];
-            args.push([color, lineNum]);
+            message.push(format);
+            args.push(['blue'/*color*/, lineNum]);
             args.push(['blue', '|']);
             args.push(['%s', line]);
-            message.push(format);
             if (i !== ptr) {
                 return;
             }
+            // return;
             let tail = line.slice(pos);
             if (tail === '') {
                 message[message.length - 1] += '%color';
@@ -56,9 +57,10 @@ export default class LexerError extends AppError {
                 [['red', 'bold'], '^'.repeat(catchLen)],
             ]);
         });
-        if (lexerState !== null) {
-            lexerState.revert();
-        }
+        // console.log({state: 'before ctor', message, args});
+        // if (lexerState !== null) {
+        //     lexerState.revert();
+        // }
         message = message.join('\n');
         super(message, ...args);
     }

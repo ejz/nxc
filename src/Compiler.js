@@ -15,14 +15,12 @@ export default class Compiler {
     compile(buffer) {
         let decoder = new TextDecoder('utf-8', {ignoreBOM: false});
         let content = decoder.decode(buffer);
-        let lexer = new Lexer(content);
-        lexer.validate();
+        let lexer = new Lexer(content).validate();
         let grammar = new Grammar();
         let elf = new Elf(x86);
         let program = grammar.tokenize('Program', lexer);
         if (!lexer.isEof()) {
-            console.log(lexer);
-            throw new Error;
+            throw lexer.error();
         }
         this.normalize(program);
         this.appendFinalExit(program, x86);

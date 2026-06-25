@@ -157,9 +157,9 @@ export const formatter = {
     e(args, ptr, logLevel, logger) {
         let arg = args[ptr];
         if (arg instanceof AppError) {
-            return logger.formatLog(logLevel, [arg.message, arg.arguments]);
+            return logger.formatLog(logLevel, [arg.message, ...arg.arguments]);
         }
-        return logger.formatLog(logLevel, ['%s', [arg.message]]);
+        return logger.formatLog(logLevel, ['%s', arg.message]);
     },
     /* time */
     t(args, ptr) {

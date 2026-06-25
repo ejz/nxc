@@ -20,8 +20,37 @@ export default class Lexer {
     validate() {
         let idx = this.content.indexOf('\uFFFD');
         if (idx !== -1) {
-            throw this.error();
+            this.proceed(idx);
+            throw this.error({args: 'invalid character'});
         }
+        return this;
+    }
+
+    getContext(count) {
+        let {position} = this;
+        let lines = this.content.split(/(\r\n|\r|\n)/);
+        let idx = null;
+        let pos = null;
+        let cursor = 0;
+        let clines = [];
+        for (let i = 0; i < lines.length; i += 2) {
+            let line = lines[i];
+            let end = lines[i + 1] ?? '';
+            clines.push(line);
+            let l = line.length;
+            let ex = cursor;
+            cursor += l + end.length;
+            if (position <= cursor) {
+                pos = position - ex;
+                pos -= position === cursor ? 1 : 0;
+                idx = i / 2;
+                break;
+            }
+        }
+        let from = Math.max(idx - count, 0);
+        let to = Math.min(clines.length - 1, idx + count);
+        clines = clines.slice(from, to + 1);
+        return {lines: clines, shift: from, ptr: idx - from, idx, pos};
     }
 
     proceed(shift) {

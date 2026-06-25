@@ -187,7 +187,7 @@ export default class Grammar {
             });
             if (!result) {
                 if (assertion) {
-                    throw new Error;
+                    throw token.lexer.error();
                 }
                 return null;
             }

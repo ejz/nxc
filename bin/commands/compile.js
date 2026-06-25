@@ -28,7 +28,7 @@ export default async function compile({
         : path.resolve(currentDirectory, file)
     );
     let defInp = isStdinStreamTerminal ? null : STD;
-    let [[inputFile = defInp, arg = null], {output: outputFile}] = parseArgv(positionals, {'o|output': true});
+    let [[inputFile = defInp, arg = null], {output: outputFile = null}] = parseArgv(positionals, {'o|output': true});
     if (arg !== null) {
         throw new InvalidArgumentError(arg);
     }
