@@ -20,36 +20,76 @@ test('Grammar / 1', (t) => {
             'l12 -> \'12\'',
             'l21 -> \'21\'',
             'l22 -> \'22\'',
-            'alt -> (l11 | l12) | (l21 | l22)'
+            'alt1 -> (l11 | l12) | (l21 | l22)',
+            'alt2 -> (l1) | (l2)',
+            'rec -> (l11 | (l12 | (l21 | l22)))',
+            'ac -> \'a\' \'c\'',
+            'ac12 -> \'a\' (\'c1\' | \'c2\')',
+            'ac12var -> \'a\' ((\'c1\' | \'d1\') | (\'c2\' | \'d2\'))',
+            'var1 -> `a`* `b`',
+            'var2 -> `a`+ `b`',
+            'var3 -> `a`? `b`',
+            'conj -> `a` (`b` (`c` (`d`)))',
+            'cond -> `a` (`b` | `c`)? `d`',
         ].join('\n'),
     });
     let cases = [
-        // ['A', 'a'],
-        // ['AB', 'a'],
-        // ['AB', 'b'],
-        // ['kw12', 'kw1'],
-        // ['kw12', 'kw2'],
-        // ['r12', 'a'],
-        // ['r12', 'c'],
-        // ['r12', 'A'],
-        // ['r12', 'C'],
-        // ['l', '11'],
-        // ['l', '12'],
-        // ['l', '21'],
-        // ['l', '22'],
-        ['alt', '11'],
-        // ['alt', '12'],
-        // ['alt', '21'],
-        // ['alt', '22'],
+        ['A', 'a'],
+        ['AB', 'a'],
+        ['AB', 'b'],
+        ['kw12', 'kw1'],
+        ['kw12', 'kw2'],
+        ['r12', 'a'],
+        ['r12', 'c'],
+        ['r12', 'A'],
+        ['r12', 'C'],
+        ['l', '11'],
+        ['l', '12'],
+        ['l', '21'],
+        ['l', '22'],
+        ['alt1', '11'],
+        ['alt1', '12'],
+        ['alt1', '21'],
+        ['alt1', '22'],
+        ['alt2', '11'],
+        ['alt2', '12'],
+        ['alt2', '21'],
+        ['alt2', '22'],
+        ['rec', '11'],
+        ['rec', '12'],
+        ['rec', '21'],
+        ['rec', '22'],
+        ['ac', 'ac'],
+        ['ac12', 'ac1'],
+        ['ac12', 'ac2'],
+        ['ac12var', 'ac1'],
+        ['ac12var', 'ac2'],
+        ['var1', 'b'],
+        ['var1', 'ab'],
+        ['var1', 'aab'],
+        ['var2', 'b', null],
+        ['var2', 'ab'],
+        ['var2', 'aab'],
+        ['var3', 'b'],
+        ['var3', 'ab'],
+        ['var3', 'aab', null],
+        ['conj', 'abcd'],
+        ['cond', 'ad'],
+        ['cond', 'abd'],
+        ['cond', 'acd'],
     ];
     for (let [tt, input, error] of cases) {
         let lexer = new Lexer(input);
         let fn = () => grammar.tokenize(tt, lexer);
-        if (error) {
+        if (error && error !== null) {
             t.throws(fn);
             continue;
         }
         let token = fn();
+        if (error === null) {
+            t.equals(token, null);
+            continue;
+        }
         t.equals(token.stringify(), input);
         t.equals(lexer.isEof(), true);
     }

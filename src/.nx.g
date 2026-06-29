@@ -1,25 +1,30 @@
 # Program
 
 Program -> Sep* (Statement Sep*)*
+
+# Sep
+
+Sep -> Whitespace | Comment
+Whitespace -> ' ' | '\t' | Newline
+Newline -> '\r\n' | '\r' | '\n'
+Comment -> SinglelineComment | MultilineComment
+SinglelineComment -> '//' SinglelineCommentBody
+SinglelineCommentBody -> !
+MultilineComment -> '/*' MultilineCommentBody ^ '*/'
+MultilineCommentBody -> !
+
+# Statement
+
 Statement ->
     EmptyStatement
     | RegularBlock
     | AssemblerBlock
 EmptyStatement -> ';'
-RegularBlock -> '{' ^ Sep* (Statement Sep*)* '}'
-Sep -> Whitespace | Comment
-SameLineSep -> !
-Comment -> SinglelineComment | MultilineComment
-Whitespace -> ' ' | '\t' | Newline
-Newline -> '\r\n' | '\r' | '\n'
-SinglelineComment -> '//' SinglelineCommentBody
-MultilineComment -> '/*' MultilineCommentBody ^ '*/'
-SinglelineCommentBody -> !
-MultilineCommentBody -> !
+RegularBlock -> '{' Sep* (Statement Sep*)* ^ '}'
 
 # AssemblerBlock
 
-AssemblerBlock -> `asm` Sep* '{' ^ Sep* (AssemblerStatement Sep*)* '}'
+AssemblerBlock -> `asm` Sep* '{' Sep* (AssemblerStatement Sep*)* ^ '}'
 AssemblerStatement ->
     AssemblerStandaloneLabel
     | AssemblerEmptyStatement
@@ -91,6 +96,7 @@ AssemblerInstructionArguments -> SameLineSep AssemblerArguments
 
 # Generic
 
+SameLineSep -> !
 End -> !
 TermEnd -> Term | End
 Term -> SameLineSep? ';'

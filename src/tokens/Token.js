@@ -18,16 +18,15 @@ export default class Token {
             return this.value;
         }
         if (this.child !== undefined) {
-            if (this.child === null) {
-                return '';
-            }
             return this.child.stringify();
         }
+        if (this.children !== undefined) {
+            console.log(this.children);
+            return this.children.map((child) => child.stringify()).join('');
+        }
+        // console.log(this);
         // console.log({this: this});
         throw new InternalError;
-        // if (this.children !== undefined) {
-        //     return this.children.map((child) => child.stringify()).join('');
-        // }
     }
         // this.end = position;
 
