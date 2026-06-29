@@ -1,14 +1,13 @@
 # Program
 
-Program -> SepOpt (Statement SepOpt)*
+Program -> Sep* (Statement Sep*)*
 Statement ->
     EmptyStatement
     | RegularBlock
     | AssemblerBlock
 EmptyStatement -> ';'
-RegularBlock -> '{' ^ SepOpt (Statement SepOpt)* '}'
-SepOpt -> (Whitespace | Comment)*
-Sep -> (Whitespace | Comment)+
+RegularBlock -> '{' ^ Sep* (Statement Sep*)* '}'
+Sep -> Whitespace | Comment
 SameLineSep -> !
 Comment -> SinglelineComment | MultilineComment
 Whitespace -> ' ' | '\t' | Newline
@@ -20,7 +19,7 @@ MultilineCommentBody -> !
 
 # AssemblerBlock
 
-AssemblerBlock -> `asm` SepOpt '{' ^ SepOpt (AssemblerStatement SepOpt)* '}'
+AssemblerBlock -> `asm` Sep* '{' ^ Sep* (AssemblerStatement Sep*)* '}'
 AssemblerStatement ->
     AssemblerStandaloneLabel
     | AssemblerEmptyStatement
@@ -41,7 +40,7 @@ AssemblerEmptyStatementBody -> ';'
 AssemblerOperation -> AssemblerInlineLabel? AssemblerOperationBody
 AssemblerOperationBody ->
     AssemblerArgument
-    SepOpt AssemblerOperand SepOpt
+    Sep* AssemblerOperand Sep*
     ^
     AssemblerArguments
     TermEnd
@@ -63,13 +62,19 @@ AssemblerArguments -> AssemblerArgument (Comma AssemblerArgument)*
 
 # AssemblerScaleIndexBase
 
-AssemblerScaleIndexBase -> '[' SepOpt AssemblerScaleIndexBaseBody SepOpt ']'
-AssemblerScaleIndexBaseBody -> (
-    (SepOpt AssemblerScaleIndexBaseBodyOperand SepOpt)?
-    AssemblerScaleIndexBaseBodyPart
-)+
-AssemblerScaleIndexBaseBodyOperand -> '+' | '-' | '*'
-AssemblerScaleIndexBaseBodyPart -> AssemblerRegister | Num
+AssemblerScaleIndexBase -> '['
+    Sep*
+    AssemblerScaleIndexBaseOperand
+    (
+        Sep*
+        AssemblerScaleIndexBaseOperation
+        Sep*
+        AssemblerScaleIndexBaseOperand
+    )*
+    Sep*
+']'
+AssemblerScaleIndexBaseOperation -> '+' | '-' | '*'
+AssemblerScaleIndexBaseOperand -> AssemblerRegister | Num
 
 # AssemblerInstruction
 
@@ -89,7 +94,7 @@ AssemblerInstructionArguments -> SameLineSep AssemblerArguments
 End -> !
 TermEnd -> Term | End
 Term -> SameLineSep? ';'
-Comma -> SepOpt ',' SepOpt
+Comma -> Sep* ',' Sep*
 DecNum -> /^(0|[1-9][0-9]*)/
 HexNum -> /^0x[0-9a-fA-F]+/
 Num -> HexNum | DecNum

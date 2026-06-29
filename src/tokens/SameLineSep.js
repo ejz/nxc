@@ -4,8 +4,8 @@ export default class SameLineSep extends Token {
     static resolve(token, grammar) {
         let sep = null, lex = token.lexer;
         let res = lex.try(() => {
-            sep = grammar.tokenize('SepOpt', lex, token);
-            return !sep.isEmpty() && !sep.gotNewline();
+            sep = grammar.tokenize('Sep*', lex, token);
+            return sep !== null && !sep.gotNewline();
         });
         if (!res) {
             return null;
