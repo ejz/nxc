@@ -154,34 +154,37 @@ test('Grammar / 3', (t) => {
         ['Program', ' {//\n} '],
         ['Program', ' ; '],
         ['Program', ' ; { ; }'],
-        // ['Program', '{', true],
-        // ['AssemblerStandaloneLabel', 'label:'],
-        // ['AssemblerBlock', 'asm{}'],
-        // ['AssemblerBlock', 'asm{ }'],
-        // ['AssemblerBlock', 'asm{', true],
-        // ['AssemblerBlock', 'asm{/**/}'],
-        // ['AssemblerBlock', 'asm{label:}'],
-        // ['AssemblerBlock', 'asm{ label: }'],
-        // ['AssemblerBlock', 'asm{ \n label: \n }'],
-        // ['AssemblerBlock', 'asm{ \n a: \n b: \n }'],
-        // ['AssemblerBlock', 'asm{a: b:}', true],
-        // ['AssemblerBlock', 'asm{ /**/ a: /*\n*/ b: /**/ }'],
-        // ['AssemblerBlock', 'asm{a: a = 1}'],
-        // ['AssemblerBlock', 'asm{a = 1}'],
-        // ['AssemblerBlock', 'asm{a = 1;b = 2}'],
-        // ['AssemblerBlock', 'asm{a = 1 ; b = 2}'],
-        // ['AssemblerBlock', 'asm{a =}', true],
-        // ['AssemblerBlock', 'asm{one}'],
-        // ['AssemblerInstructionOperandSize', '.4'],
-        // ['AssemblerInstructionName', 'one.two'],
-        // ['AssemblerInstructionName', 'one.two.three'],
-        // ['DecNum', '0'],
-        // ['DecNum', '5'],
-        // ['AssemblerInstructionBody', 'one.two.5'],
-        // ['AssemblerBlock', 'asm{one.1}'],
-        // ['AssemblerBlock', 'asm{one.1 a}'],
-        // ['AssemblerBlock', 'asm{one.1 a, b}'],
-        // ['AssemblerBlock', 'asm{arg [eax + ebx * 2 + 0x4]}'],
+        ['InlineSep', ' '],
+        ['InlineSep', '//'],
+        ['InlineSep', '/**/'],
+        ['AssemblerStandaloneLabel', 'label:'],
+        ['AssemblerStandaloneLabel', 'label:}', '}'],
+        ['AssemblerStandaloneLabel', 'label: }', ' }'],
+        ['AssemblerStandaloneLabel', 'label://a\n', '//a\n'],
+        ['AssemblerStandaloneLabel', 'label:/*\n*/', '/*\n*/'],
+        ['AssemblerInlineLabel', 'label: '],
+        ['AssemblerInlineLabel', 'label://'],
+        ['AssemblerInlineLabel', 'label:/**/'],
+        ['AssemblerBlock', 'asm{}'],
+        ['AssemblerBlock', 'asm{/**/}'],
+        ['AssemblerBlock', 'asm{label:}'],
+        ['AssemblerOperand', '='],
+        ['AssemblerBlock', 'asm{a = 1}'],
+        ['AssemblerBlock', 'asm{a: a = 1}'],
+        ['AssemblerBlock', 'asm{a = 1;b = 2}'],
+        ['AssemblerBlock', 'asm{a = 1 ; b = 2}'],
+        ['AssemblerBlock', 'asm{a = 1\nb = 2}'],
+        ['AssemblerBlock', 'asm{one}'],
+        ['AssemblerInstructionOperandSize', '.4'],
+        ['AssemblerInstructionName', 'one.two.three'],
+        ['AssemblerInstructionName', 'one.two'],
+        ['DecNum', '0'],
+        ['DecNum', '5'],
+        ['AssemblerInstruction', 'one.two.5'],
+        ['AssemblerBlock', 'asm{one.1}'],
+        ['AssemblerBlock', 'asm{one.1 a}'],
+        ['AssemblerBlock', 'asm{one.1 a, b}'],
+        ['AssemblerBlock', 'asm{arg [eax + ebx * 2 + 0x4]}'],
     ];
     for (let [tt, input, tail = ''] of cases) {
         let lexer = new Lexer(input);
@@ -191,39 +194,3 @@ test('Grammar / 3', (t) => {
     }
     t.end();
 });
-
-// test('Grammar / 3', (t) => {
-//     // let grammar = new Grammar({
-//     //     'ws': 'space',
-//     //     'ws2': 'space,space',
-//     //     'space': ' '.charCodeAt(0),
-//     //     'optws': 'ws?',
-//     //     'ws0': 'ws*',
-//     //     'ws1': 'ws+',
-//     // });
-//     // {
-//     //     let lexer = new Lexer(' ');
-//     //     let token = grammar.resolve('ws', lexer);
-//     //     t.ok(token.name === 'ws');
-//     //     t.ok(token.child.name === 'space');
-//     // }
-//     // {
-//     //     let lexer = new Lexer('  ');
-//     //     let token = grammar.resolve('ws2', lexer);
-//     //     t.ok(token.name === 'ws2');
-//     //     t.ok(token.children.length === 2);
-//     // }
-//     // {
-//     //     let lexer = new Lexer('a');
-//     //     let token = grammar.resolve('optws', lexer);
-//     //     t.ok(token.name === 'optws');
-//     //     t.ok(token.child === null);
-//     // }
-//     // {
-//     //     let lexer = new Lexer('  ');
-//     //     let token = grammar.resolve('ws1', lexer);
-//     //     t.ok(token.name === 'ws1');
-//     //     t.ok(token.children.length === 2);
-//     // }
-//     t.end();
-// });

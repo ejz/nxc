@@ -4,36 +4,33 @@ import {fileURLToPath} from 'node:url';
 
 import Token from './tokens/Token.js';
 
-// import AssemblerOperand from './tokens/AssemblerOperand.js';
-// import End from './tokens/End.js';
-import {
+import AssemblerOperand from './tokens/AssemblerOperand.js';
+import End from './tokens/End.js';
+import Sep, {
+    Whitespace,
+    Comment,
+    SinglelineComment,
+    MultilineComment,
     SinglelineCommentBody,
     MultilineCommentBody,
+    InlineSep,
 } from './tokens/Sep.js';
-/*Sep, */
-//     Whitespace,
-//     Comment,
-//     SinglelineComment,
-//     MultilineComment,
-//     InlineSep,
 
 import InternalError from './errors/InternalError.js';
 
-// const isArray = Array.isArray;
-// const toArray = (v) => isArray(v) ? v : [v];
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const tokenCtors = {
+    AssemblerOperand,
+    End,
+    Sep,
+    Whitespace,
+    Comment,
+    SinglelineComment,
+    MultilineComment,
     SinglelineCommentBody,
     MultilineCommentBody,
-//     AssemblerOperand,
-//     End,
-//     Sep,
-//     Whitespace,
-//     Comment,
-//     SinglelineComment,
-//     MultilineComment,
-//     InlineSep,
+    InlineSep,
 };
 
 export default class Grammar {

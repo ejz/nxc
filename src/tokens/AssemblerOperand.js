@@ -3,7 +3,7 @@ import operations from '../arch/operations.js';
 
 export default class AssemblerOperand extends Token {
     static resolve(lexer) {
-        let value = lexer.eatOneOf(...operations);
+        let value = lexer.eatAny(...operations);
         if (value === null) {
             return null;
         }

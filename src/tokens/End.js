@@ -11,7 +11,7 @@ export default class End extends Token {
                 seps.push(sep);
             }
             seps.pop();
-            return lexer.isEof() || lexer.eat('}') || seps.some((s) => !s.isInline());
+            return lexer.isEof() || lexer.eat('}') || seps.some(some);
         });
         if (!res) {
             return null;
