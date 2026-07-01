@@ -5,8 +5,7 @@ Program -> Sep* (Statement Sep*)*
 # Sep
 
 Sep -> Whitespace | Comment
-Whitespace -> ' ' | '\t' | Newline
-Newline -> '\r\n' | '\r' | '\n'
+Whitespace -> /^[\u0020\t\r\n]+/
 Comment -> SinglelineComment | MultilineComment
 SinglelineComment -> '//' SinglelineCommentBody
 SinglelineCommentBody -> !
@@ -20,25 +19,22 @@ Statement ->
     | RegularBlock
     | AssemblerBlock
 EmptyStatement -> ';'
-RegularBlock -> '{' Sep* (Statement Sep*)* ^ '}'
+RegularBlock -> '{' ^ Sep* (Statement Sep*)* '}'
 
 # AssemblerBlock
 
-AssemblerBlock -> `asm` Sep* '{' Sep* (AssemblerStatement Sep*)* ^ '}'
+AssemblerBlock -> `asm` Sep* '{' ^ Sep* (AssemblerStatement Sep*)* '}'
 AssemblerStatement ->
     AssemblerStandaloneLabel
     | AssemblerEmptyStatement
     | AssemblerOperation
     | AssemblerInstruction
 AssemblerStandaloneLabel -> AssemblerLabel End
-AssemblerInlineLabel -> AssemblerLabel SameLineSep
 AssemblerLabel -> AssemblerLabelName ':'
 AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
-
-# AssemblerEmptyStatement
-
 AssemblerEmptyStatement -> AssemblerInlineLabel? AssemblerEmptyStatementBody
 AssemblerEmptyStatementBody -> ';'
+AssemblerInlineLabel -> AssemblerLabel InlineSep+
 
 # AssemblerOperation
 
@@ -64,9 +60,6 @@ AssemblerAddressOffset -> Num
 AssemblerInteger -> Int
 AssemblerRegister -> /^[a-z][a-z0-9]*/
 AssemblerArguments -> AssemblerArgument (Comma AssemblerArgument)*
-
-# AssemblerScaleIndexBase
-
 AssemblerScaleIndexBase -> '['
     Sep*
     AssemblerScaleIndexBaseOperand
@@ -92,16 +85,16 @@ AssemblerInstructionBody ->
 AssemblerInstructionName -> AssemblerInstructionNamePart ('.' AssemblerInstructionNamePart)*
 AssemblerInstructionNamePart -> /^[a-zA-Z][a-zA-Z0-9]*/
 AssemblerInstructionOperandSize -> '.' DecNum
-AssemblerInstructionArguments -> SameLineSep AssemblerArguments
+AssemblerInstructionArguments -> InlineSep+ AssemblerArguments
 
 # Generic
 
-SameLineSep -> !
 End -> !
+InlineSep -> !
 TermEnd -> Term | End
-Term -> SameLineSep? ';'
+Term -> InlineSep* ';'
 Comma -> Sep* ',' Sep*
-DecNum -> /^(0|[1-9][0-9]*)/
+DecNum -> '0' | /^[1-9][0-9]*/
 HexNum -> /^0x[0-9a-fA-F]+/
 Num -> HexNum | DecNum
 Int -> Sign? Num

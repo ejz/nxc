@@ -10,43 +10,66 @@ test('Grammar / 1', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'A -> \'a\'',
-            'AB -> \'a\' | \'b\'',
-            'kw12 -> `kw1` | `kw2`',
-            'r12 -> /^[a-c]/ | /^[A-C]/',
-            'l -> l1 | l2',
+            'B -> `b`',
+            'C -> /^c/',
+            'AB -> `a` | `b`',
+            'BN -> `b`*',
+            'ABN -> `a` | `b`*',
+            'PQ -> `p` `q`',
+            'PQN -> `p` `q`*',
+            'PQO -> `p` `q`?',
+            'Para1PQN -> (`p`) (`q`*)',
+            'Para1PQO -> (`p`) (`q`?)',
+            'Para2PQN -> (`p`) (`q`)*',
+            'Para2PQO -> (`p`) (`q`)?',
+            'test1 -> `a` (`b` `c`)? `d`',
+            'test2 -> `a` (`b` `c`)? `b`',
+            'l11 -> `11`',
+            'l12 -> `12`',
+            'l21 -> `21`',
+            'l22 -> `22`',
             'l1 -> l11 | l12',
             'l2 -> l21 | l22',
-            'l11 -> \'11\'',
-            'l12 -> \'12\'',
-            'l21 -> \'21\'',
-            'l22 -> \'22\'',
             'alt1 -> (l11 | l12) | (l21 | l22)',
             'alt2 -> (l1) | (l2)',
-            'rec -> (l11 | (l12 | (l21 | l22)))',
-            'ac -> \'a\' \'c\'',
-            'ac12 -> \'a\' (\'c1\' | \'c2\')',
-            'ac12var -> \'a\' ((\'c1\' | \'d1\') | (\'c2\' | \'d2\'))',
-            'var1 -> `a`* `b`',
-            'var2 -> `a`+ `b`',
-            'var3 -> `a`? `b`',
-            'conj -> `a` (`b` (`c` (`d`)))',
-            'cond -> `a` (`b` | `c`)? `d`',
+            'alt3 -> l11 | (l12 | l21) | l22',
+            'rec1 -> (l11 | (l12 | (l21 | l22)))',
+            'rec2 -> (((l11)) | ((l12) | ((l21) | ((l22)))))',
         ].join('\n'),
     });
     let cases = [
         ['A', 'a'],
+        ['B', 'b'],
+        ['C', 'c'],
         ['AB', 'a'],
         ['AB', 'b'],
-        ['kw12', 'kw1'],
-        ['kw12', 'kw2'],
-        ['r12', 'a'],
-        ['r12', 'c'],
-        ['r12', 'A'],
-        ['r12', 'C'],
-        ['l', '11'],
-        ['l', '12'],
-        ['l', '21'],
-        ['l', '22'],
+        ['BN', ''],
+        ['BN', 'b'],
+        ['BN', 'bb'],
+        ['ABN', 'a'],
+        ['ABN', ''],
+        ['ABN', 'b'],
+        ['ABN', 'bb'],
+        ['PQ', 'pq'],
+        ['PQN', 'p'],
+        ['PQN', 'pq'],
+        ['PQN', 'pqq'],
+        ['PQO', 'p'],
+        ['PQO', 'pq'],
+        ['Para1PQN', 'p'],
+        ['Para1PQN', 'pq'],
+        ['Para1PQN', 'pqq'],
+        ['Para1PQO', 'p'],
+        ['Para1PQO', 'pq'],
+        ['Para2PQN', 'p'],
+        ['Para2PQN', 'pq'],
+        ['Para2PQN', 'pqq'],
+        ['Para2PQO', 'p'],
+        ['Para2PQO', 'pq'],
+        ['test1', 'abcd'],
+        ['test1', 'ad'],
+        ['test2', 'abcb'],
+        ['test2', 'ab'],
         ['alt1', '11'],
         ['alt1', '12'],
         ['alt1', '21'],
@@ -55,41 +78,22 @@ test('Grammar / 1', (t) => {
         ['alt2', '12'],
         ['alt2', '21'],
         ['alt2', '22'],
-        ['rec', '11'],
-        ['rec', '12'],
-        ['rec', '21'],
-        ['rec', '22'],
-        ['ac', 'ac'],
-        ['ac12', 'ac1'],
-        ['ac12', 'ac2'],
-        ['ac12var', 'ac1'],
-        ['ac12var', 'ac2'],
-        ['var1', 'b'],
-        ['var1', 'ab'],
-        ['var1', 'aab'],
-        ['var2', 'b', null],
-        ['var2', 'ab'],
-        ['var2', 'aab'],
-        ['var3', 'b'],
-        ['var3', 'ab'],
-        ['var3', 'aab', null],
-        ['conj', 'abcd'],
-        ['cond', 'ad'],
-        ['cond', 'abd'],
-        ['cond', 'acd'],
+        ['alt3', '11'],
+        ['alt3', '12'],
+        ['alt3', '21'],
+        ['alt3', '22'],
+        ['rec1', '11'],
+        ['rec1', '12'],
+        ['rec1', '21'],
+        ['rec1', '22'],
+        ['rec2', '11'],
+        ['rec2', '12'],
+        ['rec2', '21'],
+        ['rec2', '22'],
     ];
-    for (let [tt, input, error] of cases) {
+    for (let [tt, input] of cases) {
         let lexer = new Lexer(input);
-        let fn = () => grammar.tokenize(tt, lexer);
-        if (error && error !== null) {
-            t.throws(fn);
-            continue;
-        }
-        let token = fn();
-        if (error === null) {
-            t.equals(token, null);
-            continue;
-        }
+        let token = grammar.tokenize(tt, lexer);
         t.equals(token.stringify(), input);
         t.equals(lexer.isEof(), true);
     }
@@ -97,18 +101,22 @@ test('Grammar / 1', (t) => {
 });
 
 test('Grammar / 2', (t) => {
-    t.end();
-    return;
     let grammar = new Grammar({
         grammarFileContent: [
-            'a1 -> \'a\' \'1\'',
-            'a12 -> \'a\' (\'1\' | \'2\')',
+            'term -> term1 term2 ^ term3',
+            'term1 -> `kw`',
+            'term2 -> \'{\'',
+            'term3 -> \';\'',
+            'final -> term | `kw{a` | `kw`'
         ].join('\n'),
     });
     let cases = [
-        ['a12', 'a'],
+        ['final', 'kw'],
+        ['final', 'kw{;'],
+        ['final', 'kw{', true],
+        ['final', 'kw{a', true],
     ];
-    for (let [tt, input, error] of cases) {
+    for (let [tt, input, error = false] of cases) {
         let lexer = new Lexer(input);
         let fn = () => grammar.tokenize(tt, lexer);
         if (error) {
@@ -122,94 +130,101 @@ test('Grammar / 2', (t) => {
     t.end();
 });
 
-test('Grammar / 2', (t) => {
-    t.end();
-    // return;
-    // let grammar = new Grammar();
-    // let cases = [
-    //     ['Comment', '//'],
-    //     ['Comment', '//\n'],
-    //     ['Comment', '// a'],
-    //     ['Comment', '// a\n'],
-    //     ['Comment', '/**/'],
-    //     ['Comment', '/* \n */'],
-    //     ['Comment', '/* b */'],
-    //     ['Comment', '/*', true],
-    //     ['Whitespace', ' '],
-    //     ['Whitespace', '\n'],
-    //     ['Whitespace', '\r\n'],
-    //     ['Program', '{}'],
-    //     ['Program', '{', true],
-    //     ['Program', ' {/* */} '],
-    //     ['Program', ' {//\n} '],
-    //     ['AssemblerStandaloneLabel', 'label:'],
-    //     ['AssemblerBlock', 'asm{}'],
-    //     ['AssemblerBlock', 'asm{ }'],
-    //     ['AssemblerBlock', 'asm{', true],
-    //     ['AssemblerBlock', 'asm{/**/}'],
-    //     ['AssemblerBlock', 'asm{label:}'],
-    //     ['AssemblerBlock', 'asm{ label: }'],
-    //     ['AssemblerBlock', 'asm{ \n label: \n }'],
-    //     ['AssemblerBlock', 'asm{ \n a: \n b: \n }'],
-    //     ['AssemblerBlock', 'asm{a: b:}', true],
-    //     ['AssemblerBlock', 'asm{ /**/ a: /*\n*/ b: /**/ }'],
-    //     ['AssemblerBlock', 'asm{a: a = 1}'],
-    //     ['AssemblerBlock', 'asm{a = 1}'],
-    //     ['AssemblerBlock', 'asm{a = 1;b = 2}'],
-    //     ['AssemblerBlock', 'asm{a = 1 ; b = 2}'],
-    //     ['AssemblerBlock', 'asm{a =}', true],
-    //     ['AssemblerBlock', 'asm{one}'],
-    //     ['AssemblerBlock', 'asm{one.1}'],
-    //     ['AssemblerBlock', 'asm{one.1 a}'],
-    //     ['AssemblerBlock', 'asm{one.1 a, b}'],
-    //     ['AssemblerBlock', 'asm{arg [eax + ebx * 2 + 0x4]}'],
-    // ];
-    // for (let [tt, input, error] of cases) {
-    //     let lexer = new Lexer(input);
-    //     let fn = () => grammar.tokenize(tt, lexer);
-    //     if (error) {
-    //         t.throws(fn);
-    //         continue;
-    //     }
-    //     let token = fn();
-    //     t.equals(token.stringify(), input);
-    //     t.equals(lexer.isEof(), true);
-    // }
-    // t.end();
-});
+// test('Grammar / 2', (t) => {
+//     let grammar = new Grammar();
+//     let cases = [
+//         // ['SinglelineComment', '//'],
+//         // ['SinglelineComment', '//\n'],
+//         // ['SinglelineComment', '// a'],
+//         // ['SinglelineComment', '// a\n'],
+//         // ['MultilineComment', '/**/'],
+//         // ['MultilineComment', '/* \n */'],
+//         // ['MultilineComment', '/* b */'],
+//         // ['MultilineComment', '/*', true],
+//         // ['Sep', ' '],
+//         // ['Sep', ' \t '],
+//         // ['Sep', '\r\n'],
+//         // ['Whitespace', ' \t'],
+//         // ['Whitespace', '\r\n'],
+//         // ['Program', '{}'],
+//         // ['Program', '{', true],
+//         // ['Program', ' {/* */} '],
+//         // ['Program', ' {//\n} '],
+//         // ['AssemblerStandaloneLabel', 'label:'],
+//         // ['AssemblerBlock', 'asm{}'],
+//         // ['AssemblerBlock', 'asm{ }'],
+//         // ['AssemblerBlock', 'asm{', true],
+//         // ['AssemblerBlock', 'asm{/**/}'],
+//         // ['AssemblerBlock', 'asm{label:}'],
+//         // ['AssemblerBlock', 'asm{ label: }'],
+//         // ['AssemblerBlock', 'asm{ \n label: \n }'],
+//         // ['AssemblerBlock', 'asm{ \n a: \n b: \n }'],
+//         // ['AssemblerBlock', 'asm{a: b:}', true],
+//         // ['AssemblerBlock', 'asm{ /**/ a: /*\n*/ b: /**/ }'],
+//         // ['AssemblerBlock', 'asm{a: a = 1}'],
+//         // ['AssemblerBlock', 'asm{a = 1}'],
+//         // ['AssemblerBlock', 'asm{a = 1;b = 2}'],
+//         // ['AssemblerBlock', 'asm{a = 1 ; b = 2}'],
+//         // ['AssemblerBlock', 'asm{a =}', true],
+//         // ['AssemblerBlock', 'asm{one}'],
+//         // ['AssemblerInstructionOperandSize', '.4'],
+//         // ['AssemblerInstructionName', 'one.two'],
+//         // ['AssemblerInstructionName', 'one.two.three'],
+//         // ['DecNum', '0'],
+//         // ['DecNum', '5'],
+//         // ['AssemblerInstructionBody', 'one.two.5'],
+//         // ['AssemblerBlock', 'asm{one.1}'],
+//         // ['AssemblerBlock', 'asm{one.1 a}'],
+//         // ['AssemblerBlock', 'asm{one.1 a, b}'],
+//         // ['AssemblerBlock', 'asm{arg [eax + ebx * 2 + 0x4]}'],
+//     ];
+//     for (let [tt, input, error] of cases) {
+//         let lexer = new Lexer(input);
+//         let fn = () => grammar.tokenize(tt, lexer);
+//         if (error) {
+//             t.throws(fn);
+//             continue;
+//         }
+//         let token = fn();
+//         console.log(token.children);
+//         t.equals(token.stringify(), input);
+//         t.equals(lexer.isEof(), true);
+//     }
+//     t.end();
+// });
 
-test('Grammar / 2', (t) => {
-    // let grammar = new Grammar({
-    //     'ws': 'space',
-    //     'ws2': 'space,space',
-    //     'space': ' '.charCodeAt(0),
-    //     'optws': 'ws?',
-    //     'ws0': 'ws*',
-    //     'ws1': 'ws+',
-    // });
-    // {
-    //     let lexer = new Lexer(' ');
-    //     let token = grammar.resolve('ws', lexer);
-    //     t.ok(token.name === 'ws');
-    //     t.ok(token.child.name === 'space');
-    // }
-    // {
-    //     let lexer = new Lexer('  ');
-    //     let token = grammar.resolve('ws2', lexer);
-    //     t.ok(token.name === 'ws2');
-    //     t.ok(token.children.length === 2);
-    // }
-    // {
-    //     let lexer = new Lexer('a');
-    //     let token = grammar.resolve('optws', lexer);
-    //     t.ok(token.name === 'optws');
-    //     t.ok(token.child === null);
-    // }
-    // {
-    //     let lexer = new Lexer('  ');
-    //     let token = grammar.resolve('ws1', lexer);
-    //     t.ok(token.name === 'ws1');
-    //     t.ok(token.children.length === 2);
-    // }
-    t.end();
-});
+// test('Grammar / 3', (t) => {
+//     // let grammar = new Grammar({
+//     //     'ws': 'space',
+//     //     'ws2': 'space,space',
+//     //     'space': ' '.charCodeAt(0),
+//     //     'optws': 'ws?',
+//     //     'ws0': 'ws*',
+//     //     'ws1': 'ws+',
+//     // });
+//     // {
+//     //     let lexer = new Lexer(' ');
+//     //     let token = grammar.resolve('ws', lexer);
+//     //     t.ok(token.name === 'ws');
+//     //     t.ok(token.child.name === 'space');
+//     // }
+//     // {
+//     //     let lexer = new Lexer('  ');
+//     //     let token = grammar.resolve('ws2', lexer);
+//     //     t.ok(token.name === 'ws2');
+//     //     t.ok(token.children.length === 2);
+//     // }
+//     // {
+//     //     let lexer = new Lexer('a');
+//     //     let token = grammar.resolve('optws', lexer);
+//     //     t.ok(token.name === 'optws');
+//     //     t.ok(token.child === null);
+//     // }
+//     // {
+//     //     let lexer = new Lexer('  ');
+//     //     let token = grammar.resolve('ws1', lexer);
+//     //     t.ok(token.name === 'ws1');
+//     //     t.ok(token.children.length === 2);
+//     // }
+//     t.end();
+// });

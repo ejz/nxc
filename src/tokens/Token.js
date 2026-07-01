@@ -3,9 +3,6 @@ import InternalError from '../errors/InternalError.js';
 export default class Token {
     constructor(name) {
         this.name = name;
-        // this.lexer = lexer;
-        // this.start = this.position;
-        // this.end = null;
     }
 
     finalize(obj = {}) {
@@ -18,41 +15,14 @@ export default class Token {
             return this.value;
         }
         if (this.child !== undefined) {
+            if (this.child === null) {
+                return '';
+            }
             return this.child.stringify();
         }
         if (this.children !== undefined) {
-            console.log(this.children);
             return this.children.map((child) => child.stringify()).join('');
         }
-        // console.log(this);
-        // console.log({this: this});
         throw new InternalError;
     }
-        // this.end = position;
-
-    // get position() {
-    //     return this.lexer.position;
-    // }
-
-    // get content() {
-    //     return this.lexer.content.slice(this.start, this.end ?? this.start);
-    // }
-
-    
-
-    // getChildren() {
-    //     if (this.children !== undefined) {
-    //         return this.children;
-    //     }
-    //     if (this.child !== undefined) {
-    //         if (this.child === null) {
-    //             return [];
-    //         }
-    //         return this.child.getChildren();
-    //     }
-    //     if (this.value !== undefined) {
-    //         return [];
-    //     }
-    //     throw new InternalError;
-    // }
 }

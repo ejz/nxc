@@ -3,34 +3,36 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import Token from './tokens/Token.js';
-// import Comment from './tokens/Comment.js';
-// import Whitespace from './tokens/Whitespace.js';
-// import SinglelineComment from './tokens/SinglelineComment.js';
-// import SinglelineCommentBody from './tokens/SinglelineCommentBody.js';
-// import MultilineComment from './tokens/MultilineComment.js';
-// import MultilineCommentBody from './tokens/MultilineCommentBody.js';
-// import Sep from './tokens/Sep.js';
+
 // import AssemblerOperand from './tokens/AssemblerOperand.js';
 // import End from './tokens/End.js';
-// import SameLineSep from './tokens/SameLineSep.js';
+// import Sep, {
+//     Whitespace,
+//     Comment,
+//     SinglelineComment,
+//     MultilineComment,
+//     SinglelineCommentBody,
+//     MultilineCommentBody,
+//     InlineSep,
+// } from './tokens/Sep.js';
 
 import InternalError from './errors/InternalError.js';
 
-const isArray = Array.isArray;
-const toArray = (v) => isArray(v) ? v : [v];
+// const isArray = Array.isArray;
+// const toArray = (v) => isArray(v) ? v : [v];
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const tokenCtors = {
-    // Comment,
-    // Whitespace,
-    // SinglelineComment,
-    // SinglelineCommentBody,
-    // MultilineComment,
-    // MultilineCommentBody,
-    // Sep,
-    // AssemblerOperand,
-    // End,
-    // SameLineSep,
+//     AssemblerOperand,
+//     End,
+//     Sep,
+//     Whitespace,
+//     Comment,
+//     SinglelineComment,
+//     MultilineComment,
+//     SinglelineCommentBody,
+//     MultilineCommentBody,
+//     InlineSep,
 };
 
 export default class Grammar {
@@ -43,6 +45,7 @@ export default class Grammar {
         this.defaultTokenContructor = defaultTokenContructor;
         this.tokenConstructors = tokenConstructors;
         this.tokenResolvers = {};
+        this.tokenDescriptors = {};
         this.populateTokenResolvers();
     }
 
@@ -54,19 +57,72 @@ export default class Grammar {
             .filter((line) => !line.startsWith('#'))
             .join('\n')
         ;
-        let nameString = 0;
-        let nameKeyword = 0;
-        let references = {};
         let pairs = content.split(/(\w+)\s*->\s*/).slice(1);
+        let n = 0;
+        let additional = {};
         for (let i = 0; i < pairs.length; i += 2) {
             let [name, descriptor] = pairs.slice(i);
             descriptor = descriptor.trim();
             descriptor = descriptor.replace(/\s+/g, ' ');
+            descriptor = descriptor.replace(/`.*?`/g, (m) => {
+                if (m.length === descriptor.length) {
+                    return m;
+                }
+                let key = 'KeywordToken.' + (n++);
+                additional[key] = m;
+                return key;
+            });
+            descriptor = descriptor.replace(/'.*?'/g, (m) => {
+                if (m.length === descriptor.length) {
+                    return m;
+                }
+                let key = 'StringToken.' + (n++);
+                return this.setTokenResolver(key, m);
+            });
+            descriptor = descriptor.replace(/\/.*?\/\w*/g, (m) => {
+                if (m.length === descriptor.length) {
+                    return m;
+                }
+                let key = 'RegexToken.' + (n++);
+                additional[key] = m;
+                return key;
+            });
+            descriptor = descriptor.replace(/\w+(\.\d+)?[*+?]/g, (m) => {
+                if (m.length === descriptor.length) {
+                    return m;
+                }
+                let name = m.endsWith('?') ? 'OptionalToken' : 'SequenceToken';
+                let key = name + '.' + (n++);
+                additional[key] = m;
+                return key;
+            });
+            let changed = true;
+            while (changed) {
+                changed = false;
+                descriptor = descriptor.replace(/\(\s*([^()]+?)\s*\)([*+?]?)/g, (m, p1, p2) => {
+                    changed = true;
+                    let key = 'ReferenceToken.' + (n++);
+                    additional[key] = p1;
+                    if (p2 === '') {
+                        return key;
+                    }
+                    let name = p2 === '?' ? 'OptionalToken' : 'SequenceToken';
+                    let newKey = name + '.' + (n++);
+                    additional[newKey] = key + p2;
+                    return newKey;
+                });
+            }
             this.setTokenResolver(name, descriptor);
+            for (let key in additional) {
+                let val = additional[key];
+                this.setTokenResolver(key, val);
+            }
+            additional = {};
         }
     }
 
-    setTokenResolver(name, descriptor) {
+    setTokenResolver(key, descriptor) {
+        let name = key.split('.').shift();
         let ctor = this.tokenConstructors[name] ?? this.defaultTokenContructor;
         let ctorRes = ctor.resolve ?? null;
         if (
@@ -75,12 +131,11 @@ export default class Grammar {
         ) {
             throw new InternalError;
         }
-        let res = ctorRes;
+        let res = ctorRes ?? this.getResolverFromDescriptor(descriptor);
         let resolver = (lexer) => {
             let obj;
-            res ??= this.castDescriptorToResolver(descriptor);
             lexer.try(() => {
-                obj = res(lexer);
+                obj = res(lexer, this);
                 return obj !== null;
             });
             if (obj === null) {
@@ -88,7 +143,9 @@ export default class Grammar {
             }
             return new ctor(name).finalize(obj);
         };
-        this.tokenResolvers[name] = resolver;
+        this.tokenResolvers[key] = resolver;
+        this.tokenDescriptors[key] = descriptor;
+        return key;
     }
 
     getTokenResolver(name) {
@@ -99,45 +156,40 @@ export default class Grammar {
         return res;
     }
 
-    tokenize(name, lexer, parent = null) {
-        return this.getTokenResolver(name)(lexer, parent);
+    tokenize(name, lexer) {
+        return this.getTokenResolver(name)(lexer);
     }
 
-    castDescriptorToResolver(descriptor, refs = {}) {
-        let getPart = (opts = null) => (part, i) => {
-            let got = opts !== null;
-            let star = got && part.endsWith('*');
-            let plus = got && part.endsWith('+');
-            let opti = got && part.endsWith('?');
-            part = (star || plus || opti) ? part.slice(0, -1) : part;
-            if (got) {
-                opts[i] = {star, plus, opti};
-            }
-            return refs[part] ?? this.getValueTokenResolver(part) ?? this.getTokenResolver(part);
-        };
-        let changed = false;
-        descriptor = descriptor.replace(/\(\s*([^()]*?)\s*\)/g, (m, p) => {
-            let ref = 'ref.' + Object.keys(refs).length;
-            let res = this.castDescriptorToResolver(p, refs);
-            refs[ref] = (lexer) => {
-                let r = res(lexer);
-                return r !== null ? (r.child ?? r.children) : null;
-            };
-            changed = true;
-            return ref;
-        });
-        if (changed) {
-            return this.castDescriptorToResolver(descriptor, refs);
-        }
-        let isDisjunction = descriptor.includes('|');
-        let isConjunction = !isDisjunction && descriptor.includes(' ');
-        if (!isConjunction) {
-            let parts = descriptor.split(' | ');
-            let resolvers = parts.map(getPart());
+    getResolverFromDescriptor(descriptor) {
+        if (descriptor.startsWith('\'')) {
+            let string = eval(descriptor);
             return (lexer) => {
+                let value = lexer.eat(string);
+                return value !== null ? {value} : null;
+            };
+        }
+        if (descriptor.startsWith('`')) {
+            let keyword = descriptor.slice(1, -1);
+            return (lexer) => {
+                let value = lexer.eat(keyword);
+                return value !== null ? {value} : null;
+            };
+        }
+        if (descriptor.startsWith('/')) {
+            let regex = eval(descriptor);
+            return (lexer) => {
+                let value = lexer.eatRegex(regex);
+                return value !== null ? {value} : null;
+            };
+        }
+        if (descriptor.includes('|')) {
+            let parts = descriptor.split(' | ');
+            let resolvers = null;
+            return (lexer) => {
+                resolvers ??= parts.map((part) => this.getTokenResolver(part));
                 let child = null;
-                let result = resolvers.some((fn, i) => {
-                    child = fn(lexer);
+                let result = resolvers.some((resolver) => {
+                    child = resolver(lexer);
                     return child !== null;
                 });
                 if (!result) {
@@ -146,68 +198,71 @@ export default class Grammar {
                 return {child};
             };
         }
-        let parts = descriptor.split(' ');
-        let opts = parts.map(() => ({}));
-        let resolvers = parts.map(getPart(opts));
-        return (lexer) => {
-            let children = [];
-            let result = resolvers.every((fn, i) => {
-                let {star, plus, opti} = opts[i];
-                let min = star || opti ? 0 : 1;
-                let max = star || plus ? Infinity : 1;
-                // star - 0 Inf
-                // plus - 1 Inf
-                // opti - 0 1
-                // defa - 1 1
-                let collect = [];
-                while (true) {
-                    let child = fn(lexer);
-                    if (child === null) {
-                        break;
+        if (descriptor.includes(' ')) {
+            let parts = descriptor.split(' ');
+            let resolvers = null;
+            return (lexer) => {
+                resolvers ??= parts.map((part) => {
+                    return part === '^' ? part : this.getTokenResolver(part);
+                });
+                let assertion = false;
+                let children = [];
+                let result = resolvers.every((resolver) => {
+                    if (resolver === '^') {
+                        assertion = true;
+                        return true;
                     }
-                    collect.push(...toArray(child));
-                    if (collect.length === max) {
-                        break;
+                    let child = resolver(lexer);
+                    children.push(child);
+                    return child !== null;
+                });
+                if (!result) {
+                    if (assertion) {
+                        throw lexer.error();
                     }
+                    return null;
                 }
-                children.push(...collect);
-                return collect.length >= min;
-            });
-            if (!result) {
+                return {children};
+            };
+        }
+        let opti = descriptor.endsWith('?');
+        if (opti) {
+            let part = descriptor.slice(0, -1);
+            let resolver = null;
+            return (lexer) => {
+                resolver ??= this.getTokenResolver(part);
+                let child = resolver(lexer);
+                return {child};
+            };
+        }
+        let star = descriptor.endsWith('*');
+        let plus = descriptor.endsWith('+');
+        if (star || plus) {
+            let part = descriptor.slice(0, -1);
+            let resolver = null;
+            return (lexer) => {
+                resolver ??= this.getTokenResolver(part);
+                let child, children = [];
+                while (child !== null) {
+                    child = resolver(lexer);
+                    children.push(child);
+                }
+                children.pop();
+                if (plus && children.length === 0) {
+                    return null;
+                }
+                return {children};
+            };
+        }
+        let part = descriptor;
+        let resolver = null;
+        return (lexer) => {
+            resolver ??= this.getTokenResolver(part);
+            let child = resolver(lexer);
+            if (child === null) {
                 return null;
             }
-            return {children};
+            return {child};
         };
-    }
-
-    getValueTokenResolver(value) {
-        if (value.startsWith('/') && value.endsWith('/')) {
-            let name = 'RegexToken';
-            let regex = eval(value);
-            let ctor = this.tokenConstructors[name] ?? this.defaultTokenContructor;
-            return (lexer) => {
-                let value = lexer.eatRegex(regex);
-                return value !== null ? new ctor(name).finalize({value}) : null;
-            };
-        }
-        if (value.startsWith('\'') && value.endsWith('\'')) {
-            let name = 'StringToken';
-            let string = eval(value);
-            let ctor = this.tokenConstructors[name] ?? this.defaultTokenContructor;
-            return (lexer) => {
-                let value = lexer.eat(string) ? string : null;
-                return value !== null ? new ctor(name).finalize({value}) : null;
-            };
-        }
-        if (value.startsWith('`') && value.endsWith('`')) {
-            let name = 'KeywordToken';
-            let keyword = value.slice(1, -1);
-            let ctor = this.tokenConstructors[name] ?? this.defaultTokenContructor;
-            return (lexer) => {
-                let value = lexer.eat(keyword) ? keyword : null;
-                return value !== null ? new ctor(name).finalize({value}) : null;
-            };
-        }
-        return null;
     }
 }

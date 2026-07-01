@@ -1,16 +1,22 @@
 import Token from './Token.js';
 
+const some = (sep) => !sep.isInline();
+
 export default class End extends Token {
-    static resolve(token, grammar) {
-        let lex = token.lexer;
-        let res = lex.look(() => {
-            let sep = grammar.tokenize('SepOpt', lex, token);
-            return lex.isEof() || sep.gotNewline() || lex.eat('}');
+    static resolve(lexer, grammar) {
+        let res = lexer.look(() => {
+            let sep, seps = [];
+            while (sep !== null) {
+                sep = grammar.tokenize('Sep', lexer);
+                seps.push(sep);
+            }
+            seps.pop();
+            return lexer.isEof() || lexer.eat('}') || seps.some((s) => !s.isInline());
         });
         if (!res) {
             return null;
         }
-        return token.finalize();
+        return {};
     }
 
     stringify() {
