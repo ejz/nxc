@@ -1,38 +1,38 @@
 import Token from './Token.js';
 
-const isInline = (value) => !value.includes('\r') && !value.includes('\n');
+// const isInline = (value) => !value.includes('\r') && !value.includes('\n');
 
-export default class Sep extends Token {
-    isInline() {
-        return this.choice.isInline();
-    }
-}
+// export default class Sep extends Token {
+//     // isInline() {
+//     //     return this.choice.isInline();
+//     // }
+// }
 
-export class Whitespace extends Token {
-    isInline() {
-        return isInline(this.choice.value);
-    }
-}
+// export class Whitespace extends Token {
+//     // isInline() {
+//     //     return isInline(this.choice.value);
+//     // }
+// }
 
-export class Comment extends Token {
-    isInline() {
-        return this.choice.isInline();
-    }
-}
+// export class Comment extends Token {
+//     // isInline() {
+//     //     return this.choice.isInline();
+//     // }
+// }
 
-export class SinglelineComment extends Token {
-    isInline() {
-        let [, body] = this.children;
-        return body.isInline();
-    }
-}
+// export class SinglelineComment extends Token {
+//     // isInline() {
+//     //     let [, body] = this.children;
+//     //     return body.isInline();
+//     // }
+// }
 
-export class MultilineComment extends Token {
-    isInline() {
-        let [, body] = this.children;
-        return body.isInline();
-    }
-}
+// export class MultilineComment extends Token {
+//     // isInline() {
+//     //     let [, body] = this.children;
+//     //     return body.isInline();
+//     // }
+// }
 
 export class SinglelineCommentBody extends Token {
     static resolve(lexer) {
@@ -46,9 +46,9 @@ export class SinglelineCommentBody extends Token {
         return this.comment + (this.newline ?? '');
     }
 
-    isInline() {
-        return this.newline === null;
-    }
+    // isInline() {
+    //     return this.newline === null;
+    // }
 }
 
 export class MultilineCommentBody extends Token {
@@ -62,21 +62,21 @@ export class MultilineCommentBody extends Token {
         return this.comment;
     }
 
-    isInline() {
-        return isInline(this.comment);
-    }
+    // isInline() {
+    //     return isInline(this.comment);
+    // }
 }
 
-export class InlineSep extends Token {
-    static resolve(lexer, grammar) {
-        let sep = grammar.tokenize('Sep', lexer);
-        if (sep === null || !sep.isInline()) {
-            return null;
-        }
-        return {sep};
-    }
+// export class InlineSep extends Token {
+//     static resolve(lexer, grammar) {
+//         let sep = grammar.tokenize('Sep', lexer);
+//         if (sep === null || !sep.isInline()) {
+//             return null;
+//         }
+//         return {sep};
+//     }
 
-    stringify() {
-        return this.sep.stringify();
-    }
-}
+//     stringify() {
+//         return this.sep.stringify();
+//     }
+// }

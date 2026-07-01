@@ -6,15 +6,16 @@ import Token from './tokens/Token.js';
 
 // import AssemblerOperand from './tokens/AssemblerOperand.js';
 // import End from './tokens/End.js';
-// import Sep, {
+import {
+    SinglelineCommentBody,
+    MultilineCommentBody,
+} from './tokens/Sep.js';
+/*Sep, */
 //     Whitespace,
 //     Comment,
 //     SinglelineComment,
 //     MultilineComment,
-//     SinglelineCommentBody,
-//     MultilineCommentBody,
 //     InlineSep,
-// } from './tokens/Sep.js';
 
 import InternalError from './errors/InternalError.js';
 
@@ -23,6 +24,8 @@ import InternalError from './errors/InternalError.js';
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const tokenCtors = {
+    SinglelineCommentBody,
+    MultilineCommentBody,
 //     AssemblerOperand,
 //     End,
 //     Sep,
@@ -30,8 +33,6 @@ const tokenCtors = {
 //     Comment,
 //     SinglelineComment,
 //     MultilineComment,
-//     SinglelineCommentBody,
-//     MultilineCommentBody,
 //     InlineSep,
 };
 
