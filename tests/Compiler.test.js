@@ -20,14 +20,41 @@ const getCompiler = (o) => {
     compiler.compile = (c) => compile(Buffer.isBuffer(c) ? c : Buffer.from(c));
     return compiler;
 };
+const caught = (fn) => {
+    try {
+        fn();
+        return null;
+    } catch (e) {
+        return e;
+    }
+};
 
 test('Compiler / 1', (t) => {
     let compiler = getCompiler();
     t.throws(() => compiler.compile([128]));
+    t.throws(() => compiler.compile('/*'));
+    t.throws(() => compiler.compile('{'));
     let elf = compiler.compile('');
     t.equal(elf.slice(1, 4).toString(), 'ELF');
     t.end();
 });
+
+// test('Compiler / 2', (t) => {
+//     let buffer = Buffer.concat([
+//         Buffer.from('/*\n*/'),
+//         Buffer.from([255]),
+//     ]);
+//     console.log(buffer);
+//     let compiler = getCompiler();
+//     let err = caught(() => compiler.compile(buffer));
+//     console.log(err);
+//     t.end();
+
+//     // () => 
+//     // t.throws(() => compiler.compile([128]));
+//     // let elf = compiler.compile('');
+//     // t.equal(elf.slice(1, 4).toString(), 'ELF');
+// });
 
 // import Program from '../src/tokens/Program.js';
 // import writeFile from '../src/utils/writeFile.js';

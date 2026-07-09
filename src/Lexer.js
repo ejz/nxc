@@ -155,7 +155,6 @@ export default class Lexer {
             cursor += l + end.length;
             if (position <= cursor) {
                 pos = position - ex;
-                pos -= position === cursor ? 1 : 0;
                 idx = i / 2;
                 break;
             }
