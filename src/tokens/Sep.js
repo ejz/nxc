@@ -4,7 +4,8 @@ const isInline = (v) => !v.includes('\r') && !v.includes('\n');
 
 export default class Sep extends Token {
     isInline() {
-        return this.child.isInline();
+        let [child] = this.children;
+        return child.isInline();
     }
 }
 
@@ -16,7 +17,8 @@ export class Whitespace extends Token {
 
 export class Comment extends Token {
     isInline() {
-        return this.child.isInline();
+        let [child] = this.children;
+        return child.isInline();
     }
 }
 
@@ -36,9 +38,11 @@ export class MultilineComment extends Token {
 
 export class SinglelineCommentBody extends Token {
     static resolve(lexer) {
+        console.log('here');
         let tuple = lexer.eatTill('\r\n', '\r', '\n');
         let [comment, newline = null] = tuple ?? [lexer.eatAll()];
         lexer.proceed((newline ?? '').length);
+        console.log({newline, comment});
         return {newline, comment};
     }
 
@@ -70,6 +74,7 @@ export class MultilineCommentBody extends Token {
 export class InlineSep extends Token {
     static resolve(lexer, grammar) {
         let sep = grammar.tokenize('Sep', lexer);
+        console.log({sep});
         if (sep === null || !sep.isInline()) {
             return null;
         }
