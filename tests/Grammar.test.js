@@ -96,7 +96,7 @@ test('Grammar / 1', (t) => {
     ];
     for (let [tt, input] of cases) {
         let lexer = new Lexer(input);
-        let token = grammar.tokenize(tt, lexer);
+        let token = grammar.tokenize(tt, lexer, false);
         t.equals(token.stringify(), input);
         t.equals(lexer.isEof(), true);
     }
@@ -121,7 +121,7 @@ test('Grammar / 2', (t) => {
     ];
     for (let [tt, input, error = false] of cases) {
         let lexer = new Lexer(input);
-        let fn = () => grammar.tokenize(tt, lexer);
+        let fn = () => grammar.tokenize(tt, lexer, false);
         if (error) {
             t.throws(fn);
             continue;
@@ -133,66 +133,65 @@ test('Grammar / 2', (t) => {
     t.end();
 });
 
-test.only('Grammar / 3', (t) => {
+test('Grammar / 3', (t) => {
     let grammar = new Grammar();
     let cases = [
         ['SinglelineComment', '//'],
-        // ['SinglelineComment', '//1'],
-        // ['SinglelineComment', '//\n'],
-        // ['SinglelineComment', '//1\n'],
-        // ['SinglelineComment', '//\r\n'],
-        // ['SinglelineComment', '//\r\r', '\r'],
-        // ['SinglelineComment', '// a\n1', '1'],
-        // ['SinglelineComment', '// a\n'],
-        // ['MultilineComment', '/**/'],
-        // ['MultilineComment', '/* \n */'],
-        // ['MultilineComment', '/* b */'],
-        // ['Sep', ' '],
-        // ['Sep', ' \t '],
-        // ['Sep', '\r\n'],
-        // ['Whitespace', ' \t'],
-        // ['Whitespace', '\r\n'],
-        // ['Program', '{}'],
-        // ['Program', ' {/* */} '],
-        // ['Program', ' {//\n} '],
-        // ['Program', ' ; '],
-        // ['Program', ' ; { ; }'],
-        // ['InlineSep', ' '],
-        // ['InlineSep', '//'],
-        // ['InlineSep', '/**/'],
-        // ['AssemblerStandaloneLabel', 'label:'],
-        // ['AssemblerStandaloneLabel', 'label:}', '}'],
-        // ['AssemblerStandaloneLabel', 'label: }', ' }'],
-        // ['AssemblerStandaloneLabel', 'label://a\n', '//a\n'],
-        // ['AssemblerStandaloneLabel', 'label:/*\n*/', '/*\n*/'],
-        // ['AssemblerInlineLabel', 'label: '],
-        // ['AssemblerInlineLabel', 'label://'],
-        // ['AssemblerInlineLabel', 'label:/**/'],
-        // ['AssemblerBlock', 'asm{}'],
-        // ['AssemblerBlock', 'asm{/**/}'],
-        // ['AssemblerBlock', 'asm{label:}'],
-        // ['AssemblerOperand', '='],
-        // ['AssemblerBlock', 'asm{a = 1}'],
-        // ['AssemblerBlock', 'asm{a: a = 1}'],
-        // ['AssemblerBlock', 'asm{a = 1;b = 2}'],
-        // ['AssemblerBlock', 'asm{a = 1 ; b = 2}'],
-        // ['AssemblerBlock', 'asm{a = 1\nb = 2}'],
-        // ['AssemblerBlock', 'asm{one}'],
-        // ['AssemblerInstructionOperandSize', '.4'],
-        // ['AssemblerInstructionName', 'one.two.three'],
-        // ['AssemblerInstructionName', 'one.two'],
-        // ['DecNum', '0'],
-        // ['DecNum', '5'],
-        // ['AssemblerInstruction', 'one.two.5'],
-        // ['AssemblerBlock', 'asm{one.1}'],
-        // ['AssemblerBlock', 'asm{one.1 a}'],
-        // ['AssemblerBlock', 'asm{one.1 a, b}'],
-        // ['AssemblerBlock', 'asm{arg [eax + ebx * 2 + 0x4]}'],
+        ['SinglelineComment', '//1'],
+        ['SinglelineComment', '//\n'],
+        ['SinglelineComment', '//1\n'],
+        ['SinglelineComment', '//\r\n'],
+        ['SinglelineComment', '//\r\r', '\r'],
+        ['SinglelineComment', '// a\n1', '1'],
+        ['SinglelineComment', '// a\n'],
+        ['MultilineComment', '/**/'],
+        ['MultilineComment', '/* \n */'],
+        ['MultilineComment', '/* b */'],
+        ['Sep', ' '],
+        ['Sep', ' \t '],
+        ['Sep', '\r\n'],
+        ['Whitespace', ' \t'],
+        ['Whitespace', '\r\n'],
+        ['Program', '{}'],
+        ['Program', ' {/* */} '],
+        ['Program', ' {//\n} '],
+        ['Program', ' ; '],
+        ['Program', ' ; { ; }'],
+        ['InlineSep', ' '],
+        ['InlineSep', '//'],
+        ['InlineSep', '/**/'],
+        ['AssemblerStandaloneLabel', 'label:'],
+        ['AssemblerStandaloneLabel', 'label:}', '}'],
+        ['AssemblerStandaloneLabel', 'label: }', ' }'],
+        ['AssemblerStandaloneLabel', 'label://a\n', '//a\n'],
+        ['AssemblerStandaloneLabel', 'label:/*\n*/', '/*\n*/'],
+        ['AssemblerInlineLabel', 'label: '],
+        ['AssemblerInlineLabel', 'label://'],
+        ['AssemblerInlineLabel', 'label:/**/'],
+        ['AssemblerBlock', 'asm{}'],
+        ['AssemblerBlock', 'asm{/**/}'],
+        ['AssemblerBlock', 'asm{label:}'],
+        ['AssemblerOperand', '='],
+        ['AssemblerBlock', 'asm{a = 1}'],
+        ['AssemblerBlock', 'asm{a: a = 1}'],
+        ['AssemblerBlock', 'asm{a = 1;b = 2}'],
+        ['AssemblerBlock', 'asm{a = 1 ; b = 2}'],
+        ['AssemblerBlock', 'asm{a = 1\nb = 2}'],
+        ['AssemblerBlock', 'asm{one}'],
+        ['AssemblerInstructionOperandSize', '.4'],
+        ['AssemblerInstructionName', 'one.two.three'],
+        ['AssemblerInstructionName', 'one.two'],
+        ['DecNum', '0'],
+        ['DecNum', '5'],
+        ['AssemblerInstruction', 'one.two.5'],
+        ['AssemblerBlock', 'asm{one.1}'],
+        ['AssemblerBlock', 'asm{one.1 a}'],
+        ['AssemblerBlock', 'asm{one.1 a, b}'],
+        ['AssemblerBlock', 'asm{arg [eax + ebx * 2 + 0x4]}'],
     ];
     for (let [tt, input, tail = ''] of cases) {
         let lexer = new Lexer(input);
         let token = grammar.tokenize(tt, lexer);
-        console.log(token);
         t.equals(token.stringify(), input.slice(0, tail.length === 0 ? undefined : -tail.length));
         t.equals(lexer.tail, tail);
     }

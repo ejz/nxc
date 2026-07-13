@@ -3,21 +3,16 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import Token from './tokens/Token.js';
-
 import AssemblerOperand from './tokens/AssemblerOperand.js';
 import End from './tokens/End.js';
-import Sep, {
-    Whitespace,
-    Comment,
-    SinglelineComment,
-    MultilineComment,
-    SinglelineCommentBody,
-    MultilineCommentBody,
-    InlineSep,
-} from './tokens/Sep.js';
-
+import Sep, {InlineSep, SinglelineCommentBody, MultilineCommentBody} from './tokens/Sep.js';
 import InternalError from './errors/InternalError.js';
 
+export const Walk = {
+    Continue: 1,
+    Ignore: 0,
+    Stop: -1,
+};
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const nullResolver = () => null;
@@ -25,13 +20,9 @@ const tokenCtors = {
     AssemblerOperand,
     End,
     Sep,
-    Whitespace,
-    Comment,
-    SinglelineComment,
-    MultilineComment,
+    InlineSep,
     SinglelineCommentBody,
     MultilineCommentBody,
-    InlineSep,
 };
 const SpecialToken = {
     KeywordToken: 'KeywordToken',
@@ -54,7 +45,6 @@ export default class Grammar {
         this.tokenConstructors = tokenConstructors;
         this.tokenResolvers = {};
         this.populateTokenResolvers();
-        console.log(this.tokenResolvers);
     }
 
     populateTokenResolvers() {
@@ -79,7 +69,6 @@ export default class Grammar {
 
     wrapResolver(name, resolver = nullResolver) {
         let ctor = this.tokenConstructors[name] ?? this.defaultTokenContructor;
-        console.log('wrapResolver', {name}, ctor, ctor.resolve);
         let res = ctor.resolve ?? resolver;
         return (lexer) => {
             let obj;
@@ -90,14 +79,11 @@ export default class Grammar {
             if (obj === null) {
                 return null;
             }
-            console.log({obj});
-            // console.log({ctor, name, obj});
             return new ctor(name).finalize(obj);
         };
     }
 
     getResolverFromRule(name, rule, resolvers) {
-        // console.log(1, {rule, resolvers});
         let innerCall = resolvers !== undefined;
         resolvers = innerCall ? resolvers : [];
         let resolve = (part) => resolvers[part] ?? this.getTokenResolver(part);
@@ -210,9 +196,7 @@ export default class Grammar {
             let sequence = (parts) => {
                 let resolvers;
                 return (lexer) => {
-                    console.log({parts});
                     resolvers ??= parts.map(resolveAssert);
-                    console.log({resolvers});
                     let assertion = false, children = [];
                     let result = resolvers.every((resolver) => {
                         if (resolver === '^') {
@@ -220,11 +204,9 @@ export default class Grammar {
                             return true;
                         }
                         let child = resolver(lexer);
-                        console.log({child});
                         children.push(child);
                         return child !== null;
                     });
-                    console.log({result});
                     if (!result) {
                         if (assertion) {
                             throw lexer.error();
@@ -254,56 +236,75 @@ export default class Grammar {
 
     getTokenResolver(name) {
         let res = this.tokenResolvers[name];
-        console.log({name});
         if (res === undefined) {
             throw new InternalError;
         }
         return res;
     }
 
-    tokenize(name, lexer) {
-        return this.getTokenResolver(name)(lexer);
+    tokenize(name, lexer, toAst = true) {
+        let token = this.getTokenResolver(name)(lexer);
+        if (toAst && token !== null) {
+            token = this.toAst(token);
+            token = this.shackle(token);
+        }
+        return token;
     }
 
-    toAst(token, {parent = null, list = null, prev = null, next = null} = {}) {
-        Object.assign(token, {parent, list, prev, next});
-        if (token.children === undefined) {
-            return;
-        }
-        parent = token;
-        list = parent.children;
-        list.forEach((child, i) => {
-            let prev = list[i - 1] ?? null;
-            let next = list[i + 1] ?? null;
-            this.toAst(child, {parent, list, prev, next});
+    toAst(token, parent = null) {
+        Object.assign(token, {parent, walk, filter});
+        let list = token.children ?? [];
+        list.forEach((child) => {
+            this.toAst(child, token);
         });
+        return token;
+        //
+        function walk(callback) {
+            let res = callback(this);
+            if ([Walk.Ignore, Walk.Stop].includes(res)) {
+                return res;
+            }
+            let list = token.children ?? [];
+            for (let child of list) {
+                let res = child.walk(callback);
+                if (res === Walk.Stop) {
+                    return res;
+                }
+            }
+            return Walk.Continue;
+        }
+        //
+        function filter(filterFn) {
+            let collector = [];
+            if (typeof filterFn === 'string') {
+                let names = filterFn.split('|');
+                filterFn = ({name}) => names.includes(name);
+            }
+            this.walk((token) => {
+                let res = filterFn(token) ?? [];
+                res = typeof res === 'boolean' ? [, res] : res;
+                res = typeof res === 'number' ? [res] : res;
+                let [walk = Walk.Continue, filt = false] = res;
+                if (filt) {
+                    collector.push(token);
+                }
+                return walk;
+            });
+            return collector;
+        }
     }
 
     shackle(ast) {
-        //
+        let tokens = ast.filter('SequenceToken|RepeatToken|ChoiceToken');
+        tokens.forEach((token) => {
+            let parent = token.parent;
+            let list = parent.children;
+            token.children.forEach((child) => {
+                child.parent = parent;
+            });
+            let idx = list.indexOf(token);
+            list.splice(idx, 1, ...token.children);
+        });
+        return ast;
     }
-
-
-        // let getType = ({name}) => {
-        //     return this.getDescriptorType(this.tokenDescriptors[name]);
-        // };
-        // // let type = ;
-        // // console.log({type});
-        // token.children.forEach((child) => {
-        //     console.log({child});
-        //     console.log(getType(child));
-        // });
-        // token.parent = parent;
-        // token.list = list;
-        // token.prev = prev;
-        // token.next = next;
-        // let children = token.children;
-        // let node = {
-        //     token,
-        //     parent,
-        //     list,
-        //     prev,
-        //     next,
-        //     nodes: null,
-        // };
 }

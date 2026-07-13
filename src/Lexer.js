@@ -1,15 +1,5 @@
 import LexerError from './errors/LexerError.js';
 
-// import Token from './tokens/Token.js';
-// const isArray = Array.isArray;
-// const isToken = (token) => token instanceof Token;
-// const isTokenArray = (array) => isArray(array) && array.every(isToken);
-// export const LexerWalk = {
-//     Continue: 1,
-//     Ignore: 0,
-//     Stop: -1,
-// };
-
 export default class Lexer {
     constructor(content, position = 0) {
         this.content = content;
@@ -19,15 +9,6 @@ export default class Lexer {
     get tail() {
         return this.content.slice(this.position);
     }
-
-    // validate() {
-    //     let idx = this.content.indexOf('\uFFFD');
-    //     if (idx !== -1) {
-    //         this.proceed(idx);
-    //         throw this.error({args: 'invalid character'});
-    //     }
-    //     return this;
-    // }
 
     proceed(shift) {
         this.position += shift;
@@ -104,36 +85,6 @@ export default class Lexer {
         this.proceed(m.length);
         return m;
     }
-
-    // static walk(token, cb) {
-    //     let res = cb(token);
-    //     if ([LexerWalk.Ignore, LexerWalk.Stop].includes(res)) {
-    //         return res;
-    //     }
-    //     for (let child of token.getChildren()) {
-    //         let res = Lexer.walk(child, cb);
-    //         if (res === LexerWalk.Stop) {
-    //             return res;
-    //         }
-    //     }
-    // }
-
-
-    // static collect(token, filter) {
-    //     let collector = [];
-    //     Lexer.walk(token, (...args) => {
-    //         let res = filter(...args);
-    //         res ??= [];
-    //         res = typeof res === 'boolean' ? [, res] : res;
-    //         res = typeof res === 'number' ? [res] : res;
-    //         let [walk = LexerWalk.Continue, filt = false] = res;
-    //         if (filt) {
-    //             collector.push(args);
-    //         }
-    //         return walk;
-    //     });
-    //     return collector;
-    // }
 
     error(opts) {
         return new LexerError(this, opts);
