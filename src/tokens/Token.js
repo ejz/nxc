@@ -17,6 +17,10 @@ export default class Token {
         return this;
     }
 
+    is(...names) {
+        return names.includes(this.name);
+    }
+
     stringify() {
         if (this.value !== undefined) {
             return this.value;

@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import Token from './tokens/Token.js';
 import AssemblerOperand from './tokens/AssemblerOperand.js';
 import End from './tokens/End.js';
+import AssemblerBlock from './tokens/AssemblerBlock.js';
 import Sep, {InlineSep, SinglelineCommentBody, MultilineCommentBody} from './tokens/Sep.js';
 import InternalError from './errors/InternalError.js';
 
@@ -23,6 +24,7 @@ const tokenCtors = {
     InlineSep,
     SinglelineCommentBody,
     MultilineCommentBody,
+    AssemblerBlock,
 };
 const SpecialToken = {
     KeywordToken: 'KeywordToken',
@@ -33,11 +35,11 @@ const SpecialToken = {
     SequenceToken: 'SequenceToken',
     ReferenceToken: 'ReferenceToken',
 };
-const isPrimary = (token) => !['StringToken', 'KeywordToken', 'Sep'].includes(token.name);
+const isPrimary = (token) => token.is('StringToken', 'KeywordToken', 'Sep');
 const isEmpty = (token) => token.children.length === 0;
 const hasPrimary = (token) => token.children.filter(isPrimary).length !== 0;
-const withParent = (arg) => (token) => token.parent.name === arg;
-const withParentParent = (arg) => (token) => token.parent.parent.name === arg;
+const withParent = (arg) => (token) => token.parent.is(arg);
+const withParentParent = (arg) => (token) => token.parent.parent.is(arg);
 
 export default class Grammar {
     constructor({

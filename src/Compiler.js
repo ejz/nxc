@@ -62,8 +62,15 @@ export default class Compiler {
         let lexer = this.getLexer(buffer);
         let ast = this.getAst(lexer, normalize);
         let elf = new Elf(x86);
-        let assemblerBlocks = ast.children;
-        for (let assemblerBlock of assemblerBlocks) {
+        let statements = ast.filter('Statement');
+        // console.log(assemblerBlocks);
+        // console.log(assemblerBlocks[0].children[0]);
+        for (let statement of statements) {
+            if (statement.parent !== ast) {
+                throw new InternalError;
+            }
+            let [block = null] = statement.children;
+            if (block === null || !block.is('AssemblerBlock'))
             elf.push(assemblerBlock.toBuffer(x86));
         }
         // assemblerBlock.remove();
