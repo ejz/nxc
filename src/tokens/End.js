@@ -7,7 +7,7 @@ export default class End extends Token {
         let res = lexer.look(() => {
             let sep, seps = [];
             while (sep !== null) {
-                sep = grammar.tokenize('Sep', lexer);
+                sep = grammar.tokenize('Sep', lexer, false);
                 seps.push(sep);
             }
             seps.pop();

@@ -33,6 +33,11 @@ const SpecialToken = {
     SequenceToken: 'SequenceToken',
     ReferenceToken: 'ReferenceToken',
 };
+const isPrimary = (token) => !['StringToken', 'KeywordToken', 'Sep'].includes(token.name);
+const isEmpty = (token) => token.children.length === 0;
+const hasPrimary = (token) => token.children.filter(isPrimary).length !== 0;
+const withParent = (arg) => (token) => token.parent.name === arg;
+const withParentParent = (arg) => (token) => token.parent.parent.name === arg;
 
 export default class Grammar {
     constructor({
@@ -252,7 +257,7 @@ export default class Grammar {
     }
 
     toAst(token, parent = null) {
-        Object.assign(token, {parent, walk, filter});
+        Object.assign(token, {parent, walk, filter, remove, unwrap});
         let list = token.children ?? [];
         list.forEach((child) => {
             this.toAst(child, token);
@@ -277,8 +282,17 @@ export default class Grammar {
         function filter(filterFn) {
             let collector = [];
             if (typeof filterFn === 'string') {
-                let names = filterFn.split('|');
-                filterFn = ({name}) => names.includes(name);
+                let names = [];
+                let predicates = [];
+                for (let filter of filterFn.split('|')) {
+                    let idx = filter.indexOf('<');
+                    names.push(idx !== -1 ? filter.slice(0, idx) : filter);
+                    predicates.push(idx !== -1 ? toPredicate(filter.slice(idx + 1, -1)) : (() => true));
+                }
+                filterFn = (token) => {
+                    let idx = names.indexOf(token.name);
+                    return idx !== -1 && predicates[idx](token);
+                };
             }
             this.walk((token) => {
                 let res = filterFn(token) ?? [];
@@ -292,19 +306,89 @@ export default class Grammar {
             });
             return collector;
         }
+        //
+        function remove() {
+            let parent = token.parent;
+            if (parent === null) {
+                return;
+            }
+            let list = parent.children;
+            let idx = list.indexOf(this);
+            if (idx === -1) {
+                return false;
+            }
+            list.splice(idx, 1);
+            if (list.length === 0) {
+                parent.remove();
+            }
+            return true;
+        }
+        //
+        function unwrap() {
+            let parent = this.parent;
+            let list = parent.children;
+            let children = this.children;
+            children.forEach((child) => {
+                child.parent = parent;
+            });
+            let idx = list.indexOf(this);
+            if (idx === -1) {
+                return false;
+            }
+            list.splice(idx, 1, ...children);
+            return true;
+        }
     }
 
     shackle(ast) {
         let tokens = ast.filter('SequenceToken|RepeatToken|ChoiceToken');
         tokens.forEach((token) => {
-            let parent = token.parent;
-            let list = parent.children;
-            token.children.forEach((child) => {
-                child.parent = parent;
-            });
-            let idx = list.indexOf(token);
-            list.splice(idx, 1, ...token.children);
+            token.unwrap();
         });
         return ast;
     }
+}
+
+function toPredicate(predicate) {
+    let parts = predicate.split(',');
+    let predicates = parts.map(toPredicatePart);
+    return (token) => predicates.every((predicate) => predicate(token));
+}
+
+function toPredicatePart(part) {
+    let negate = part.startsWith('!');
+    part = negate ? part.slice(1) : part;
+    let fn, arg = null;
+    let idx = part.indexOf('=');
+    if (idx !== -1) {
+        arg = part.slice(idx + 1);
+        part = part.slice(0, idx + 1);
+    }
+    switch (part) {
+        case 'isEmpty': {
+            fn = isEmpty;
+            break;
+        }
+        case 'isPrimary': {
+            fn = isPrimary;
+            break;
+        }
+        case 'hasPrimary': {
+            fn = hasPrimary;
+            break;
+        }
+        case 'parent=': {
+            fn = withParent(arg);
+            break;
+        }
+        case 'parent.parent=': {
+            fn = withParentParent(arg);
+            break;
+        }
+        default: throw new InternalError;
+    }
+    return (token) => {
+        let res = fn(token);
+        return (!negate && res) || (negate && !res);
+    };
 }

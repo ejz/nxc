@@ -7,6 +7,7 @@ import x86 from './arch/x86.js';
 import Elf from './Elf.js';
 import Grammar from './Grammar.js';
 import decodeBuffer from './utils/decodeBuffer.js';
+import InternalError from './errors/InternalError.js';
 
 export default class Compiler {
     constructor({logger}) {
@@ -23,62 +24,69 @@ export default class Compiler {
         return lexer;
     }
 
-    getProgramToken(lexer, {
-        normalize = true,
-        removeEmptyBlock = normalize,
-        removeEmptyStatement = normalize,
-        appendFinalExit = normalize,
-    } = {}) {
+    getAst(lexer, normalize) {
         let grammar = new Grammar();
-        let program = grammar.tokenize('Program', lexer);
+        let ast = grammar.tokenize('Program', lexer);
         if (!lexer.isEof()) {
             throw lexer.error();
         }
-        grammar.buildAst(program);
-        let ast = program;
-        while (
-            (removeEmptyBlock && this.removeEmptyBlock(ast))
-            || (removeEmptyStatement && this.removeEmptyStatement(ast))
-        ) ;
-        appendFinalExit && this.appendFinalExit(ast, x86);
+        if (normalize === 0) {
+            return ast;
+        }
+        if (normalize >= 1) {
+            // remove empty statement ';'
+            ast.filter('EmptyStatement').forEach((token) => {
+                token.remove();
+            });
+        }
+        if (normalize >= 2) {
+            // unwrap regular block
+            ast.filter('RegularBlock').forEach((token) => {
+                token.children = token.children.filter(({name: n}) => n !== 'StringToken');
+                token.unwrap();
+            });
+        }
+        if (normalize === Infinity) {
+            this.appendFinalExit(ast, x86);
+        }
         return ast;
     }
 
-    lint(buffer, opts) {
+    lint(buffer, normalize = 0) {
         let lexer = this.getLexer(buffer);
-        let program = this.getProgramToken(lexer, {normalize: false, ...opts});
+        let program = this.getAst(lexer, normalize);
         return program.stringify();
     }
 
-    compile(buffer, opts) {
+    compile(buffer, normalize = Infinity) {
         let lexer = this.getLexer(buffer);
-        let program = this.getProgramToken(lexer, opts);
+        let ast = this.getAst(lexer, normalize);
         let elf = new Elf(x86);
-        return elf.toBuffer();
-    }
-
-    removeEmptyBlock(program) {
-        return false;
-        // let filter = ({statements}) => statements.length === 0;
-        // let found = Lexer.findOne(program, filter, RegularBlock, AssemblerBlock);
-        // if (found === null) {
-        //     return false;
-        // }
-        // let [token, , list] = found;
-        // let index = list.indexOf(token);
-        // list.splice(index, 1);
-        // return true;
-    }
-
-    removeEmptyStatement(program) {
-        // Lexer.find(program, (token) => {
-            
+        let assemblerBlocks = ast.children;
+        for (let assemblerBlock of assemblerBlocks) {
+            elf.push(assemblerBlock.toBuffer(x86));
+        }
+        // assemblerBlock.remove();
+        // let check = ast.filter('*<parent=Program>');
+        // console.log(check);
+        // ;
+        // Lexer.collect(program, (token) => {
+        //     if (token === program) {
+        //         return;
+        //     }
+        //     // if (token.name === 'SepOpt') {
+        //     //     return;
+        //     // }
+        //     //     if (token.parent !== program) {
+        //     //         throw new Error;
+        //     //     }
+        //     // console.log(token, grammar.tokenDescriptors);
+        //     // if (token.name !== 'AssemblerBlock') {
+        //     //     throw new Error;
+        //     // }
+        //     // return [LexerWalk.Ignore, true];
         // });
-        // for (let [token, , list] of found) {
-        //     let index = list.indexOf(token);
-        //     list.splice(index, 1);
-        // }
-        // return found.length !== 0;
+        return elf.toBuffer();
     }
 
     appendFinalExit(program, {finalExit}) {
@@ -86,28 +94,4 @@ export default class Compiler {
         // let assemblerBlock = new AssemblerBlock(new Lexer(code)).tokenize();
         // program.statements.push(assemblerBlock);
     }
-
-    // buildAst(program) {
-
-    // }
 }
-// let assemblerBlocks = [];
-// Lexer.collect(program, (token) => {
-//     if (token === program) {
-//         return;
-//     }
-//     // if (token.name === 'SepOpt') {
-//     //     return;
-//     // }
-//     //     if (token.parent !== program) {
-//     //         throw new Error;
-//     //     }
-//     // console.log(token, grammar.tokenDescriptors);
-//     // if (token.name !== 'AssemblerBlock') {
-//     //     throw new Error;
-//     // }
-//     // return [LexerWalk.Ignore, true];
-// });
-// for (let [assemblerBlock] of assemblerBlocks) {
-//     elf.push(assemblerBlock.toBuffer(x86));
-// }
