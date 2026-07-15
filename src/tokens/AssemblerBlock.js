@@ -7,6 +7,7 @@ export default class AssemblerBlock extends Token {
         // let offset = 0;
         let callbacks = [];
         for (let statement of this.filter('AssemblerStatement')) {
+            
             console.log(statement);
             // if (statement.label !== null) {
             //     let name = statement.label.name;

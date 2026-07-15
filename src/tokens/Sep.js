@@ -35,7 +35,10 @@ export class MultilineCommentBody extends Token {
 
 export class InlineSep extends Token {
     static resolve(lexer, grammar) {
+        console.log(lexer.tail);
         let sep = grammar.tokenize('Sep', lexer, false);
+        console.log({sep});
+        console.log(lexer.tail);
         if (sep === null || !sep.isInline()) {
             return null;
         }

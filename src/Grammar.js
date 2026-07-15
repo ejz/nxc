@@ -205,17 +205,20 @@ export default class Grammar {
                 return (lexer) => {
                     resolvers ??= parts.map(resolveAssert);
                     let assertion = false, children = [];
-                    let result = resolvers.every((resolver) => {
+                    let result = resolvers.every((resolver, i) => {
                         if (resolver === '^') {
                             assertion = true;
                             return true;
                         }
                         let child = resolver(lexer);
                         children.push(child);
+                        console.log(name, i, child !== null);
                         return child !== null;
                     });
+                    console.log({result});
                     if (!result) {
                         if (assertion) {
+                            console.log(resolvers, lexer.tail, name, rule, parts);
                             throw lexer.error();
                         }
                         return null;
@@ -343,7 +346,7 @@ export default class Grammar {
     }
 
     shackle(ast) {
-        let tokens = ast.filter('SequenceToken|RepeatToken|ChoiceToken');
+        let tokens = ast.filter('SequenceToken|RepeatToken|ChoiceToken|OptionalToken');
         tokens.forEach((token) => {
             token.unwrap();
         });

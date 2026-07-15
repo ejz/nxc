@@ -14,6 +14,7 @@ export default class Token {
             smth = {children: smth};
         }
         Object.assign(this, smth);
+        console.log('finalize', this.name, this);
         return this;
     }
 

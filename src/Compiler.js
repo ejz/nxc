@@ -30,35 +30,42 @@ export default class Compiler {
         if (!lexer.isEof()) {
             throw lexer.error();
         }
-        if (normalize === 0) {
+        if (normalize === false) {
             return ast;
         }
-        if (normalize >= 1) {
+        if (normalize === true || normalize === 'removeEmptyStatement') {
             // remove empty statement ';'
             ast.filter('EmptyStatement').forEach((token) => {
                 token.remove();
             });
         }
-        if (normalize >= 2) {
+        if (normalize === true || normalize === 'unwrapRegularBlock') {
             // unwrap regular block
             ast.filter('RegularBlock').forEach((token) => {
-                token.children = token.children.filter(({name: n}) => n !== 'StringToken');
+                token.children = token.children.slice(1, -1);
                 token.unwrap();
             });
         }
-        if (normalize === Infinity) {
+        if (normalize === true || normalize === 'switchAssemblerInlineLabelToStandalone') {
+            // AssemblerInlineLabel -> AssemblerStandaloneLabel
+            ast.filter('AssemblerInlineLabel').forEach((label) => {
+                let code = label.stringify();
+                label.remove();
+            });
+        }
+        if (normalize === true || normalize === 'appendFinalExit') {
             this.appendFinalExit(ast, x86);
         }
         return ast;
     }
 
-    lint(buffer, normalize = 0) {
+    lint(buffer, normalize = false) {
         let lexer = this.getLexer(buffer);
         let program = this.getAst(lexer, normalize);
         return program.stringify();
     }
 
-    compile(buffer, normalize = Infinity) {
+    compile(buffer, normalize = true) {
         let lexer = this.getLexer(buffer);
         let ast = this.getAst(lexer, normalize);
         let elf = new Elf(x86);
@@ -69,8 +76,10 @@ export default class Compiler {
             if (statement.parent !== ast) {
                 throw new InternalError;
             }
-            let [block = null] = statement.children;
-            if (block === null || !block.is('AssemblerBlock'))
+            let [assemblerBlock = null] = statement.children;
+            if (assemblerBlock === null || !assemblerBlock.is('AssemblerBlock')) {
+                throw new InternalError;
+            }
             elf.push(assemblerBlock.toBuffer(x86));
         }
         // assemblerBlock.remove();
