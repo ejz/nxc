@@ -4,9 +4,8 @@ import {fileURLToPath} from 'node:url';
 
 import Token from './tokens/Token.js';
 import AssemblerOperand from './tokens/AssemblerOperand.js';
-import End from './tokens/End.js';
 import AssemblerBlock from './tokens/AssemblerBlock.js';
-import Sep, {InlineSep, SinglelineCommentBody, MultilineCommentBody} from './tokens/Sep.js';
+import Sep from './tokens/Sep.js';
 import InternalError from './errors/InternalError.js';
 
 export const Walk = {
@@ -16,14 +15,9 @@ export const Walk = {
 };
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
-// const nullResolver = () => null;
 const tokenCtors = {
     AssemblerOperand,
-    End,
     Sep,
-    InlineSep,
-    SinglelineCommentBody,
-    MultilineCommentBody,
     AssemblerBlock,
 };
 const SpecialToken = {
@@ -314,10 +308,10 @@ export default class Grammar {
         return res;
     }
 
-    tokenize(name, lexer, toAst = true) {
+    tokenize(name, lexer, toAst = true, parent = null) {
         let token = this.getTokenResolver(name)(lexer);
         if (toAst && token !== null) {
-            token = this.toAst(token);
+            token = this.toAst(token, parent);
             token = this.shackle(token);
         }
         return token;

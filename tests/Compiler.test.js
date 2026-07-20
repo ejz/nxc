@@ -36,7 +36,7 @@ const caught = (fn) => {
 const binTmp = tmp('tmp-', '.bin');
 const objdump = 'objdump --no-show-raw-insn -b binary -M intel -m i386 -D %s';
 
-test('Compiler / 1', (t) => {
+test('Compiler / 1', async (t) => {
     let compiler = getCompiler();
     t.throws(() => compiler.compile([128]));
     t.throws(() => compiler.compile('/*'));
@@ -53,12 +53,12 @@ test('Compiler / 2', (t) => {
         t.equal(code, '{}/* */');
     }
     {
-        let code = compiler.lint('{asm{;}{/*1*/asm{;;}/*2*/asm{;;;}/*3*/}}/* */;', 'unwrapRegularBlock');
-        t.equal(code, 'asm{;}/*1*/asm{;;}/*2*/asm{;;;}/*3*//* */;');
+        let code = compiler.lint('asm{;}', 'removeAssemblerEmptyStatement');
+        t.equal(code, 'asm{}');
     }
     {
-        let code = compiler.lint('asm{a=1;l1:;l2: b=2}', 'switchAssemblerInlineLabelToStandalone');
-        t.equal(code, 'asm{;}/*1*/asm{;;}/*2*/asm{;;;}/*3*//* */');
+        let code = compiler.lint('{asm{;}{/*1*/asm{;;}/*2*/asm{;;;}/*3*/}}/* */;', 'unwrapRegularBlock');
+        t.equal(code, 'asm{;}/*1*/asm{;;}/*2*/asm{;;;}/*3*//* */;');
     }
     t.end();
 });
@@ -67,7 +67,7 @@ test('Compiler / 3', (t) => {
     let compiler = getCompiler();
     let cases = [
         // [';', 'nop'],
-        // ['int 0x80', 'int 0x80'],
+        ['int 0x80', 'int 0x80'],
         // ['int 16', 'int 0x10'],
         // ['int -4', 'int 0xfc'],
         // ['int 3', 'int3'],

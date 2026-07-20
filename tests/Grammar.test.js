@@ -211,12 +211,30 @@ test('Grammar / 4', (t) => {
         ['AssemblerArgument', '[1 + 4 *  eax]'],
         ['AssemblerArgument', '[1 + eax * 4]'],
         ['AssemblerArgument', '[eax + ebx * 4 + 0x1000]'],
+        ['AssemblerBlock', 'asm{ins1;ins2}'],
+        ['AssemblerBlock', 'asm{ins1\nins2}'],
     ];
     for (let [tt, input, tail = ''] of cases) {
         let lexer = new Lexer(input);
         let token = grammar.tokenize(tt, lexer);
         t.equals(token.stringify(), input.slice(0, tail.length === 0 ? undefined : -tail.length));
         t.equals(lexer.tail, tail);
+    }
+    t.end();
+});
+
+test('Grammar / 5', (t) => {
+    {
+        let grammar = new Grammar();
+        let lexer = new Lexer('ins1\nins2');
+        let token = grammar.tokenize('AssemblerStatement', lexer);
+        t.equals(token.stringify(), 'ins1');
+    }
+    {
+        let grammar = new Grammar();
+        let lexer = new Lexer('ins1 arg1');
+        let token = grammar.tokenize('AssemblerStatement', lexer);
+        t.equals(token.stringify(), 'ins1 arg1');
     }
     t.end();
 });

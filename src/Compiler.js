@@ -34,23 +34,19 @@ export default class Compiler {
             return ast;
         }
         if (normalize === true || normalize === 'removeEmptyStatement') {
-            // remove empty statement ';'
             ast.filter('EmptyStatement').forEach((token) => {
                 token.remove();
             });
         }
+        if (normalize === true || normalize === 'removeAssemblerEmptyStatement') {
+            ast.filter('AssemblerEmptyStatement').forEach((token) => {
+                token.remove();
+            });
+        }
         if (normalize === true || normalize === 'unwrapRegularBlock') {
-            // unwrap regular block
             ast.filter('RegularBlock').forEach((token) => {
                 token.children = token.children.slice(1, -1);
                 token.unwrap();
-            });
-        }
-        if (normalize === true || normalize === 'switchAssemblerInlineLabelToStandalone') {
-            // AssemblerInlineLabel -> AssemblerStandaloneLabel
-            ast.filter('AssemblerInlineLabel').forEach((label) => {
-                let code = label.stringify();
-                label.remove();
             });
         }
         if (normalize === true || normalize === 'appendFinalExit') {
@@ -70,8 +66,7 @@ export default class Compiler {
         let ast = this.getAst(lexer, normalize);
         let elf = new Elf(x86);
         let statements = ast.filter('Statement');
-        // console.log(assemblerBlocks);
-        // console.log(assemblerBlocks[0].children[0]);
+        // console.log(statements);
         for (let statement of statements) {
             if (statement.parent !== ast) {
                 throw new InternalError;
@@ -80,8 +75,10 @@ export default class Compiler {
             if (assemblerBlock === null || !assemblerBlock.is('AssemblerBlock')) {
                 throw new InternalError;
             }
+            // console.log(assemblerBlock.stringify());
             elf.push(assemblerBlock.toBuffer(x86));
         }
+        // console.log(assemblerBlocks[0].children[0]);
         // assemblerBlock.remove();
         // let check = ast.filter('*<parent=Program>');
         // console.log(check);
@@ -105,9 +102,11 @@ export default class Compiler {
         return elf.toBuffer();
     }
 
-    appendFinalExit(program, {finalExit}) {
-        // let code = `asm{${finalExit}}`;
-        // let assemblerBlock = new AssemblerBlock(new Lexer(code)).tokenize();
-        // program.statements.push(assemblerBlock);
+    appendFinalExit(ast, {finalExit}) {
+        let code = `asm{${finalExit}}`;
+        let grammar = new Grammar();
+        let lexer = new Lexer(code);
+        let statement = grammar.tokenize('Statement', lexer, true, ast);
+        ast.children.push(statement);
     }
 }

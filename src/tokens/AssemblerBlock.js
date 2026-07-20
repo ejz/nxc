@@ -7,8 +7,10 @@ export default class AssemblerBlock extends Token {
         // let offset = 0;
         let callbacks = [];
         for (let statement of this.filter('AssemblerStatement')) {
-            
-            console.log(statement);
+            let [token = null] = statement.children;
+            console.log({token});
+            let buffers = token.toBuffer(arch);
+            // if ()
             // if (statement.label !== null) {
             //     let name = statement.label.name;
             //     if (labels[name] !== undefined) {
@@ -16,9 +18,8 @@ export default class AssemblerBlock extends Token {
             //     }
             //     labels[name] = offset;
             // }
-            // let buffers;
             // try {
-            //     buffers = statement.toBuffer(arch);
+            //     buffers = ;
             // } catch (e) {
             //     if (e instanceof LexerError) {
             //         throw e;

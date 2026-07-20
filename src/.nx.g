@@ -10,12 +10,9 @@ Newline -> '\r\n' | '\r' | '\n'
 Comment -> SinglelineComment | MultilineComment
 SinglelineComment -> '//' ^ * (Newline | Eof)
 MultilineComment -> '/*' ^ * '*/'
-Eof -> /^$/
 DecNum -> '0' | /^[1-9][0-9]*/
 Comma -> Sep* ',' Sep*
-End -> (Sep* (Eof | '}')) | (Sep<isInline>* Sep<!isInline>+)
-Term -> Sep<isInline>* ';'
-TermEnd -> Term | ?End
+Eof -> /^$/
 HexNum -> /^0[xX][0-9a-fA-F]+/
 Num -> HexNum | DecNum
 Int -> Sign? Num
