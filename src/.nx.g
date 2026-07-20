@@ -4,9 +4,9 @@ Program -> Sep* (Statement Sep*)*
 
 # Mix
 
-Sep -> Space | Newline* | Comment
+Sep -> Space | Newline+ | Comment
 Space -> /^[ \t]+/
-Newline -> /^[\r\n]/
+Newline -> '\r\n' | '\r' | '\n'
 Comment -> SinglelineComment | MultilineComment
 SinglelineComment -> '//' ^ * (Newline | Eof)
 MultilineComment -> '/*' ^ * '*/'
@@ -16,6 +16,10 @@ Comma -> Sep* ',' Sep*
 End -> (Sep* (Eof | '}')) | (Sep<isInline>* Sep<!isInline>+)
 Term -> Sep<isInline>* ';'
 TermEnd -> Term | ?End
+HexNum -> /^0[xX][0-9a-fA-F]+/
+Num -> HexNum | DecNum
+Int -> Sign? Num
+Sign -> '+' | '-'
 
 # Statement
 
@@ -43,46 +47,28 @@ AssemblerInstructionName -> AssemblerInstructionNamePart ('.' AssemblerInstructi
 AssemblerArguments -> AssemblerArgument (Comma AssemblerArgument)*
 AssemblerArgument ->
     AssemblerReference
+    | AssemblerAddress
     | AssemblerRegister
+    | AssemblerInteger
+    | AssemblerSib
 AssemblerReference -> '$' DecNum
 AssemblerRegister -> /^[a-z][a-z0-9]*/
-
-#    | AssemblerAddress
-#    | AssemblerInteger
-#    | AssemblerScaleIndexBase
-#    | AssemblerLabelName
-# AssemblerInstructionArguments -> InlineSep+ AssemblerArguments
-# | AssemblerOperation
-# AssemblerOperation ->
-#     AssemblerArgument
-#     Sep* AssemblerOperand Sep*
-#     ^
-#     AssemblerArguments
-# AssemblerOperand -> !
-# AssemblerStandaloneLabel -> AssemblerLabel
-# AssemblerInlineLabel -> AssemblerLabel InlineSep+
+AssemblerAddress -> AssemblerAddressSegment? ':' AssemblerAddressOffset
+AssemblerAddressSegment -> AssemblerRegister | Num
+AssemblerAddressOffset -> Int
+AssemblerInteger -> Int
+AssemblerSib -> '['
+    Sep*
+    AssemblerSibOperand
+    (
+        Sep*
+        AssemblerSibOperation
+        Sep*
+        AssemblerSibOperand
+    )*
+    Sep*
+']'
+AssemblerSibOperation -> '+' | '-' | '*'
+AssemblerSibOperand -> AssemblerRegister | Num
 # AssemblerLabel -> AssemblerLabelName ':'
 # AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
-# AssemblerAddress -> AssemblerAddressSegment? ':' AssemblerAddressOffset
-# AssemblerAddressSegment -> AssemblerRegister | Num
-# AssemblerAddressOffset -> Num
-# AssemblerInteger -> Int
-# AssemblerScaleIndexBase -> '['
-#     Sep*
-#     AssemblerScaleIndexBaseOperand
-#     (
-#         Sep*
-#         AssemblerScaleIndexBaseOperation
-#         Sep*
-#         AssemblerScaleIndexBaseOperand
-#     )*
-#     Sep*
-# ']'
-# AssemblerScaleIndexBaseOperation -> '+' | '-' | '*'
-# AssemblerScaleIndexBaseOperand -> AssemblerRegister | Num
-# Generic
-# InlineSep -> !
-# HexNum -> /^0x[0-9a-fA-F]+/
-# Num -> HexNum | DecNum
-# Int -> Sign? Num
-# Sign -> '+' | '-'

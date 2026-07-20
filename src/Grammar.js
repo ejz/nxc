@@ -36,6 +36,7 @@ const SpecialToken = {
     ReferenceToken: 'ReferenceToken',
     ConditionalToken: 'ConditionalToken',
     GreedyToken: 'GreedyToken',
+    LookupToken: 'LookupToken',
 };
 const isPrimary = (token) => token.is('StringToken', 'KeywordToken', 'Sep');
 const isEmpty = (token) => token.children.length === 0;
@@ -81,7 +82,6 @@ export default class Grammar {
         let res = ctor.resolve ?? resolver;
         return (lexer) => {
             let obj;
-            console.log({lexer, name});
             lexer.try(() => {
                 obj = res(lexer, this);
                 return obj !== null;
@@ -89,7 +89,6 @@ export default class Grammar {
             if (obj === null) {
                 return null;
             }
-            console.log({name});
             return new ctor(name).finalize(obj);
         };
     }
@@ -146,6 +145,29 @@ export default class Grammar {
             }
         }
         {
+            let conditional = (part, attr) => {
+                let negate = attr.startsWith('!');
+                attr = negate ? attr.slice(1) : attr;
+                let resolver;
+                return (lexer) => {
+                    resolver ??= resolve(part);
+                    let child = resolver(lexer);
+                    if (child === null) {
+                        return null;
+                    }
+                    let value = child[attr];
+                    let isOkay = (!negate && value) || (negate && !value);
+                    return isOkay ? [child] : null;
+                };
+            };
+            rule = rule.replace(/(\w+)<(.*?)>/g, (m, p1, p2) => {
+                let name = SpecialToken.ConditionalToken;
+                let resolver = conditional(p1, p2);
+                resolver = this.wrapResolver(name, resolver);
+                return resolvers.push(resolver);
+            });
+        }
+        {
             let optional = (part) => {
                 let resolver;
                 return (lexer) => {
@@ -180,24 +202,17 @@ export default class Grammar {
             });
         }
         {
-            let conditional = (part, attr) => {
-                let negate = attr.startsWith('!');
-                attr = negate ? attr.slice(1) : attr;
+            let lookup = (part) => {
                 let resolver;
                 return (lexer) => {
                     resolver ??= resolve(part);
-                    let child = resolver(lexer);
-                    if (child === null) {
-                        return null;
-                    }
-                    let value = child[attr];
-                    let isOkay = (!negate && value) || (negate && !value);
-                    return isOkay ? [child] : null;
+                    let res = lexer.look(() => resolver(lexer));
+                    return res !== null ? [] : null;
                 };
             };
-            rule = rule.replace(/(\w+)<(.*?)>/g, (m, p1, p2) => {
-                let name = SpecialToken.ConditionalToken;
-                let resolver = conditional(p1, p2);
+            rule = rule.replace(/\?(\w+)/g, (m, p1) => {
+                let name = SpecialToken.LookupToken;
+                let resolver = lookup(p1);
                 resolver = this.wrapResolver(name, resolver);
                 return resolvers.push(resolver);
             });
@@ -283,7 +298,6 @@ export default class Grammar {
         if (innerCall) {
             return rule;
         }
-        console.log({rule});
         let resolver;
         return this.wrapResolver(name, (lexer) => {
             resolver ??= resolve(rule);
@@ -301,7 +315,6 @@ export default class Grammar {
     }
 
     tokenize(name, lexer, toAst = true) {
-        console.log(this, this.getTokenResolver, name, this.getTokenResolver(name));
         let token = this.getTokenResolver(name)(lexer);
         if (toAst && token !== null) {
             token = this.toAst(token);
@@ -395,7 +408,7 @@ export default class Grammar {
     }
 
     shackle(ast) {
-        let tokens = ast.filter('SequenceToken|RepeatToken|ChoiceToken|OptionalToken');
+        let tokens = ast.filter('SequenceToken|RepeatToken|ChoiceToken|OptionalToken|LookupToken|ConditionalToken');
         tokens.forEach((token) => {
             token.unwrap();
         });
