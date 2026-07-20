@@ -10,7 +10,7 @@ export default class Lexer {
         return this.content.slice(this.position);
     }
 
-    proceed(shift) {
+    proceed(shift = 1) {
         this.position += shift;
     }
 
@@ -25,6 +25,15 @@ export default class Lexer {
         }
         this.proceed(str.length);
         return str;
+    }
+
+    eatChar() {
+        if (this.isEof()) {
+            return null;
+        }
+        let char = this.tail.slice(0, 1);
+        this.proceed();
+        return char;
     }
 
     eatAll() {

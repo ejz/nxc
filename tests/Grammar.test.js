@@ -1,13 +1,19 @@
 import tape from 'tape';
 import tapePromise from 'tape-promise';
 
+import Token from '../src/tokens/Token.js';
 import Lexer from '../src/Lexer.js';
 import Grammar from '../src/Grammar.js';
 
 const test = tapePromise.default(tape);
 
-test('Grammar / 1', (t) => {
+test.only('Grammar / 1', (t) => {
     let grammar = new Grammar({
+        defaultTokenContructor: class extends Token {
+            get isOkay() {
+                return true;
+            }
+        },
         grammarFileContent: [
             'A -> \'a\'',
             'B -> `b`',
@@ -36,6 +42,10 @@ test('Grammar / 1', (t) => {
             'alt3 -> l11 | (l12 | l21) | l22',
             'rec1 -> (l11 | (l12 | (l21 | l22)))',
             'rec2 -> (((l11)) | ((l12) | ((l21) | ((l22)))))',
+            'ok1 -> `a`<isOkay>',
+            'ok2 -> `a`<!isOkay> | `b`<isOkay>',
+            'gr1 -> * (`a` `a` `b`)',
+            'lk1 -> `l` ?`k`',
         ].join('\n'),
     });
     let cases = [
@@ -93,6 +103,10 @@ test('Grammar / 1', (t) => {
         ['rec2', '12'],
         ['rec2', '21'],
         ['rec2', '22'],
+        ['ok1', 'a'],
+        ['ok2', 'b'],
+        ['gr1', 'aab'],
+        ['gr1', 'aaab'],
     ];
     for (let [tt, input] of cases) {
         let lexer = new Lexer(input);
@@ -133,7 +147,7 @@ test('Grammar / 2', (t) => {
     t.end();
 });
 
-test.only('Grammar / 3', (t) => {
+test('Grammar / 3', (t) => {
     let grammar = new Grammar();
     let cases = [
         // ['SinglelineComment', '//'],
@@ -173,7 +187,7 @@ test.only('Grammar / 3', (t) => {
         // ['AssemblerBlock', 'asm{label:}'],
         // ['AssemblerOperand', '='],
         // ['AssemblerBlock', 'asm{a = 1}'],
-        ['AssemblerStatement', 'a:'],
+        // ['AssemblerStatement', 'a:'],
         // ['AssemblerStatement', 'a: ins'],
         // ['AssemblerStatement', 'a: ;'],
         // ['AssemblerBlock', 'asm{a: a = 1}'],

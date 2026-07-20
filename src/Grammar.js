@@ -16,7 +16,7 @@ export const Walk = {
 };
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
-const nullResolver = () => null;
+// const nullResolver = () => null;
 const tokenCtors = {
     AssemblerOperand,
     End,
@@ -34,6 +34,8 @@ const SpecialToken = {
     ChoiceToken: 'ChoiceToken',
     SequenceToken: 'SequenceToken',
     ReferenceToken: 'ReferenceToken',
+    ConditionalToken: 'ConditionalToken',
+    GreedyToken: 'GreedyToken',
 };
 const isPrimary = (token) => token.is('StringToken', 'KeywordToken', 'Sep');
 const isEmpty = (token) => token.children.length === 0;
@@ -74,11 +76,12 @@ export default class Grammar {
         this.tokenResolvers[name] = resolver;
     }
 
-    wrapResolver(name, resolver = nullResolver) {
+    wrapResolver(name, resolver/* = nullResolver*/) {
         let ctor = this.tokenConstructors[name] ?? this.defaultTokenContructor;
         let res = ctor.resolve ?? resolver;
         return (lexer) => {
             let obj;
+            console.log({lexer, name});
             lexer.try(() => {
                 obj = res(lexer, this);
                 return obj !== null;
@@ -86,21 +89,25 @@ export default class Grammar {
             if (obj === null) {
                 return null;
             }
+            console.log({name});
             return new ctor(name).finalize(obj);
         };
     }
 
     getResolverFromRule(name, rule, resolvers) {
         let innerCall = resolvers !== undefined;
-        resolvers = innerCall ? resolvers : [];
         let resolve = (part) => resolvers[part] ?? this.getTokenResolver(part);
-        let resolveAssert = (part) => part === '^' ? part : resolve(part);
+        let resolveSpecial = (part) => ['^', '*'].includes(part) ? part : resolve(part);
         let ret = (rule) => innerCall ? rule : resolve(rule);
         if (!innerCall) {
+            resolvers = [];
+            let originalPush = resolvers.push.bind(resolvers);
+            resolvers.push = (element) => {
+                let key = resolvers.length;
+                originalPush(element);
+                return key;
+            };
             rule = rule.trim();
-            if (rule === '!') {
-                return this.wrapResolver(name);
-            }
             rule = rule.replace(/\s+/g, ' ');
             rule = rule.replace(/`.*?`|'.*?'|\/.*?\/\w*/g, (m) => {
                 let [char] = m;
@@ -126,9 +133,7 @@ export default class Grammar {
                     }
                 }
                 resolver = this.wrapResolver(name, resolver);
-                let key = resolvers.length;
-                resolvers.push(resolver);
-                return key;
+                return resolvers.push(resolver);
             });
             let changed = true;
             while (changed) {
@@ -171,9 +176,30 @@ export default class Grammar {
                 let name = opti ? SpecialToken.OptionalToken : SpecialToken.RepeatToken;
                 let resolver = opti ? optional(p1) : repeat(p1, plus);
                 resolver = this.wrapResolver(name, resolver);
-                let key = resolvers.length;
-                resolvers.push(resolver);
-                return key;
+                return resolvers.push(resolver);
+            });
+        }
+        {
+            let conditional = (part, attr) => {
+                let negate = attr.startsWith('!');
+                attr = negate ? attr.slice(1) : attr;
+                let resolver;
+                return (lexer) => {
+                    resolver ??= resolve(part);
+                    let child = resolver(lexer);
+                    if (child === null) {
+                        return null;
+                    }
+                    let value = child[attr];
+                    let isOkay = (!negate && value) || (negate && !value);
+                    return isOkay ? [child] : null;
+                };
+            };
+            rule = rule.replace(/(\w+)<(.*?)>/g, (m, p1, p2) => {
+                let name = SpecialToken.ConditionalToken;
+                let resolver = conditional(p1, p2);
+                resolver = this.wrapResolver(name, resolver);
+                return resolvers.push(resolver);
             });
         }
         if (rule.includes('|')) {
@@ -195,30 +221,53 @@ export default class Grammar {
             let name = SpecialToken.ChoiceToken;
             let resolver = choice(parts);
             resolver = this.wrapResolver(name, resolver);
-            let key = resolvers.length;
-            resolvers.push(resolver);
-            rule = key;
+            rule = resolvers.push(resolver);
         } else if (rule.includes(' ')) {
             let parts = rule.split(' ');
             let sequence = (parts) => {
                 let resolvers;
                 return (lexer) => {
-                    resolvers ??= parts.map(resolveAssert);
+                    resolvers ??= parts.map(resolveSpecial);
                     let assertion = false, children = [];
+                    let greedy = null;
                     let result = resolvers.every((resolver, i) => {
+                        if (resolver === '*') {
+                            let name = SpecialToken.GreedyToken;
+                            let token = this.wrapResolver(name, () => '')(lexer);
+                            children.push(token);
+                            greedy = token;
+                            return true;
+                        }
                         if (resolver === '^') {
                             assertion = true;
                             return true;
                         }
-                        let child = resolver(lexer);
-                        children.push(child);
-                        console.log(name, i, child !== null);
-                        return child !== null;
+                        let lastRet;
+                        let ret = () => {
+                            let child = resolver(lexer);
+                            if (child === null) {
+                                lastRet = false;
+                                return lastRet;
+                            }
+                            children.push(child);
+                            lastRet = true;
+                            return lastRet;
+                        };
+                        if (greedy === null) {
+                            return ret();
+                        }
+                        while (!ret()) {
+                            let char = lexer.eatChar();
+                            if (char === null) {
+                                break;
+                            }
+                            greedy.appendChar(char);
+                        }
+                        greedy = null;
+                        return lastRet;
                     });
-                    console.log({result});
                     if (!result) {
                         if (assertion) {
-                            console.log(resolvers, lexer.tail, name, rule, parts);
                             throw lexer.error();
                         }
                         return null;
@@ -229,13 +278,12 @@ export default class Grammar {
             let name = SpecialToken.SequenceToken;
             let resolver = sequence(parts);
             resolver = this.wrapResolver(name, resolver);
-            let key = resolvers.length;
-            resolvers.push(resolver);
-            rule = key;
+            rule = resolvers.push(resolver);
         }
         if (innerCall) {
             return rule;
         }
+        console.log({rule});
         let resolver;
         return this.wrapResolver(name, (lexer) => {
             resolver ??= resolve(rule);
@@ -253,6 +301,7 @@ export default class Grammar {
     }
 
     tokenize(name, lexer, toAst = true) {
+        console.log(this, this.getTokenResolver, name, this.getTokenResolver(name));
         let token = this.getTokenResolver(name)(lexer);
         if (toAst && token !== null) {
             token = this.toAst(token);

@@ -8,12 +8,12 @@ Sep -> Space | Newline* | Comment
 Space -> /^[ \t]+/
 Newline -> /^[\r\n]/
 Comment -> SinglelineComment | MultilineComment
-SinglelineComment -> '//' ^ .* (Newline | Eof)
-MultilineComment -> '/*' ^ .* '*/'
+SinglelineComment -> '//' ^ * (Newline | Eof)
+MultilineComment -> '/*' ^ * '*/'
 Eof -> /^$/
 DecNum -> '0' | /^[1-9][0-9]*/
 Comma -> Sep* ',' Sep*
-End -> (Sep* (Eof | '}')) | (Sep<isInline>* Sep<!isInline>+ Sep<isInline>*)
+End -> (Sep* (Eof | '}')) | (Sep<isInline>* Sep<!isInline>+)
 Term -> Sep<isInline>* ';'
 TermEnd -> Term | ?End
 

@@ -14,12 +14,15 @@ export default class Token {
             smth = {children: smth};
         }
         Object.assign(this, smth);
-        console.log('finalize', this.name, this);
         return this;
     }
 
     is(...names) {
         return names.includes(this.name);
+    }
+
+    appendChar(char) {
+        this.value += char;
     }
 
     stringify() {
