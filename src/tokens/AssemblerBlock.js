@@ -3,13 +3,13 @@ import Token from './Token.js';
 export default class AssemblerBlock extends Token {
     toBuffer(arch) {
         // let labels = Object.create(null);
-        let chunks = [];
         // let offset = 0;
+        let chunks = [];
         let callbacks = [];
         for (let statement of this.filter('AssemblerStatement')) {
-            let [token = null] = statement.children;
-            console.log({token});
-            let buffers = token.toBuffer(arch);
+            // let [token] = statement.children;
+            let buffers = statement.toBuffer(arch);
+            // console.log({token});
             // if ()
             // if (statement.label !== null) {
             //     let name = statement.label.name;
@@ -29,19 +29,19 @@ export default class AssemblerBlock extends Token {
             //     }
             //     throw statement.error(e);
             // }
-            // buffers.forEach((chunk) => {
-            //     let length = chunk.length;
-            //     if (chunk.callback !== undefined) {
-            //         let chunkOffset = offset;
-            //         callbacks.push(() => chunk.callback({
-            //             offset: chunkOffset,
-            //             length,
-            //             labels,
-            //         }));
-            //     }
-            //     chunks.push(chunk);
-            //     offset += length;
-            // });
+            buffers.forEach((chunk) => {
+                // let length = chunk.length;
+                // if (chunk.callback !== undefined) {
+                //     let chunkOffset = offset;
+                //     callbacks.push(() => chunk.callback({
+                //         offset: chunkOffset,
+                //         length,
+                //         labels,
+                //     }));
+                // }
+                chunks.push(chunk);
+                // offset += length;
+            });
         }
         callbacks.forEach((callback) => {
             callback();

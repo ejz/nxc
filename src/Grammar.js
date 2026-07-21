@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import Token from './tokens/Token.js';
 import AssemblerOperand from './tokens/AssemblerOperand.js';
 import AssemblerBlock from './tokens/AssemblerBlock.js';
+import AssemblerStatement from './tokens/AssemblerStatement.js';
 import Sep from './tokens/Sep.js';
 import InternalError from './errors/InternalError.js';
 
@@ -19,6 +20,7 @@ const tokenCtors = {
     AssemblerOperand,
     Sep,
     AssemblerBlock,
+    AssemblerStatement,
 };
 const SpecialToken = {
     KeywordToken: 'KeywordToken',

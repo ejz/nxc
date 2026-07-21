@@ -25,6 +25,14 @@ export default class Token {
         this.value += char;
     }
 
+    getChild() {
+        let [child = null] = this.children;
+        if (child === null) {
+            throw new InternalError;
+        }
+        return child;
+    }
+
     stringify() {
         if (this.value !== undefined) {
             return this.value;

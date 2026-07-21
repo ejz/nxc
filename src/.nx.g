@@ -15,7 +15,7 @@ Comma -> Sep* ',' Sep*
 Eof -> /^$/
 HexNum -> /^0[xX][0-9a-fA-F]+/
 Num -> HexNum | DecNum
-Int -> Sign? Num
+Int -> (Sign Sep*)? Num
 Sign -> '+' | '-'
 
 # Statement
