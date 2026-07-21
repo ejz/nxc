@@ -1,5 +1,7 @@
 import Token from './Token.js';
 import InternalError from '../errors/InternalError.js';
+import Lexer from '../Lexer.js';
+import Grammar from '../Grammar.js';
 // import AssemblerArgument from './AssemblerArgument.js';
 // 
 const isArray = Array.isArray;
@@ -19,9 +21,10 @@ export default class AssemblerStatement extends Token {
         if (operandSize === null) {
             let scheme = this.getScheme(arch, instructionName, assemblerArguments);
             if (scheme !== undefined) {
-                // if (scheme.alias !== undefined) {
-                //     return this.toBufferChild(arch, scheme.alias, assemblerArguments);
-                // }
+                console.log({scheme});
+                if (scheme.alias !== undefined) {
+                    return this.toBufferChild(arch, scheme.alias, assemblerArguments);
+                }
                 return arch.toBuffer(scheme, assemblerArguments);
             }
         }
@@ -40,6 +43,7 @@ export default class AssemblerStatement extends Token {
     }
 
     getScheme(arch, searchKey, asmArgs) {
+        console.log(searchKey, asmArgs);
         let schemes = arch.isa[searchKey];
         return toArray(schemes ?? []).find((scheme) => {
             let schemeArgs = scheme.args;
@@ -56,25 +60,31 @@ export default class AssemblerStatement extends Token {
                     return false;
                 }
                 [resolver] = resolver;
+                console.log(asmArgs[i]);
                 return resolver(asmArgs[i]);
             });
         });
     }
 
-    // toBufferChild(arch, ins, myArguments) {
-    //     ins = typeof ins === 'function' ? ins(myArguments) : ins;
-    //     return [].concat(...toArray(ins).map((ins) => {
-    //         let lexer = new Lexer(ins);
-    //         let statement = new AssemblerStatement(lexer).tokenize(myArguments);
-    //         if (statement === null) {
-    //             throw new InternalError;
-    //         }
-    //         if (!lexer.isEndOfFile()) {
-    //             throw new InternalError;
-    //         }
-    //         return statement.toBuffer(arch);
-    //     }));
-    // }
+    toBufferChild(arch, ins, myArguments) {
+        ins = typeof ins === 'function' ? ins(myArguments) : ins;
+        return [].concat(...toArray(ins).map((ins) => {
+            console.log({ins});
+            let grammar = new Grammar();
+            let lexer = new Lexer(ins);
+            let statement = grammar.tokenize('AssemblerStatement', lexer);
+            console.log({lexer, statement});
+            if (statement === null) {
+                throw new InternalError;
+            }
+            if (!lexer.isEof()) {
+                throw new InternalError;
+            }
+            return statement.toBuffer(arch);
+            // let lexer = new Lexer(ins);
+            // let statement = new AssemblerStatement(lexer).tokenize(myArguments);
+        }));
+    }
 
     // let {instruction, opsize} = i;
         // let {

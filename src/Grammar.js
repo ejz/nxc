@@ -3,7 +3,6 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import Token from './tokens/Token.js';
-import AssemblerOperand from './tokens/AssemblerOperand.js';
 import AssemblerBlock from './tokens/AssemblerBlock.js';
 import AssemblerStatement from './tokens/AssemblerStatement.js';
 import Sep from './tokens/Sep.js';
@@ -17,7 +16,6 @@ export const Walk = {
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const tokenCtors = {
-    AssemblerOperand,
     Sep,
     AssemblerBlock,
     AssemblerStatement,

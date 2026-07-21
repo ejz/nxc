@@ -33,6 +33,7 @@ AssemblerBlock -> `asm` Sep* '{' ^ Sep* (AssemblerStatement Sep*)* '}'
 AssemblerStatement ->
     AssemblerEmptyStatement
     | AssemblerInstruction
+    | AssemblerOperation
 AssemblerEmptyStatement -> ';'
 AssemblerInstruction ->
     AssemblerInstructionName
@@ -67,6 +68,12 @@ AssemblerSib -> '['
 ']'
 AssemblerSibOperation -> '+' | '-' | '*'
 AssemblerSibOperand -> AssemblerRegister | Num
+AssemblerOperation ->
+    AssemblerArgument
+    Sep* AssemblerOperationOperand Sep*
+    ^
+    AssemblerArguments
+AssemblerOperationOperand -> '=' | '++' | '--' | '!='
 
 # AssemblerLabel -> AssemblerLabelName ':'
 # AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/

@@ -66,7 +66,6 @@ export default class Compiler {
         let ast = this.getAst(lexer, normalize);
         let elf = new Elf(x86);
         let statements = ast.filter('Statement');
-        // console.log(statements);
         for (let statement of statements) {
             if (statement.parent !== ast) {
                 throw new InternalError;
@@ -75,9 +74,9 @@ export default class Compiler {
             if (assemblerBlock === null || !assemblerBlock.is('AssemblerBlock')) {
                 throw new InternalError;
             }
-            // console.log(assemblerBlock.stringify());
             elf.push(assemblerBlock.toBuffer(x86));
         }
+        // console.log(assemblerBlock.stringify());
         // console.log(assemblerBlocks[0].children[0]);
         // assemblerBlock.remove();
         // let check = ast.filter('*<parent=Program>');

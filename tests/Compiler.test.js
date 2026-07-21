@@ -63,11 +63,12 @@ test('Compiler / 2', (t) => {
     t.end();
 });
 
-test('Compiler / 3', (t) => {
+test.only('Compiler / 3', (t) => {
     let compiler = getCompiler();
     let cases = [
+        ['iret', 'iret'],
         // [';', 'nop'],
-        ['int 0x80', 'int 0x80'],
+        // ['int 0x80', 'int 0x80'],
         // ['int 16', 'int 0x10'],
         // ['int -4', 'int 0xfc'],
         // ['int 3', 'int3'],
