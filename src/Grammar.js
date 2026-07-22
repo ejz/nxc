@@ -318,7 +318,7 @@ export default class Grammar {
     }
 
     toAst(token, parent = null) {
-        Object.assign(token, {parent, walk, filter, remove, unwrap});
+        Object.assign(token, {parent, walk, filter, remove, unwrap, replace});
         let list = token.children ?? [];
         list.forEach((child) => {
             this.toAst(child, token);
@@ -397,6 +397,18 @@ export default class Grammar {
                 return false;
             }
             list.splice(idx, 1, ...children);
+            return true;
+        }
+        //
+        function replace(token) {
+            let parent = this.parent;
+            token.parent = parent;
+            let list = parent.children;
+            let idx = list.indexOf(this);
+            if (idx === -1) {
+                return false;
+            }
+            list.splice(idx, 1, token);
             return true;
         }
     }

@@ -46,6 +46,7 @@ export default class AssemblerBlock extends Token {
         callbacks.forEach((callback) => {
             callback();
         });
+        console.log({chunks});
         return Buffer.concat(chunks);
     }
 }

@@ -67,22 +67,21 @@ test.only('Compiler / 3', (t) => {
     let compiler = getCompiler();
     let cases = [
         ['iret', 'iret'],
-        // [';', 'nop'],
-        // ['int 0x80', 'int 0x80'],
-        // ['int 16', 'int 0x10'],
-        // ['int -4', 'int 0xfc'],
-        // ['int 3', 'int3'],
-        // ['iret', 'iret'],
-        // ['push.8 1', 'push 0x1'],
-        // ['push.16 1', 'pushw 0x1'],
-        // ['push.32 1', 'push 0x1'],
-        // ['push.32 eax', 'push eax'],
-        // ['push.16 es', 'push es'],
-        // ['dec.8 al', 'dec al'],
-        // ['dec al', 'dec al'],
-        // ['mov.8 al, al', 'mov al, al'],
-        // ['mov al, al', 'mov al, al'],
-        // ['mov.8 [eax], al', 'mov byte ptr [eax], al'],
+        ['int 0x80', 'int 0x80'],
+        ['int +0x80', 'int 0x80'],
+        ['int 16', 'int 0x10'],
+        ['int -4', 'int 0xfc'],
+        ['int 3', 'int3'],
+        ['push.8 1', 'push 0x1'],
+        ['push.16 1', 'pushw 0x1'],
+        ['push.32 1', 'push 0x1'],
+        ['push.32 eax', 'push eax'],
+        ['push.16 es', 'push es'],
+        ['dec.8 al', 'dec al'],
+        ['dec al', 'dec al'],
+        ['mov.8 al, al', 'mov al, al'],
+        ['mov al, al', 'mov al, al'],
+        ['mov.8 [eax], al', 'mov byte ptr [eax], al'],
         // ['mov.8 [eax + ebx], al', 'mov byte ptr [eax + ebx * 1], al'],
         // ['mov.16 [eax + ebx], ax', 'mov word ptr [eax + ebx * 1], ax'],
         // ['mov.16 [eax + ebx], bx', 'mov word ptr [eax + ebx * 1], bx'],
@@ -130,6 +129,7 @@ test.only('Compiler / 3', (t) => {
         let stdout = getAsm(buffer.slice(0x60));
         stdout = stdout.replace(/(,)/g, '$1 ');
         stdout = stdout.replace(/([+*-])/g, ' $1 ');
+        console.log({stdout});
         t.equal(stdout, out, inp);
     }
     t.end();

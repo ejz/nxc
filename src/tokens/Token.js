@@ -26,7 +26,7 @@ export default class Token {
     }
 
     getChild() {
-        let [child = null] = this.children;
+        let [child = null] = this.children ?? [];
         if (child === null) {
             throw new InternalError;
         }

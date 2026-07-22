@@ -697,6 +697,7 @@ export const resolver = {
 };
 
 export function toBuffer({opcode, args}, asmArgs) {
+    console.log({opcode, args, asmArgs});
     let opcodes = opcode.split(' ');
     let [o, t] = opcodes.at(-1);
     let hasMod = o === '/';
@@ -750,6 +751,7 @@ export default {
 
 export function relClosure(iN) {
     let resolver = ({register = null, label = null}) => {
+        return false;
         return register !== null || label !== null;
     };
     let composer = ({register = null, label = null}) => {
@@ -774,6 +776,7 @@ export function relClosure(iN) {
 
 export function moffsClosure(posSeg) {
     let resolver = (asmArg) => {
+        return false;
         let {address = null} = asmArg;
         if (address === null) {
             return false;
@@ -799,19 +802,20 @@ export function moffsClosure(posSeg) {
 
 export function immClosure(uN = null, iN = null) {
     let resolver = (asmArg) => {
-        let {integer = null} = asmArg;
-        if (integer === null) {
+        let root = asmArg;
+        asmArg = asmArg.getChild();
+        if (!asmArg.is('AssemblerInteger')) {
             return false;
         }
-        let int = parseInt(integer);
+        let int = parseInt(asmArg.stringify());
         if (uN !== null && uN.is(int)) {
-            asmArg.int = int;
-            asmArg.imm = uN;
+            root.int = int;
+            root.imm = uN;
             return true;
         }
         if (iN !== null && iN.is(int)) {
-            asmArg.int = int;
-            asmArg.imm = iN;
+            root.int = int;
+            root.imm = iN;
             return true;
         }
         return false;
@@ -825,41 +829,50 @@ export function immClosure(uN = null, iN = null) {
 }
 
 export function rawClosure(int) {
-    let resolver = ({integer = null}) => {
-        if (integer === null) {
+    let resolver = (asmArg) => {
+        asmArg = asmArg.getChild();
+        if (!asmArg.is('AssemblerInteger')) {
             return false;
         }
-        let value = parseInt(integer);
-        return value === int;
+        let val = parseInt(asmArg.stringify());
+        return val === int;
     };
     return [resolver];
 }
 
 export function regClosure(reg) {
-    let resolver = ({register = null}) => {
-        if (register === null) {
+    let resolver = (asmArg) => {
+        asmArg = asmArg.getChild();
+        if (!asmArg.is('AssemblerRegister')) {
             return false;
         }
+        let register = asmArg.stringify();
         return register === reg;
     };
     return [reg, [resolver]];
 }
 
 export function rmClosure(reg, acceptSib = false) {
-    let resolver = ({register = null, sib = null}) => {
-        if (register !== null) {
+    let resolver = (asmArg) => {
+        asmArg = asmArg.getChild();
+        let isRegister = asmArg.is('AssemblerRegister');
+        if (isRegister) {
+            let register = asmArg.stringify();
             return reg.includes(register);
         }
-        if (sib !== null && acceptSib) {
-            if (!isSibOkay(sib)) {
-                throw new ScaleIndexBaseValidationError;
-            }
-            return true;
+        if (!asmArg.is('AssemblerSib') || !acceptSib) {
+            return false;
         }
-        return false;
+        if (!isSibOkay(asmArg)) {
+            throw new SibValidationError;
+        }
+        return true;
     };
-    let composer = ({register = null, sib = null}, opBuf) => {
-        if (register !== null) {
+    let composer = (asmArg, opBuf) => {
+        asmArg = asmArg.getChild();
+        let isRegister = asmArg.is('AssemblerRegister');
+        if (isRegister) {
+            let register = asmArg.stringify();
             if (acceptSib) {
                 opBuf.setMod('reg');
                 opBuf.setRm(register);
@@ -875,7 +888,7 @@ export function rmClosure(reg, acceptSib = false) {
         // 4) swap [ebp + esp] -> [esp + ebp]
         // 5) [eax * 1] -> [eax]
         let [def] = arch.scales;
-        let {scale, base, index, disp} = sib;
+        let {scale, base, index, disp} = asmArg.sib;
         if (scale === null && index === 'esp' && base !== 'esp') {
             [index, base] = [base, index];
         }
@@ -903,27 +916,40 @@ export function rmClosure(reg, acceptSib = false) {
     return [resolver, composer];
 }
 
-export function isSibOkay(sib) {
-    let {scale, base, index, disp, minus} = sib;
-    if (scale !== null && !arch.scales.includes(scale)) {
-        return false;
-    }
-    if (base !== null && !register.r32.includes(base)) {
-        return false;
-    }
-    if (index !== null && !register.r32.includes(index)) {
-        return false;
-    }
-    if (disp !== null) {
-        let int = parseInt(disp);
-        int = minus ? -int : int;
-        if (!types.i32.is(int)) {
-            return false;
+export function isSibOkay(asmArg) {
+    // console.log(asmArg.stringify());
+    asmArg.sib = {scale: null, index: null, base: null, disp: null};
+    let operations = asmArg.filter('AssemblerSibOperation');
+    asmArg.filter('AssemblerSibOperand').forEach((elem, i) => {
+        let child = elem.getChild();
+        let op = 
+        let isRegister = child.is('AssemblerRegister');
+        if (!isRegister) {
+
+            part.integer
         }
-        sib.disp = int;
-        return true;
-    }
-    return base !== null || index !== null;
+        console.log(elem.stringify());
+    });
+    // let {scale, base, index, disp, minus} = sib;
+    // if (scale !== null && !arch.scales.includes(scale)) {
+    //     return false;
+    // }
+    // if (base !== null && !register.r32.includes(base)) {
+    //     return false;
+    // }
+    // if (index !== null && !register.r32.includes(index)) {
+    //     return false;
+    // }
+    // if (disp !== null) {
+    //     let int = parseInt(disp);
+    //     int = minus ? -int : int;
+    //     if (!types.i32.is(int)) {
+    //         return false;
+    //     }
+    //     sib.disp = int;
+    //     return true;
+    // }
+    // return base !== null || index !== null;
 }
 
 const reverseKeyValue = ([key, value]) => [value, key];
