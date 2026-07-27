@@ -807,7 +807,7 @@ export function immClosure(uN = null, iN = null) {
         if (!asmArg.is('AssemblerInteger')) {
             return false;
         }
-        let int = parseInt(asmArg.stringify());
+        let int = parseInt(asmArg.toString());
         if (uN !== null && uN.is(int)) {
             root.int = int;
             root.imm = uN;
@@ -834,7 +834,7 @@ export function rawClosure(int) {
         if (!asmArg.is('AssemblerInteger')) {
             return false;
         }
-        let val = parseInt(asmArg.stringify());
+        let val = parseInt(asmArg.toString());
         return val === int;
     };
     return [resolver];
@@ -846,7 +846,7 @@ export function regClosure(reg) {
         if (!asmArg.is('AssemblerRegister')) {
             return false;
         }
-        let register = asmArg.stringify();
+        let register = asmArg.toString();
         return register === reg;
     };
     return [reg, [resolver]];
@@ -857,7 +857,7 @@ export function rmClosure(reg, acceptSib = false) {
         asmArg = asmArg.getChild();
         let isRegister = asmArg.is('AssemblerRegister');
         if (isRegister) {
-            let register = asmArg.stringify();
+            let register = asmArg.toString();
             return reg.includes(register);
         }
         if (!asmArg.is('AssemblerSib') || !acceptSib) {
@@ -872,7 +872,7 @@ export function rmClosure(reg, acceptSib = false) {
         asmArg = asmArg.getChild();
         let isRegister = asmArg.is('AssemblerRegister');
         if (isRegister) {
-            let register = asmArg.stringify();
+            let register = asmArg.toString();
             if (acceptSib) {
                 opBuf.setMod('reg');
                 opBuf.setRm(register);
@@ -926,9 +926,9 @@ export function isSibOkay(asmArg) {
         let isRegister = child.is('AssemblerRegister');
         if (!isRegister) {
 
-            part.integer
+            // part.integer
         }
-        console.log(elem.stringify());
+        // console.log(elem.toString());
     });
     // let {scale, base, index, disp, minus} = sib;
     // if (scale !== null && !arch.scales.includes(scale)) {

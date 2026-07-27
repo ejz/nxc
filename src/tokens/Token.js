@@ -67,6 +67,20 @@ export default class Token {
     }
 
     filter(filterFn) {
+        if (typeof filterFn === 'string') {
+            let names = filterFn.split('|');
+            filterFn = (token) => names.includes(token.name);
+            // {
+            //     // let idx = names.indexOf(token.name);
+            //     // return idx !== -1 && predicates[idx](token);
+            // };
+            // let predicates = [];
+            // for (let filter of ) {
+                // let idx = filter.indexOf('<');
+                // names.push(idx !== -1 ? filter.slice(0, idx) : filter);
+                // predicates.push(idx !== -1 ? toPredicate(filter.slice(idx + 1, -1)) : (() => true));
+            // }
+        }
         let collector = [];
         this.walk((token) => {
             let res = filterFn(token) ?? [];
@@ -79,19 +93,6 @@ export default class Token {
             return walk;
         });
         return collector;
-        // if (typeof filterFn === 'string') {
-        //     let names = [];
-        //     let predicates = [];
-        //     for (let filter of filterFn.split('|')) {
-        //         // let idx = filter.indexOf('<');
-        //         // names.push(idx !== -1 ? filter.slice(0, idx) : filter);
-        //         // predicates.push(idx !== -1 ? toPredicate(filter.slice(idx + 1, -1)) : (() => true));
-        //     }
-        //     // filterFn = (token) => {
-        //     //     // let idx = names.indexOf(token.name);
-        //     //     // return idx !== -1 && predicates[idx](token);
-        //     // };
-        // }
     }
 
     unwrap() {
@@ -135,16 +136,3 @@ export default class Token {
         return lines;
     }
 }
-// this.start = start;
-// this.lexer = lexer;
-// this.end = this.lexer.position;
-// if (typeof value === 'string') {
-//     this.value = value;
-// } else if (isArray(value)) {
-//     this.children = value;
-// } else {
-//     throw new InternalError;
-// }
-// if (this.validate !== undefined) {
-//     this.validate();
-// }

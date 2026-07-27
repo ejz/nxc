@@ -26,7 +26,9 @@ export default class Compiler {
 
     getAst(lexer, normalize) {
         let grammar = new Grammar();
-        let ast = grammar.tokenize('Program', lexer);
+        let program = grammar.tokenize('Program', lexer);
+        let ast = grammar.toAst(program);
+        ast = grammar.shackle(ast);
         if (!lexer.isEof()) {
             throw lexer.error();
         }
@@ -105,6 +107,8 @@ export default class Compiler {
         let code = `asm{${finalExit}}`;
         let lexer = new Lexer(code);
         let statement = ast.grammar.tokenize('Statement', lexer, ast);
-        ast.children.push(statement);
+        let astStatement = ast.grammar.toAst(statement);
+        astStatement = ast.grammar.shackle(astStatement);
+        ast.children.push(astStatement);
     }
 }

@@ -11,31 +11,35 @@ export default class AssemblerStatement extends Token {
     toBuffer(arch) {
         let child = this.getChild();
         let assemblerArguments = child.filter('AssemblerArgument');
-        let toBufferChild = () => {
-            return this.toBufferChild(arch, scheme.alias, assemblerArguments);
+        let toBufferChild = (ins) => {
+            return this.toBufferChild(arch, ins, assemblerArguments);
+        };
+        let getScheme = (ins) => {
+            return this.getScheme(arch, ins, assemblerArguments);
         };
         if (child.is('AssemblerOperation')) {
             let [operationName] = child.filter('AssemblerOperationName');
-            operationName = operationName.stringify();
-            let scheme = this.getScheme(arch, operationName, assemblerArguments);
+            operationName = operationName.toString();
+            let scheme = getScheme(operationName);
             if (scheme === undefined) {
-                throw new Error;
+                throw new InternalError;
             }
-            return this.toBufferChild(arch, scheme.alias, assemblerArguments);
+            return toBufferChild(scheme.alias);
         }
         if (!child.is('AssemblerInstruction')) {
             throw new InternalError;
         }
         let [instructionName] = child.filter('AssemblerInstructionName');
-        instructionName = instructionName.stringify();
+        instructionName = instructionName.toString();
         let [operandSize = null] = child.filter('AssemblerInstructionOperandSize');
-        operandSize = operandSize === null ? null : operandSize.stringify().slice(1);
+        operandSize = operandSize === null ? null : operandSize.toString().slice(1);
         if (operandSize === null) {
-            let scheme = this.getScheme(arch, instructionName, assemblerArguments);
+            let scheme = getScheme(instructionName);
             if (scheme !== undefined) {
-                console.log({scheme});
+                // console.log({scheme});
                 if (scheme.alias !== undefined) {
-                    return this.toBufferChild(arch, scheme.alias, assemblerArguments);
+                    return toBufferChild(scheme.alias);
+                    // return this.toBufferChild(arch, scheme.alias, assemblerArguments);
                 }
                 return arch.toBuffer(scheme, assemblerArguments);
             }
@@ -44,15 +48,17 @@ export default class AssemblerStatement extends Token {
         operandSizes = toArray(operandSize ?? operandSizes);
         let possible = operandSizes.map((operandSize) => [instructionName, operandSize].join('.'));
         let schemes = possible.map((instruction) => {
-            return this.getScheme(arch, instruction, assemblerArguments);
+            return getScheme(instruction);
         });
+        console.log({schemes});
         schemes = schemes.filter((scheme) => scheme !== undefined);
         if (schemes.length !== 1) {
-            console.log(schemes, 'HERE', possible, child.stringify());
+            console.log(['HERE']);
+            // console.log(schemes, 'HERE', possible, child.toString());
             throw new Error; // i.error();
         }
         let [scheme] = schemes;
-        console.log(scheme, assemblerArguments, arch.toBuffer(scheme, assemblerArguments));
+        // console.log(scheme, assemblerArguments, arch.toBuffer(scheme, assemblerArguments));
         return arch.toBuffer(scheme, assemblerArguments);
     }
 
@@ -74,7 +80,7 @@ export default class AssemblerStatement extends Token {
                     return false;
                 }
                 [resolver] = resolver;
-                console.log(searchKey, schemeArg, resolver, asmArgs[i].stringify(), resolver(asmArgs[i]));
+                // console.log(searchKey, schemeArg, resolver, asmArgs[i].stringify(), resolver(asmArgs[i]));
                 return resolver(asmArgs[i]);
             });
         });
@@ -84,22 +90,22 @@ export default class AssemblerStatement extends Token {
         ins = typeof ins === 'function' ? ins(myArguments) : ins;
         return [].concat(...toArray(ins).map((ins) => {
             console.log({ins});
-            let grammar = new Grammar();
+            // let grammar = new Grammar();
             let lexer = new Lexer(ins);
-            let statement = grammar.tokenize('AssemblerStatement', lexer);
-            // console.log({lexer, statement});
+            let statement = this.grammar.tokenize('AssemblerStatement', lexer);
+            console.log({statement});
             if (statement === null) {
                 throw new InternalError;
             }
             if (!lexer.isEof()) {
                 throw new InternalError;
             }
-            console.log(statement.stringify());
+            // console.log(statement.stringify());
             statement.filter('AssemblerReference').forEach((ref) => {
-                let i = ref.stringify().slice(1);
+                let i = ref.toString().slice(1);
                 ref.parent.replace(myArguments[i]);
             });
-            console.log(statement.stringify());
+            // console.log(statement.stringify());
             // console.log({refs}, {myArguments});
             return statement.toBuffer(arch);
             // let lexer = new Lexer(ins);
