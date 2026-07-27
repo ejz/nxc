@@ -286,7 +286,7 @@ export default class Grammar {
         return res;
     }
 
-    tokenize(name, lexer, parent = null) {
+    tokenize(name, lexer) {
         return this.getTokenResolver(name)(lexer);
         // if (token !== null) {
         //     token = this.toAst(token, parent);

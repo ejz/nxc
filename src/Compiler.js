@@ -106,9 +106,10 @@ export default class Compiler {
     appendFinalExit(ast, {finalExit}) {
         let code = `asm{${finalExit}}`;
         let lexer = new Lexer(code);
-        let statement = ast.grammar.tokenize('Statement', lexer, ast);
-        let astStatement = ast.grammar.toAst(statement);
+        let statement = ast.grammar.tokenize('Statement', lexer);
+        let astStatement = ast.grammar.toAst(statement, ast);
         astStatement = ast.grammar.shackle(astStatement);
+        console.log(astStatement);
         ast.children.push(astStatement);
     }
 }
