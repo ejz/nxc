@@ -11,6 +11,9 @@ export default class AssemblerStatement extends Token {
     toBuffer(arch) {
         let child = this.getChild();
         let assemblerArguments = child.filter('AssemblerArgument');
+        let toBufferChild = () => {
+            return this.toBufferChild(arch, scheme.alias, assemblerArguments);
+        };
         if (child.is('AssemblerOperation')) {
             let [operationName] = child.filter('AssemblerOperationName');
             operationName = operationName.stringify();

@@ -27,7 +27,7 @@ export default class Lexer {
         return str;
     }
 
-    eatChar() {
+    eatCharacter() {
         if (this.isEof()) {
             return null;
         }

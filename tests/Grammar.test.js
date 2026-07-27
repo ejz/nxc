@@ -9,11 +9,6 @@ const test = tapePromise.default(tape);
 
 test('Grammar / 1', (t) => {
     let grammar = new Grammar({
-        defaultTokenContructor: class extends Token {
-            get isOkay() {
-                return true;
-            }
-        },
         grammarFileContent: [
             'A -> \'a\'',
             'B -> `b`',
@@ -42,8 +37,6 @@ test('Grammar / 1', (t) => {
             'alt3 -> l11 | (l12 | l21) | l22',
             'rec1 -> (l11 | (l12 | (l21 | l22)))',
             'rec2 -> (((l11)) | ((l12) | ((l21) | ((l22)))))',
-            'ok1 -> `a`<isOkay>',
-            'ok2 -> `a`<!isOkay> | `b`<isOkay>',
             'gr1 -> * (`a` `a` `b`)',
         ].join('\n'),
     });
@@ -102,16 +95,51 @@ test('Grammar / 1', (t) => {
         ['rec2', '12'],
         ['rec2', '21'],
         ['rec2', '22'],
-        ['ok1', 'a'],
-        ['ok2', 'b'],
         ['gr1', 'aab'],
         ['gr1', 'aaab'],
     ];
     for (let [tt, input] of cases) {
         let lexer = new Lexer(input);
-        let token = grammar.tokenize(tt, lexer, false);
-        t.equals(token.stringify(), input);
+        let token = grammar.tokenize(tt, lexer);
+        t.equals(token.toString(), input);
         t.equals(lexer.isEof(), true);
+    }
+    t.end();
+});
+
+test.only('Grammar / 2', (t) => {
+    let grammar = new Grammar({
+        grammarFileContent: [
+            'Single -> `single`',
+            'Opt -> `opt`?',
+            'Repeat -> `r`*',
+            'Choice -> `a` | `b`',
+            'Seq -> `a` `b`',
+            'Ref -> (`a`)',
+            'Gr1 -> *',
+            'Gr2 -> * `a`',
+            'L1 -> `b`* ?`a` `a`',
+        ].join('\n'),
+    });
+    let cases = [
+        ['Single', 'single', ['Single', ' KeywordToken']],
+        ['Opt', 'opt', ['Opt', ' OptionalToken', '  KeywordToken'], ['Opt', ' KeywordToken']],
+        ['Repeat', 'rr', ['Repeat', ' RepeatToken', '  KeywordToken', '  KeywordToken'], ['Repeat', ' KeywordToken', ' KeywordToken']],
+        ['Choice', 'a', ['Choice', ' ChoiceToken', '  KeywordToken'], ['Choice', ' KeywordToken']],
+        ['Seq', 'ab', ['Seq', ' SequenceToken', '  KeywordToken', '  KeywordToken'], ['Seq', ' KeywordToken', ' KeywordToken']],
+        ['Ref', 'a', ['Ref', ' KeywordToken']],
+        ['Gr1', '', ['Gr1', ' SequenceToken', '  GreedyToken'], ['Gr1', ' GreedyToken']],
+        ['Gr2', 'bbba', ['Gr2', ' SequenceToken', '  GreedyToken', '  KeywordToken'], ['Gr2', ' GreedyToken', ' KeywordToken']],
+        ['L1', 'bbba', ['L1', ' SequenceToken', '  RepeatToken', '   KeywordToken', '   KeywordToken', '   KeywordToken', '  LookupToken', '  KeywordToken'], ['L1', ' KeywordToken', ' KeywordToken', ' KeywordToken', ' KeywordToken']],
+    ];
+    for (let [tt, input, tree1, tree2 = tree1] of cases) {
+        let lexer = new Lexer(input);
+        let token = grammar.tokenize(tt, lexer);
+        t.equals(lexer.isEof(), true);
+        t.deepEqual(token.toTree(' '), tree1);
+        let ast = grammar.toAst(token);
+        ast = grammar.shackle(ast);
+        t.deepEqual(ast.toTree(' '), tree2);
     }
     t.end();
 });

@@ -58,7 +58,7 @@ export default class Compiler {
     lint(buffer, normalize = false) {
         let lexer = this.getLexer(buffer);
         let program = this.getAst(lexer, normalize);
-        return program.stringify();
+        return program.toString();
     }
 
     compile(buffer, normalize = true) {
@@ -76,7 +76,7 @@ export default class Compiler {
             }
             elf.push(assemblerBlock.toBuffer(x86));
         }
-        // console.log(assemblerBlock.stringify());
+        // console.log(assemblerBlock.toString());
         // console.log(assemblerBlocks[0].children[0]);
         // assemblerBlock.remove();
         // let check = ast.filter('*<parent=Program>');
@@ -103,9 +103,8 @@ export default class Compiler {
 
     appendFinalExit(ast, {finalExit}) {
         let code = `asm{${finalExit}}`;
-        let grammar = new Grammar();
         let lexer = new Lexer(code);
-        let statement = grammar.tokenize('Statement', lexer, true, ast);
+        let statement = ast.grammar.tokenize('Statement', lexer, ast);
         ast.children.push(statement);
     }
 }

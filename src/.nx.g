@@ -5,6 +5,7 @@ Program -> Sep* (Statement Sep*)*
 # Mix
 
 Sep -> Space | Newline+ | Comment
+InlineSep -> Sep
 Space -> /^[ \t]+/
 Newline -> '\r\n' | '\r' | '\n'
 Comment -> SinglelineComment | MultilineComment
@@ -38,7 +39,7 @@ AssemblerEmptyStatement -> ';'
 AssemblerInstruction ->
     AssemblerInstructionName
     AssemblerInstructionOperandSize?
-    (Sep<isInline>+ AssemblerArguments)?
+    (InlineSep+ AssemblerArguments)?
 AssemblerInstructionName -> AssemblerInstructionNamePart ('.' AssemblerInstructionNamePart)*
     AssemblerInstructionNamePart -> /^[a-zA-Z][a-zA-Z0-9]*/
     AssemblerInstructionOperandSize -> '.' DecNum

@@ -5,38 +5,27 @@ import {fileURLToPath} from 'node:url';
 import Token from './tokens/Token.js';
 import AssemblerBlock from './tokens/AssemblerBlock.js';
 import AssemblerStatement from './tokens/AssemblerStatement.js';
-import Sep from './tokens/Sep.js';
+import InlineSep from './tokens/InlineSep.js';
 import InternalError from './errors/InternalError.js';
 
-export const Walk = {
-    Continue: 1,
-    Ignore: 0,
-    Stop: -1,
-};
+const isArray = Array.isArray;
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const tokenCtors = {
-    Sep,
+    InlineSep,
     AssemblerBlock,
     AssemblerStatement,
 };
 const SpecialToken = {
     KeywordToken: 'KeywordToken',
     StringToken: 'StringToken',
-    OptionalToken: 'OptionalToken',
-    RepeatToken: 'RepeatToken',
-    ChoiceToken: 'ChoiceToken',
-    SequenceToken: 'SequenceToken',
-    ReferenceToken: 'ReferenceToken',
-    ConditionalToken: 'ConditionalToken',
-    GreedyToken: 'GreedyToken',
-    LookupToken: 'LookupToken',
+    OptionalToken: 'OptionalToken', // a?
+    RepeatToken: 'RepeatToken', // a*
+    ChoiceToken: 'ChoiceToken', // a | b
+    SequenceToken: 'SequenceToken', // a b
+    GreedyToken: 'GreedyToken', // * a
+    LookupToken: 'LookupToken', // ?a
 };
-const isPrimary = (token) => token.is('StringToken', 'KeywordToken', 'Sep');
-const isEmpty = (token) => token.children.length === 0;
-const hasPrimary = (token) => token.children.filter(isPrimary).length !== 0;
-const withParent = (arg) => (token) => token.parent.is(arg);
-const withParentParent = (arg) => (token) => token.parent.parent.is(arg);
 
 export default class Grammar {
     constructor({
@@ -67,105 +56,97 @@ export default class Grammar {
     }
 
     setTokenResolver(name, rule) {
-        let resolver = this.getResolverFromRule(name, rule);
+        let resolvers = [];
+        let originalPush = resolvers.push.bind(resolvers);
+        resolvers.push = (element) => {
+            let key = resolvers.length;
+            originalPush(element);
+            return key;
+        };
+        resolvers.doResolve = (part) => resolvers[part] ?? this.getTokenResolver(part);
+        resolvers.doResolveSpecial = (part) => ['^', '*'].includes(part) ? part : resolvers.doResolve(part);
+        rule = rule.trim();
+        rule = rule.replace(/\s+/g, ' ');
+        rule = rule.replace(/`.*?`|'.*?'|\/.*?\/\w*/g, (m) => {
+            let [char] = m;
+            switch (char) {
+                case '`': {
+                    let keyword = m.slice(1, -1);
+                    let name = SpecialToken.KeywordToken;
+                    let resolver = (lexer) => lexer.eat(keyword);
+                    resolver = this.wrapResolver(name, resolver);
+                    return resolvers.push(resolver);
+                }
+                case '\'': {
+                    let string = eval(m);
+                    let name = SpecialToken.StringToken;
+                    let resolver = (lexer) => lexer.eat(string);
+                    resolver = this.wrapResolver(name, resolver);
+                    return resolvers.push(resolver);
+                }
+                case '/': {
+                    let regex = eval(m);
+                    let name = SpecialToken.StringToken;
+                    let resolver = (lexer) => lexer.eatRegex(regex);
+                    resolver = this.wrapResolver(name, resolver);
+                    return resolvers.push(resolver);
+                }
+            }
+        });
+        let changed = true;
+        while (changed) {
+            changed = false;
+            rule = rule.replace(/\( ?([^()]+?) ?\)/g, (m, p) => {
+                changed = true;
+                return this.getResolverFromRule(p, resolvers);
+            });
+        }
+        rule = this.getResolverFromRule(rule, resolvers);
+        let wrapResolver;
+        let resolver = this.wrapResolver(name, (lexer) => {
+            wrapResolver ??= resolvers.doResolve(rule);
+            let child = wrapResolver(lexer);
+            return child === null ? null : [child];
+        });
         this.tokenResolvers[name] = resolver;
     }
 
-    wrapResolver(name, resolver/* = nullResolver*/) {
+    wrapResolver(name, resolver) {
         let ctor = this.tokenConstructors[name] ?? this.defaultTokenContructor;
         let res = ctor.resolve ?? resolver;
         return (lexer) => {
-            let obj;
+            let value;
+            let start = lexer.position;
             lexer.try(() => {
-                obj = res(lexer, this);
-                return obj !== null;
+                value = res(lexer);
+                return value !== null;
             });
-            if (obj === null) {
+            if (value === null) {
                 return null;
             }
-            return new ctor(name).finalize(obj);
+            let token = new ctor(name);
+            token.start = start;
+            token.lexer = lexer;
+            token.grammar = this;
+            token.end = lexer.position;
+            if (isArray(value)) {
+                token.children = value;
+            } else {
+                token.value = value;
+            }
+            if (token.prevalidate !== undefined && !token.preValidate()) {
+                return null;
+            }
+            return token;
         };
     }
 
-    getResolverFromRule(name, rule, resolvers) {
-        let innerCall = resolvers !== undefined;
-        let resolve = (part) => resolvers[part] ?? this.getTokenResolver(part);
-        let resolveSpecial = (part) => ['^', '*'].includes(part) ? part : resolve(part);
-        let ret = (rule) => innerCall ? rule : resolve(rule);
-        if (!innerCall) {
-            resolvers = [];
-            let originalPush = resolvers.push.bind(resolvers);
-            resolvers.push = (element) => {
-                let key = resolvers.length;
-                originalPush(element);
-                return key;
-            };
-            rule = rule.trim();
-            rule = rule.replace(/\s+/g, ' ');
-            rule = rule.replace(/`.*?`|'.*?'|\/.*?\/\w*/g, (m) => {
-                let [char] = m;
-                let name, resolver;
-                switch (char) {
-                    case '`': {
-                        let keyword = m.slice(1, -1);
-                        name = SpecialToken.KeywordToken;
-                        resolver = (lexer) => lexer.eat(keyword);
-                        break;
-                    }
-                    case '\'': {
-                        let string = eval(m);
-                        name = SpecialToken.StringToken;
-                        resolver = (lexer) => lexer.eat(string);
-                        break;
-                    }
-                    case '/': {
-                        let regex = eval(m);
-                        name = SpecialToken.StringToken;
-                        resolver = (lexer) => lexer.eatRegex(regex);
-                        break;
-                    }
-                }
-                resolver = this.wrapResolver(name, resolver);
-                return resolvers.push(resolver);
-            });
-            let changed = true;
-            while (changed) {
-                changed = false;
-                rule = rule.replace(/\( ?([^()]+?) ?\)/g, (m, p) => {
-                    let name = SpecialToken.ReferenceToken;
-                    changed = true;
-                    return this.getResolverFromRule(name, p, resolvers);
-                });
-            }
-        }
-        {
-            let conditional = (part, attr) => {
-                let negate = attr.startsWith('!');
-                attr = negate ? attr.slice(1) : attr;
-                let resolver;
-                return (lexer) => {
-                    resolver ??= resolve(part);
-                    let child = resolver(lexer);
-                    if (child === null) {
-                        return null;
-                    }
-                    let value = child[attr];
-                    let isOkay = (!negate && value) || (negate && !value);
-                    return isOkay ? [child] : null;
-                };
-            };
-            rule = rule.replace(/(\w+)<(.*?)>/g, (m, p1, p2) => {
-                let name = SpecialToken.ConditionalToken;
-                let resolver = conditional(p1, p2);
-                resolver = this.wrapResolver(name, resolver);
-                return resolvers.push(resolver);
-            });
-        }
+    getResolverFromRule(rule, resolvers) {
         {
             let optional = (part) => {
                 let resolver;
                 return (lexer) => {
-                    resolver ??= resolve(part);
+                    resolver ??= resolvers.doResolve(part);
                     let child = resolver(lexer);
                     return child === null ? [] : [child];
                 };
@@ -173,7 +154,7 @@ export default class Grammar {
             let repeat = (part, plus) => {
                 let resolver;
                 return (lexer) => {
-                    resolver ??= resolve(part);
+                    resolver ??= resolvers.doResolve(part);
                     let child, children = [];
                     while (child !== null) {
                         child = resolver(lexer);
@@ -199,7 +180,7 @@ export default class Grammar {
             let lookup = (part) => {
                 let resolver;
                 return (lexer) => {
-                    resolver ??= resolve(part);
+                    resolver ??= resolvers.doResolve(part);
                     let res = lexer.look(() => resolver(lexer));
                     return res !== null ? [] : null;
                 };
@@ -214,10 +195,12 @@ export default class Grammar {
         if (rule.includes('|')) {
             let parts = rule.split(' | ');
             let choice = (parts) => {
-                let resolvers;
+                let resolver;
                 return (lexer) => {
-                    resolvers ??= parts.map(resolve);
-                    let child, result = resolvers.some((resolver) => {
+                    resolver ??= parts.map((part) => {
+                        return resolvers.doResolve(part);
+                    });
+                    let child, result = resolver.some((resolver) => {
                         child = resolver(lexer);
                         return child !== null;
                     });
@@ -230,74 +213,69 @@ export default class Grammar {
             let name = SpecialToken.ChoiceToken;
             let resolver = choice(parts);
             resolver = this.wrapResolver(name, resolver);
-            rule = resolvers.push(resolver);
-        } else if (rule.includes(' ')) {
-            let parts = rule.split(' ');
-            let sequence = (parts) => {
-                let resolvers;
-                return (lexer) => {
-                    resolvers ??= parts.map(resolveSpecial);
-                    let assertion = false, children = [];
-                    let greedy = null;
-                    let result = resolvers.every((resolver, i) => {
-                        if (resolver === '*') {
-                            let name = SpecialToken.GreedyToken;
-                            let token = this.wrapResolver(name, () => '')(lexer);
-                            children.push(token);
-                            greedy = token;
-                            return true;
-                        }
-                        if (resolver === '^') {
-                            assertion = true;
-                            return true;
-                        }
-                        let lastRet;
-                        let ret = () => {
-                            let child = resolver(lexer);
-                            if (child === null) {
-                                lastRet = false;
-                                return lastRet;
-                            }
-                            children.push(child);
-                            lastRet = true;
-                            return lastRet;
-                        };
-                        if (greedy === null) {
-                            return ret();
-                        }
-                        while (!ret()) {
-                            let char = lexer.eatChar();
-                            if (char === null) {
-                                break;
-                            }
-                            greedy.appendChar(char);
-                        }
-                        greedy = null;
-                        return lastRet;
-                    });
-                    if (!result) {
-                        if (assertion) {
-                            throw lexer.error();
-                        }
-                        return null;
-                    }
-                    return children;
-                };
-            };
-            let name = SpecialToken.SequenceToken;
-            let resolver = sequence(parts);
-            resolver = this.wrapResolver(name, resolver);
-            rule = resolvers.push(resolver);
+            return resolvers.push(resolver);
         }
-        if (innerCall) {
+        let parts = rule.split(' ');
+        if (parts.length === 1 && rule !== '*') {
             return rule;
         }
-        let resolver;
-        return this.wrapResolver(name, (lexer) => {
-            resolver ??= resolve(rule);
-            let child = resolver(lexer);
-            return child === null ? null : [child];
-        });
+        let sequence = (parts) => {
+            let resolver;
+            return (lexer) => {
+                resolver ??= parts.map((part) => {
+                    return resolvers.doResolveSpecial(part);
+                });
+                let assertion = false, children = [];
+                let greedy = null;
+                let result = resolver.every((resolver, i) => {
+                    if (resolver === '*') {
+                        let name = SpecialToken.GreedyToken;
+                        let token = this.wrapResolver(name, () => '')(lexer);
+                        children.push(token);
+                        greedy = token;
+                        return true;
+                    }
+                    if (resolver === '^') {
+                        assertion = true;
+                        return true;
+                    }
+                    let lastRet;
+                    let ret = () => {
+                        let child = resolver(lexer);
+                        if (child === null) {
+                            lastRet = false;
+                            return lastRet;
+                        }
+                        children.push(child);
+                        lastRet = true;
+                        return lastRet;
+                    };
+                    if (greedy === null) {
+                        return ret();
+                    }
+                    while (!ret()) {
+                        let character = lexer.eatCharacter();
+                        if (character === null) {
+                            break;
+                        }
+                        greedy.value += character;
+                    }
+                    greedy = null;
+                    return lastRet;
+                });
+                if (!result) {
+                    if (assertion) {
+                        throw lexer.error();
+                    }
+                    return null;
+                }
+                return children;
+            };
+        };
+        let name = SpecialToken.SequenceToken;
+        let resolver = sequence(parts);
+        resolver = this.wrapResolver(name, resolver);
+        return resolvers.push(resolver);
     }
 
     getTokenResolver(name) {
@@ -308,113 +286,43 @@ export default class Grammar {
         return res;
     }
 
-    tokenize(name, lexer, toAst = true, parent = null) {
-        let token = this.getTokenResolver(name)(lexer);
-        if (toAst && token !== null) {
-            token = this.toAst(token, parent);
-            token = this.shackle(token);
-        }
-        return token;
+    tokenize(name, lexer, parent = null) {
+        return this.getTokenResolver(name)(lexer);
+        // if (token !== null) {
+        //     token = this.toAst(token, parent);
+        //     token = this.shackle(token);
+        // }
+        // return token;
     }
 
-    toAst(token, parent = null) {
-        Object.assign(token, {parent, walk, filter, remove, unwrap, replace});
+    toAst(token, parent = null, calls) {
+        let topCall = calls === undefined;
+        calls ??= [];
+        token.parent = parent;
+        if (token.postValidate !== undefined) {
+            calls.push(() => token.postValidate());
+        }
         let list = token.children ?? [];
         list.forEach((child) => {
-            this.toAst(child, token);
+            this.toAst(child, token, calls);
         });
+        if (topCall) {
+            calls.forEach((call) => call());
+        }
         return token;
-        //
-        function walk(callback) {
-            let res = callback(this);
-            if ([Walk.Ignore, Walk.Stop].includes(res)) {
-                return res;
-            }
-            let list = token.children ?? [];
-            for (let child of list) {
-                let res = child.walk(callback);
-                if (res === Walk.Stop) {
-                    return res;
-                }
-            }
-            return Walk.Continue;
-        }
-        //
-        function filter(filterFn) {
-            let collector = [];
-            if (typeof filterFn === 'string') {
-                let names = [];
-                let predicates = [];
-                for (let filter of filterFn.split('|')) {
-                    let idx = filter.indexOf('<');
-                    names.push(idx !== -1 ? filter.slice(0, idx) : filter);
-                    predicates.push(idx !== -1 ? toPredicate(filter.slice(idx + 1, -1)) : (() => true));
-                }
-                filterFn = (token) => {
-                    let idx = names.indexOf(token.name);
-                    return idx !== -1 && predicates[idx](token);
-                };
-            }
-            this.walk((token) => {
-                let res = filterFn(token) ?? [];
-                res = typeof res === 'boolean' ? [, res] : res;
-                res = typeof res === 'number' ? [res] : res;
-                let [walk = Walk.Continue, filt = false] = res;
-                if (filt) {
-                    collector.push(token);
-                }
-                return walk;
-            });
-            return collector;
-        }
-        //
-        function remove() {
-            let parent = token.parent;
-            if (parent === null) {
-                return;
-            }
-            let list = parent.children;
-            let idx = list.indexOf(this);
-            if (idx === -1) {
-                return false;
-            }
-            list.splice(idx, 1);
-            if (list.length === 0) {
-                parent.remove();
-            }
-            return true;
-        }
-        //
-        function unwrap() {
-            let parent = this.parent;
-            let list = parent.children;
-            let children = this.children;
-            children.forEach((child) => {
-                child.parent = parent;
-            });
-            let idx = list.indexOf(this);
-            if (idx === -1) {
-                return false;
-            }
-            list.splice(idx, 1, ...children);
-            return true;
-        }
-        //
-        function replace(token) {
-            let parent = this.parent;
-            token.parent = parent;
-            let list = parent.children;
-            let idx = list.indexOf(this);
-            if (idx === -1) {
-                return false;
-            }
-            list.splice(idx, 1, token);
-            return true;
-        }
     }
 
     shackle(ast) {
-        let tokens = ast.filter('SequenceToken|RepeatToken|ChoiceToken|OptionalToken|LookupToken|ConditionalToken');
+        let filter = (token) => {
+            return [
+                'OptionalToken',
+                'RepeatToken',
+                'ChoiceToken',
+                'SequenceToken',
+                'LookupToken',
+            ].includes(token.name);
+        };
+        let tokens = ast.filter(filter);
         tokens.forEach((token) => {
             token.unwrap();
         });
@@ -422,46 +330,52 @@ export default class Grammar {
     }
 }
 
-function toPredicate(predicate) {
-    let parts = predicate.split(',');
-    let predicates = parts.map(toPredicatePart);
-    return (token) => predicates.every((predicate) => predicate(token));
-}
+// function toPredicate(predicate) {
+//     let parts = predicate.split(',');
+//     let predicates = parts.map(toPredicatePart);
+//     return (token) => predicates.every((predicate) => predicate(token));
+// }
 
-function toPredicatePart(part) {
-    let negate = part.startsWith('!');
-    part = negate ? part.slice(1) : part;
-    let fn, arg = null;
-    let idx = part.indexOf('=');
-    if (idx !== -1) {
-        arg = part.slice(idx + 1);
-        part = part.slice(0, idx + 1);
-    }
-    switch (part) {
-        case 'isEmpty': {
-            fn = isEmpty;
-            break;
-        }
-        case 'isPrimary': {
-            fn = isPrimary;
-            break;
-        }
-        case 'hasPrimary': {
-            fn = hasPrimary;
-            break;
-        }
-        case 'parent=': {
-            fn = withParent(arg);
-            break;
-        }
-        case 'parent.parent=': {
-            fn = withParentParent(arg);
-            break;
-        }
-        default: throw new InternalError;
-    }
-    return (token) => {
-        let res = fn(token);
-        return (!negate && res) || (negate && !res);
-    };
-}
+// function toPredicatePart(part) {
+//     let negate = part.startsWith('!');
+//     part = negate ? part.slice(1) : part;
+//     let fn, arg = null;
+//     let idx = part.indexOf('=');
+//     if (idx !== -1) {
+//         arg = part.slice(idx + 1);
+//         part = part.slice(0, idx + 1);
+//     }
+//     switch (part) {
+//         case 'isEmpty': {
+//             fn = isEmpty;
+//             break;
+//         }
+//         case 'isPrimary': {
+//             fn = isPrimary;
+//             break;
+//         }
+//         case 'hasPrimary': {
+//             fn = hasPrimary;
+//             break;
+//         }
+//         case 'parent=': {
+//             fn = withParent(arg);
+//             break;
+//         }
+//         case 'parent.parent=': {
+//             fn = withParentParent(arg);
+//             break;
+//         }
+//         default: throw new InternalError;
+//     }
+//     return (token) => {
+//         let res = fn(token);
+//         return (!negate && res) || (negate && !res);
+//     };
+// }
+// ConditionalToken: 'ConditionalToken',
+// const isPrimary = (token) => token.is('StringToken', 'KeywordToken', 'Sep');
+// const isEmpty = (token) => token.children.length === 0;
+// const hasPrimary = (token) => token.children.filter(isPrimary).length !== 0;
+// const withParent = (arg) => (token) => token.parent.is(arg);
+// const withParentParent = (arg) => (token) => token.parent.parent.is(arg);

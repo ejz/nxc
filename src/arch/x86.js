@@ -922,7 +922,7 @@ export function isSibOkay(asmArg) {
     let operations = asmArg.filter('AssemblerSibOperation');
     asmArg.filter('AssemblerSibOperand').forEach((elem, i) => {
         let child = elem.getChild();
-        let op = 
+        // let op = 
         let isRegister = child.is('AssemblerRegister');
         if (!isRegister) {
 
