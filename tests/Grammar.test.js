@@ -107,7 +107,7 @@ test('Grammar / 1', (t) => {
     t.end();
 });
 
-test.only('Grammar / 2', (t) => {
+test('Grammar / 2', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'Single -> `single`',
@@ -144,7 +144,7 @@ test.only('Grammar / 2', (t) => {
     t.end();
 });
 
-test('Grammar / 2', (t) => {
+test('Grammar / 3', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'lk1 -> `a`* ?`l`',
@@ -158,20 +158,20 @@ test('Grammar / 2', (t) => {
     for (let [tt, input, tail = ''] of cases) {
         let lexer = new Lexer(input);
         let token = grammar.tokenize(tt, lexer);
-        t.equals(token.stringify(), input.slice(0, tail.length === 0 ? undefined : -tail.length));
+        t.equals(token.toString(), input.slice(0, tail.length === 0 ? undefined : -tail.length));
         t.equals(lexer.tail, tail);
     }
     t.end();
 });
 
-test('Grammar / 3', (t) => {
+test('Grammar / 4', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'term -> term1 term2 ^ term3',
             'term1 -> `kw`',
             'term2 -> \'{\'',
             'term3 -> \';\'',
-            'final -> term | `kw{a` | `kw`'
+            'final -> term | `kw{a` | `kw`',
         ].join('\n'),
     });
     let cases = [
@@ -182,19 +182,19 @@ test('Grammar / 3', (t) => {
     ];
     for (let [tt, input, error = false] of cases) {
         let lexer = new Lexer(input);
-        let fn = () => grammar.tokenize(tt, lexer, false);
+        let fn = () => grammar.tokenize(tt, lexer);
         if (error) {
             t.throws(fn);
             continue;
         }
         let token = fn();
-        t.equals(token.stringify(), input);
+        t.equals(token.toString(), input);
         t.equals(lexer.isEof(), true);
     }
     t.end();
 });
 
-test('Grammar / 4', (t) => {
+test('Grammar / 5', (t) => {
     let grammar = new Grammar();
     let cases = [
         ['SinglelineComment', '//'],
@@ -245,24 +245,24 @@ test('Grammar / 4', (t) => {
     for (let [tt, input, tail = ''] of cases) {
         let lexer = new Lexer(input);
         let token = grammar.tokenize(tt, lexer);
-        t.equals(token.stringify(), input.slice(0, tail.length === 0 ? undefined : -tail.length));
+        t.equals(token.toString(), input.slice(0, tail.length === 0 ? undefined : -tail.length));
         t.equals(lexer.tail, tail);
     }
     t.end();
 });
 
-test('Grammar / 5', (t) => {
+test('Grammar / 6', (t) => {
     {
         let grammar = new Grammar();
         let lexer = new Lexer('ins1\nins2');
         let token = grammar.tokenize('AssemblerStatement', lexer);
-        t.equals(token.stringify(), 'ins1');
+        t.equals(token.toString(), 'ins1');
     }
     {
         let grammar = new Grammar();
         let lexer = new Lexer('ins1 arg1');
         let token = grammar.tokenize('AssemblerStatement', lexer);
-        t.equals(token.stringify(), 'ins1 arg1');
+        t.equals(token.toString(), 'ins1 arg1');
     }
     t.end();
 });

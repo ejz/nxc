@@ -134,7 +134,7 @@ export default class Grammar {
             } else {
                 token.value = value;
             }
-            if (token.prevalidate !== undefined && !token.preValidate()) {
+            if (token.preValidate !== undefined && !token.preValidate()) {
                 return null;
             }
             return token;
