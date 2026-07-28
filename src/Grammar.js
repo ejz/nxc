@@ -123,7 +123,6 @@ export default class Grammar {
             if (value === null) {
                 return null;
             }
-            // console.log({name, value});
             token.finalize(value);
             if (token.preValidate !== undefined && !token.preValidate()) {
                 return null;
@@ -155,8 +154,6 @@ export default class Grammar {
                     if (plus && children.length === 0) {
                         return null;
                     }
-                    if (children.length > 1)
-                    console.log(children.length);
                     return children;
                 };
             };
@@ -300,30 +297,6 @@ export default class Grammar {
         });
         return ast;
     }
-
-    // #toAst(token, parent) {
-    //     token.parent = parent;
-    //     let list = token.children ?? [];
-    //     list.forEach((child) => {
-    //         this.#toAst(child, token);
-    //     });
-    // }
-    // if (token !== null) {
-    //     token = this.toAst(token, parent);
-    //     token = this.shackle(token);
-    // }
-    // return token;
-    // let topCall = calls === undefined;
-    // calls ??= [];
-    // if (token.postValidate !== undefined) {
-    //     calls.push(() => token.postValidate());
-    // }
-    // if (topCall) {
-    //     calls.forEach((call) => call());
-    // }
-    // return token;
-    // shackle(ast) {
-    // }
 }
 
 // function toPredicate(predicate) {

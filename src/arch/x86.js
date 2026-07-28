@@ -2,7 +2,7 @@ import {format} from 'node:util';
 import InvalidLabelNameError from '../errors/InvalidLabelNameError.js';
 import InvalidLabelOffsetError from '../errors/InvalidLabelOffsetError.js';
 import InternalError from '../errors/InternalError.js';
-import ScaleIndexBaseValidationError from '../errors/ScaleIndexBaseValidationError.js';
+import SibValidationError from '../errors/SibValidationError.js';
 
 import * as types from './types.js';
 
