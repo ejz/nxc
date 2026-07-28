@@ -697,7 +697,6 @@ export const resolver = {
 };
 
 export function toBuffer({opcode, args}, asmArgs) {
-    console.log({opcode, args, asmArgs});
     let opcodes = opcode.split(' ');
     let [o, t] = opcodes.at(-1);
     let hasMod = o === '/';
@@ -776,12 +775,13 @@ export function relClosure(iN) {
 
 export function moffsClosure(posSeg) {
     let resolver = (asmArg) => {
-        return false;
-        let {address = null} = asmArg;
-        if (address === null) {
+        let root = asmArg;
+        asmArg = asmArg.getChild();
+        if (!asmArg.is('AssemblerAddress')) {
             return false;
         }
-        let [seg, off] = address;
+        let [seg, off] = asmArg.toString().split(':');
+        seg = seg === '' ? null : seg;
         if (!posSeg.includes(seg)) {
             return false;
         }
@@ -789,7 +789,7 @@ export function moffsClosure(posSeg) {
         if (!types.u32.is(int)) {
             return false;
         }
-        asmArg.int = int;
+        root.int = int;
         return true;
     };
     let composer = ({int}) => {
@@ -863,7 +863,8 @@ export function rmClosure(reg, acceptSib = false) {
         if (!asmArg.is('AssemblerSib') || !acceptSib) {
             return false;
         }
-        if (!isSibOkay(asmArg)) {
+        sibAware(asmArg);
+        if (asmArg.sib === null) {
             throw new SibValidationError;
         }
         return true;
@@ -888,18 +889,18 @@ export function rmClosure(reg, acceptSib = false) {
         // 4) swap [ebp + esp] -> [esp + ebp]
         // 5) [eax * 1] -> [eax]
         let [def] = arch.scales;
-        let {scale, base, index, disp} = asmArg.sib;
+        let {scale = null, base = null, index = null, disp = null} = asmArg.sib;
         if (scale === null && index === 'esp' && base !== 'esp') {
             [index, base] = [base, index];
         }
         if (index === 'esp') {
-            throw new ScaleIndexBaseValidationError;
+            throw new SibValidationError;
         }
         if (scale === def && index !== null && base === null) {
             base = index;
             [index, scale] = [null, null];
         }
-        disp ??= 0;
+        disp = parseInt(disp ?? 0);
         let dispMode = disp === 0 && base !== 'ebp' ? 'disp0' : types.i8.is(disp) ? 'disp8' : 'disp32';
         if (index === null && base !== 'esp') {
             opBuf.setRm(base ?? 'ebp');
@@ -916,20 +917,75 @@ export function rmClosure(reg, acceptSib = false) {
     return [resolver, composer];
 }
 
-export function isSibOkay(asmArg) {
-    // console.log(asmArg.stringify());
-    asmArg.sib = {scale: null, index: null, base: null, disp: null};
+export function sibAware(asmArg) {
+    if (asmArg.sib !== undefined) {
+        return;
+    }
+    asmArg.sib = null;
+    let sib = {};
     let operations = asmArg.filter('AssemblerSibOperation');
-    asmArg.filter('AssemblerSibOperand').forEach((elem, i) => {
-        let child = elem.getChild();
-        // let op = 
-        let isRegister = child.is('AssemblerRegister');
-        if (!isRegister) {
-
-            // part.integer
+    operations = operations.map((operation) => operation.toString());
+    let operands = asmArg.filter('AssemblerSibOperand');
+    for (let i = 0; i < operands.length; i++) {
+        let operand = operands[i];
+        let nextOperand = operands[i + 1] ?? null;
+        operand = operand.getChild();
+        nextOperand = nextOperand === null ? null : nextOperand.getChild();
+        let operation = operations[i - 1] ?? null;
+        let nextOperation = operations[i] ?? null;
+        let isRegister = operand.is('AssemblerRegister');
+        operand = operand.toString();
+        if (isRegister) {
+            if (!register.r32.includes(operand)) {
+                return;
+            }
+            if (![null, '+'].includes(operation)) {
+                return;
+            }
+            let isScale = nextOperation === '*' && nextOperand.is('Int');
+            if (isScale) {
+                let scale = nextOperand.toString();
+                if (!arch.scales.includes(scale)) {
+                    return;
+                }
+                sib.scale = scale;
+                sib.index = operand;
+                i++;
+                continue;
+            }
+            if (sib.base === undefined) {
+                sib.base = operand;
+            } else if (sib.index === undefined) {
+                sib.index = operand;
+            } else {
+                return;
+            }
+            continue;
         }
-        // console.log(elem.toString());
-    });
+        if (operation === '*') {
+            return;
+        }
+        if (sib.disp !== undefined) {
+            return;
+        }
+        if (operation === '-') {
+            operand = '-' + operand;
+            operand = operand.startsWith('--') ? operand.slice(2) : operand;
+        }
+        sib.disp = operand;
+    }
+    asmArg.sib = sib;
+    // for (let [i, operand] of operands.entries()) {
+    //     operand = operand.getChild();
+        
+        
+    //     console.log(operation);
+    //     // if (!isRegister) {
+
+    //     //     // part.integer
+    //     // }
+
+    // }
     // let {scale, base, index, disp, minus} = sib;
     // if (scale !== null && !arch.scales.includes(scale)) {
     //     return false;

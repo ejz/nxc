@@ -9,6 +9,7 @@ import Lexer from '../src/Lexer.js';
 import Logger from '../src/utils/Logger.js';
 import writeFile from '../src/utils/writeFile.js';
 import tmp from '../src/utils/tmp.js';
+import {sibAware} from '../src/arch/x86.js';
 
 const test = tapePromise.default(tape);
 const noop = () => {};
@@ -63,7 +64,32 @@ test('Compiler / 2', (t) => {
     t.end();
 });
 
-test.only('Compiler / 3', (t) => {
+test('Compiler / 3', (t) => {
+    let compiler = getCompiler();
+    let cases = [
+        ['[asd]', null],
+        ['[eax]', {base: 'eax'}],
+        ['[eax * 1]', {index: 'eax', scale: '1'}],
+        ['[eax * 10]', null],
+        ['[eax * -1]', null],
+        ['[eax + ebx]', {base: 'eax', index: 'ebx'}],
+        ['[eax + ebx + ecx]', null],
+        ['[eax * 1 + ebx]', {base: 'ebx', index: 'eax', scale: '1'}],
+        ['[0x100]', {disp: '0x100'}],
+        ['[0x100 + 1]', null],
+        ['[eax - -1]', {base: 'eax', disp: '1'}],
+    ];
+    for (let [code, sib] of cases) {
+        let grammar = compiler.getGrammar();
+        let lexer = new Lexer(code);
+        let ast = grammar.tokenize('AssemblerArgument', lexer);
+        sibAware(ast);
+        t.deepEqual(ast.sib, sib);
+    }
+    t.end();
+});
+
+test('Compiler / 4', (t) => {
     let compiler = getCompiler();
     let cases = [
         ['iret', 'iret'],
@@ -82,41 +108,41 @@ test.only('Compiler / 3', (t) => {
         ['mov.8 al, al', 'mov al, al'],
         ['mov al, al', 'mov al, al'],
         ['mov.8 [eax], al', 'mov byte ptr [eax], al'],
-        // ['mov.8 [eax + ebx], al', 'mov byte ptr [eax + ebx * 1], al'],
-        // ['mov.16 [eax + ebx], ax', 'mov word ptr [eax + ebx * 1], ax'],
-        // ['mov.16 [eax + ebx], bx', 'mov word ptr [eax + ebx * 1], bx'],
-        // ['mov.16 [eax + ebx], bx', 'mov word ptr [eax + ebx * 1], bx'],
-        // ['mov.16 [eax + ebx*8], bx', 'mov word ptr [eax + ebx * 8], bx'],
-        // ['mov.16 [eax + 0x20], bx', 'mov word ptr [eax + 0x20], bx'],
-        // ['mov.16 [eax - -0x20], bx', 'mov word ptr [eax + 0x20], bx'],
-        // ['mov.16 [eax - 0x20], bx', 'mov word ptr [eax - 0x20], bx'],
-        // ['mov.16 [eax + -0x20], bx', 'mov word ptr [eax - 0x20], bx'],
-        // ['mov.32 [-100 + eax + ecx * 8], ebx', 'mov dword ptr [eax + ecx * 8 - 0x64], ebx'],
-        // ['mov.32 [0x100], ebx', 'mov dword ptr ds:0x100, ebx'],
-        // ['mov.32 [esp], ebx', 'mov dword ptr [esp], ebx'],
-        // ['mov.32 [esp + eax], ebx', 'mov dword ptr [esp + eax * 1], ebx'],
-        // ['mov.32 [eax + esp], ebx', 'mov dword ptr [esp + eax * 1], ebx'],
-        // ['mov.32 [ebp + ecx * 4], ebx', 'mov dword ptr [ebp + ecx * 4 + 0x0], ebx'],
-        // ['mov.32 [eax], ebx', 'mov dword ptr [eax], ebx'],
-        // ['mov.32 [eax * 1], ebx', 'mov dword ptr [eax], ebx'],
-        // ['mov.32 [eax * 1 + 0], ebx', 'mov dword ptr [eax], ebx'],
-        // ['mov.32 [eax * 1 - -0xffff], ebx', 'mov dword ptr [eax + 0xffff], ebx'],
-        // ['lea eax, [ebx]', 'lea eax, [ebx]'],
-        // ['lea ax, [ebx]', 'lea ax, [ebx]'],
-        // ['sal eax, 1', 'shl eax, 1'],
-        // ['sal.32 eax, 1', 'shl eax, 1'],
-        // ['mov eax, 1000', 'mov eax, 0x3e8'],
-        // ['mov ax, 0x200', 'mov ax, 0x200'],
-        // ['mov eax, :1000', 'mov eax, ds:0x3e8'],
-        // ['mov ax, :0x200', 'mov ax, ds:0x200'],
-        // ['mov eax, ds:1000', 'mov eax, ds:0x3e8'],
-        // ['mov ax, ds:0x200', 'mov ax, ds:0x200'],
+        ['mov.8 [eax + ebx], al', 'mov byte ptr [eax + ebx * 1], al'],
+        ['mov.16 [eax + ebx], ax', 'mov word ptr [eax + ebx * 1], ax'],
+        ['mov.16 [eax + ebx], bx', 'mov word ptr [eax + ebx * 1], bx'],
+        ['mov.16 [eax + ebx], bx', 'mov word ptr [eax + ebx * 1], bx'],
+        ['mov.16 [eax + ebx*8], bx', 'mov word ptr [eax + ebx * 8], bx'],
+        ['mov.16 [eax + 0x20], bx', 'mov word ptr [eax + 0x20], bx'],
+        ['mov.16 [eax - -0x20], bx', 'mov word ptr [eax + 0x20], bx'],
+        ['mov.16 [eax - 0x20], bx', 'mov word ptr [eax - 0x20], bx'],
+        ['mov.16 [eax + -0x20], bx', 'mov word ptr [eax - 0x20], bx'],
+        ['mov.32 [-100 + eax + ecx * 8], ebx', 'mov dword ptr [eax + ecx * 8 - 0x64], ebx'],
+        ['mov.32 [0x100], ebx', 'mov dword ptr ds:0x100, ebx'],
+        ['mov.32 [esp], ebx', 'mov dword ptr [esp], ebx'],
+        ['mov.32 [esp + eax], ebx', 'mov dword ptr [esp + eax * 1], ebx'],
+        ['mov.32 [eax + esp], ebx', 'mov dword ptr [esp + eax * 1], ebx'],
+        ['mov.32 [ebp + ecx * 4], ebx', 'mov dword ptr [ebp + ecx * 4 + 0x0], ebx'],
+        ['mov.32 [eax], ebx', 'mov dword ptr [eax], ebx'],
+        ['mov.32 [eax * 1], ebx', 'mov dword ptr [eax], ebx'],
+        ['mov.32 [eax * 1 + 0], ebx', 'mov dword ptr [eax], ebx'],
+        ['mov.32 [eax * 1 - -0xffff], ebx', 'mov dword ptr [eax + 0xffff], ebx'],
+        ['lea eax, [ebx]', 'lea eax, [ebx]'],
+        ['lea ax, [ebx]', 'lea ax, [ebx]'],
+        ['sal eax, 1', 'shl eax, 1'],
+        ['sal.32 eax, 1', 'shl eax, 1'],
+        ['mov eax, 1000', 'mov eax, 0x3e8'],
+        ['mov ax, 0x200', 'mov ax, 0x200'],
+        ['mov eax, :1000', 'mov eax, ds:0x3e8'],
+        ['mov ax, :0x200', 'mov ax, ds:0x200'],
+        ['mov eax, ds:1000', 'mov eax, ds:0x3e8'],
+        ['mov ax, ds:0x200', 'mov ax, ds:0x200'],
         // ['l:; jmp.8 l', 'jmp 0x0'],
         // ['l:; jmp l', 'jmp 0x0'],
         // ['l: jmp.8 l', 'jmp 0x0'],
         // ['jmp.8 l; l:', 'jmp 0x2'],
     ];
-    let file = tmp('tmp-', '.bin');
+    // let file = tmp('tmp-', '.bin');
     for (let [inp, out] of cases) {
         let code = `asm{${inp}}`;
         // if (Math.random() > .5) {
@@ -129,8 +155,9 @@ test.only('Compiler / 3', (t) => {
         let stdout = getAsm(buffer.slice(0x60));
         stdout = stdout.replace(/(,)/g, '$1 ');
         stdout = stdout.replace(/([+*-])/g, ' $1 ');
-        console.log({stdout});
+        // console.log({stdout});
         t.equal(stdout, out, inp);
+        // rmFile(file);
     }
     t.end();
 });

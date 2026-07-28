@@ -39,12 +39,12 @@ export default class Compiler {
         }
         if (normalize === true || normalize === 'removeEmptyStatement') {
             ast.filter('EmptyStatement').forEach((token) => {
-                token.remove();
+                token.parent.remove();
             });
         }
         if (normalize === true || normalize === 'removeAssemblerEmptyStatement') {
             ast.filter('AssemblerEmptyStatement').forEach((token) => {
-                token.remove();
+                token.parent.remove();
             });
         }
         if (normalize === true || normalize === 'unwrapRegularBlock') {

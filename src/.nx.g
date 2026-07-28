@@ -32,11 +32,14 @@ RegularBlock -> '{' ^ Sep* (Statement Sep*)* '}'
 
 AssemblerBlock -> `asm` Sep* '{' ^ Sep* (AssemblerStatement Sep*)* '}'
 AssemblerStatement ->
-    AssemblerEmptyStatement
+    AssemblerLabelStatement
+    | AssemblerEmptyStatement
     | AssemblerOperation
     | AssemblerInstruction
+AssemblerLabelStatement -> AssemblerLabel
 AssemblerEmptyStatement -> ';'
 AssemblerInstruction ->
+    (AssemblerLabel InlineSep+)?
     AssemblerInstructionName
     AssemblerInstructionOperandSize?
     (InlineSep+ AssemblerArguments)?
@@ -47,6 +50,7 @@ AssemblerArguments -> AssemblerArgument (Comma AssemblerArgument)*
 AssemblerArgument ->
     AssemblerReference
     | AssemblerAddress
+    | AssemblerLabel
     | AssemblerRegister
     | AssemblerInteger
     | AssemblerSib
@@ -69,11 +73,11 @@ AssemblerSib -> '['
 AssemblerSibOperation -> '+' | '-' | '*'
 AssemblerSibOperand -> AssemblerRegister | Int
 AssemblerOperation ->
+    (AssemblerLabel InlineSep+)?
     AssemblerArgument
     Sep* AssemblerOperationName Sep*
     ^
     AssemblerArguments
 AssemblerOperationName -> '=' | '++' | '--' | '!='
-
-# AssemblerLabel -> AssemblerLabelName ':'
-# AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
+AssemblerLabel -> AssemblerLabelName ':'
+AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
