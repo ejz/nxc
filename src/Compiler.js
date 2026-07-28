@@ -24,12 +24,14 @@ export default class Compiler {
         return lexer;
     }
 
+    getGrammar() {
+        return new Grammar();
+    }
+
     getAst(lexer, normalize) {
-        let grammar = new Grammar();
-        let program = grammar.tokenize('Program', lexer);
-        let ast = grammar.toAst(program);
-        ast = grammar.shackle(ast);
-        if (!lexer.isEof()) {
+        let grammar = this.getGrammar();
+        let ast = grammar.tokenize('Program', lexer);
+        if (ast === null || !lexer.isEof()) {
             throw lexer.error();
         }
         if (normalize === false) {
@@ -105,11 +107,8 @@ export default class Compiler {
 
     appendFinalExit(ast, {finalExit}) {
         let code = `asm{${finalExit}}`;
-        let lexer = new Lexer(code);
-        let statement = ast.grammar.tokenize('Statement', lexer);
-        let astStatement = ast.grammar.toAst(statement, ast);
-        astStatement = ast.grammar.shackle(astStatement);
-        console.log(astStatement);
-        ast.children.push(astStatement);
+        let statement = ast.tokenize(code, 'Statement');
+        statement.parent = ast;
+        ast.children.push(statement);
     }
 }

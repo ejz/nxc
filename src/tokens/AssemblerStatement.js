@@ -17,16 +17,19 @@ export default class AssemblerStatement extends Token {
         let getScheme = (ins) => {
             return this.getScheme(arch, ins, assemblerArguments);
         };
+        console.log({child});
         if (child.is('AssemblerOperation')) {
             let [operationName] = child.filter('AssemblerOperationName');
             operationName = operationName.toString();
             let scheme = getScheme(operationName);
             if (scheme === undefined) {
+                console.log('here1');
                 throw new InternalError;
             }
             return toBufferChild(scheme.alias);
         }
         if (!child.is('AssemblerInstruction')) {
+            console.log('here2');
             throw new InternalError;
         }
         let [instructionName] = child.filter('AssemblerInstructionName');
@@ -91,23 +94,34 @@ export default class AssemblerStatement extends Token {
         return [].concat(...toArray(ins).map((ins) => {
             console.log({ins});
             // let grammar = new Grammar();
-            let lexer = new Lexer(ins);
-            let statement = this.grammar.tokenize('AssemblerStatement', lexer);
-            console.log({statement});
-            if (statement === null) {
-                throw new InternalError;
-            }
-            if (!lexer.isEof()) {
-                throw new InternalError;
-            }
-            // console.log(statement.stringify());
-            statement.filter('AssemblerReference').forEach((ref) => {
+            // let lexer = new Lexer(ins);
+            let asmStatement = this.tokenize(ins);
+            asmStatement.filter('AssemblerReference').forEach((ref) => {
                 let i = ref.toString().slice(1);
-                ref.parent.replace(myArguments[i]);
+                // console.log('do clone', {i});
+                let arg = myArguments[i];
+                if (arg === undefined) {
+                    throw new InternalError;
+                }
+                arg = arg.clone();
+                ref.parent.replace(arg);
             });
             // console.log(statement.stringify());
             // console.log({refs}, {myArguments});
-            return statement.toBuffer(arch);
+            return asmStatement.toBuffer(arch);
+            // if (!lexer.isEof()) {
+                // throw new InternalError;
+            // }
+            // let astAsmStatement = this.grammar.toAst(astAsmStatement);
+            // astAsmStatement = this.grammar.shackle(astAsmStatement);
+            // console.log({statement}, lexer.isEof());
+            // if (statement === null) {
+                // throw new InternalError;
+            // }
+            // if (!lexer.isEof()) {
+            //     throw new InternalError;
+            // }
+            // console.log(statement.stringify());
             // let lexer = new Lexer(ins);
             // let statement = new AssemblerStatement(lexer).tokenize(myArguments);
         }));

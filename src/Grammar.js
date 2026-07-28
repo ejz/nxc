@@ -8,7 +8,6 @@ import AssemblerStatement from './tokens/AssemblerStatement.js';
 import InlineSep from './tokens/InlineSep.js';
 import InternalError from './errors/InternalError.js';
 
-const isArray = Array.isArray;
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const tokenCtors = {
@@ -116,7 +115,7 @@ export default class Grammar {
         let res = ctor.resolve ?? resolver;
         return (lexer) => {
             let value;
-            let start = lexer.position;
+            let token = new ctor(name, lexer, this);
             lexer.try(() => {
                 value = res(lexer);
                 return value !== null;
@@ -124,16 +123,8 @@ export default class Grammar {
             if (value === null) {
                 return null;
             }
-            let token = new ctor(name);
-            token.start = start;
-            token.lexer = lexer;
-            token.grammar = this;
-            token.end = lexer.position;
-            if (isArray(value)) {
-                token.children = value;
-            } else {
-                token.value = value;
-            }
+            // console.log({name, value});
+            token.finalize(value);
             if (token.preValidate !== undefined && !token.preValidate()) {
                 return null;
             }
@@ -164,6 +155,8 @@ export default class Grammar {
                     if (plus && children.length === 0) {
                         return null;
                     }
+                    if (children.length > 1)
+                    console.log(children.length);
                     return children;
                 };
             };
@@ -287,40 +280,19 @@ export default class Grammar {
     }
 
     tokenize(name, lexer) {
-        return this.getTokenResolver(name)(lexer);
-        // if (token !== null) {
-        //     token = this.toAst(token, parent);
-        //     token = this.shackle(token);
-        // }
-        // return token;
-    }
-
-    toAst(token, parent = null, calls) {
-        let topCall = calls === undefined;
-        calls ??= [];
-        token.parent = parent;
-        if (token.postValidate !== undefined) {
-            calls.push(() => token.postValidate());
+        let ast = this.getTokenResolver(name)(lexer);
+        if (ast === null) {
+            return null;
         }
-        let list = token.children ?? [];
-        list.forEach((child) => {
-            this.toAst(child, token, calls);
-        });
-        if (topCall) {
-            calls.forEach((call) => call());
-        }
-        return token;
-    }
-
-    shackle(ast) {
-        let filter = (token) => {
+        // this.#toAst(ast, parent);
+        let filter = (ast) => {
             return [
                 'OptionalToken',
                 'RepeatToken',
                 'ChoiceToken',
                 'SequenceToken',
                 'LookupToken',
-            ].includes(token.name);
+            ].includes(ast.name);
         };
         let tokens = ast.filter(filter);
         tokens.forEach((token) => {
@@ -328,6 +300,30 @@ export default class Grammar {
         });
         return ast;
     }
+
+    // #toAst(token, parent) {
+    //     token.parent = parent;
+    //     let list = token.children ?? [];
+    //     list.forEach((child) => {
+    //         this.#toAst(child, token);
+    //     });
+    // }
+    // if (token !== null) {
+    //     token = this.toAst(token, parent);
+    //     token = this.shackle(token);
+    // }
+    // return token;
+    // let topCall = calls === undefined;
+    // calls ??= [];
+    // if (token.postValidate !== undefined) {
+    //     calls.push(() => token.postValidate());
+    // }
+    // if (topCall) {
+    //     calls.forEach((call) => call());
+    // }
+    // return token;
+    // shackle(ast) {
+    // }
 }
 
 // function toPredicate(predicate) {

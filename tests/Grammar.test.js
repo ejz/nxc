@@ -123,23 +123,20 @@ test('Grammar / 2', (t) => {
     });
     let cases = [
         ['Single', 'single', ['Single', ' KeywordToken']],
-        ['Opt', 'opt', ['Opt', ' OptionalToken', '  KeywordToken'], ['Opt', ' KeywordToken']],
-        ['Repeat', 'rr', ['Repeat', ' RepeatToken', '  KeywordToken', '  KeywordToken'], ['Repeat', ' KeywordToken', ' KeywordToken']],
-        ['Choice', 'a', ['Choice', ' ChoiceToken', '  KeywordToken'], ['Choice', ' KeywordToken']],
-        ['Seq', 'ab', ['Seq', ' SequenceToken', '  KeywordToken', '  KeywordToken'], ['Seq', ' KeywordToken', ' KeywordToken']],
+        ['Opt', 'opt', ['Opt', ' KeywordToken']],
+        ['Repeat', 'rr', ['Repeat', ' KeywordToken', ' KeywordToken']],
+        ['Choice', 'a', ['Choice', ' KeywordToken']],
+        ['Seq', 'ab', ['Seq', ' KeywordToken', ' KeywordToken']],
         ['Ref', 'a', ['Ref', ' KeywordToken']],
-        ['Gr1', '', ['Gr1', ' SequenceToken', '  GreedyToken'], ['Gr1', ' GreedyToken']],
-        ['Gr2', 'bbba', ['Gr2', ' SequenceToken', '  GreedyToken', '  KeywordToken'], ['Gr2', ' GreedyToken', ' KeywordToken']],
-        ['L1', 'bbba', ['L1', ' SequenceToken', '  RepeatToken', '   KeywordToken', '   KeywordToken', '   KeywordToken', '  LookupToken', '  KeywordToken'], ['L1', ' KeywordToken', ' KeywordToken', ' KeywordToken', ' KeywordToken']],
+        ['Gr1', '', ['Gr1', ' GreedyToken']],
+        ['Gr2', 'bbba', ['Gr2', ' GreedyToken', ' KeywordToken']],
+        ['L1', 'bbba', ['L1', ' KeywordToken', ' KeywordToken', ' KeywordToken', ' KeywordToken']],
     ];
-    for (let [tt, input, tree1, tree2 = tree1] of cases) {
+    for (let [tt, input, tree] of cases) {
         let lexer = new Lexer(input);
-        let token = grammar.tokenize(tt, lexer);
+        let ast = grammar.tokenize(tt, lexer);
         t.equals(lexer.isEof(), true);
-        t.deepEqual(token.toTree(' '), tree1);
-        let ast = grammar.toAst(token);
-        ast = grammar.shackle(ast);
-        t.deepEqual(ast.toTree(' '), tree2);
+        t.deepEqual(ast.toTree(' '), tree);
     }
     t.end();
 });

@@ -1,3 +1,4 @@
+import Lexer from '../Lexer.js';
 import InternalError from '../errors/InternalError.js';
 
 export const Walk = {
@@ -6,10 +7,64 @@ export const Walk = {
     Stop: -1,
 };
 
+const isArray = Array.isArray;
+
 export default class Token {
-    constructor(name, parent = null) {
+    constructor(name, lexer, grammar) {
         this.name = name;
-        this.parent = parent;
+        this.lexer = lexer;
+        this.grammar = grammar;
+        this.parent = null;
+        this.start = this.lexer.position;
+        this.end = null;
+    }
+
+    finalize(value) {
+        this.end = this.lexer.position;
+        this.finalizeValue = value;
+    }
+
+    get finalizeValue() {
+        return this._finalizeValue;
+    }
+
+    set finalizeValue(finalizeValue) {
+        let ref = this._finalizeValue = finalizeValue;
+        if (this.isLeaf) {
+            this.value = ref;
+        } else {
+            this.children = ref;
+        }
+    }
+
+    get children() {
+        return this._children ?? [];
+    }
+
+    set children(children) {
+        this._children = children;
+        this._children.forEach((child) => {
+            child.parent = this;
+        });
+    }
+
+    get isLeaf() {
+        return !isArray(this.finalizeValue);
+    }
+
+    clone() {
+        let ctor = this.constructor;
+        let token = new ctor(this.name, this.lexer, this.grammar);
+        token.start = this.start;
+        let finalizeValue = this.finalizeValue;
+        if (!this.isLeaf) {
+            finalizeValue = finalizeValue.map((token) => {
+                return token.clone();
+            });
+        }
+        token.finalize(finalizeValue);
+        token.end = this.end;
+        return token;
     }
 
     is(...names) {
@@ -17,17 +72,21 @@ export default class Token {
     }
 
     getChild(n = 0) {
-        let list = this.children ?? [];
-        let child = list[n];
-        child ??= null;
-        if (child === null) {
+        let child = this.children[n];
+        if (child === undefined) {
             throw new InternalError;
         }
         return child;
     }
 
     toString() {
-        if (this.value !== undefined) {
+        if (this.isLeaf) {
+            // console.log({
+            //     name: this.name, value: this.value, start: this.start, end: this.end,
+            //     lexer: this.lexer,
+            //     parentChild: this.parent.children[0].children,
+            //     parentChildEq: this.parent.children[0].children[1] === this.parent.children[0].children[2],
+            // });
             return this.value;
         }
         return this.children.map((child) => {
@@ -40,8 +99,7 @@ export default class Token {
         if ([Walk.Ignore, Walk.Stop].includes(res)) {
             return res;
         }
-        let list = this.children ?? [];
-        for (let child of list) {
+        for (let child of this.children) {
             let res = child.walk(callback);
             if (res === Walk.Stop) {
                 return res;
@@ -50,7 +108,7 @@ export default class Token {
         return Walk.Continue;
     }
 
-    remove(rec = true) {
+    remove() {
         let parent = this.parent;
         if (parent === null) {
             throw new InternalError;
@@ -61,25 +119,12 @@ export default class Token {
             throw new InternalError;
         }
         list.splice(idx, 1);
-        if (list.length === 0 && rec) {
-            parent.remove();
-        }
     }
 
     filter(filterFn) {
         if (typeof filterFn === 'string') {
             let names = filterFn.split('|');
             filterFn = (token) => names.includes(token.name);
-            // {
-            //     // let idx = names.indexOf(token.name);
-            //     // return idx !== -1 && predicates[idx](token);
-            // };
-            // let predicates = [];
-            // for (let filter of ) {
-                // let idx = filter.indexOf('<');
-                // names.push(idx !== -1 ? filter.slice(0, idx) : filter);
-                // predicates.push(idx !== -1 ? toPredicate(filter.slice(idx + 1, -1)) : (() => true));
-            // }
         }
         let collector = [];
         this.walk((token) => {
@@ -100,16 +145,16 @@ export default class Token {
         if (parent === null) {
             throw new InternalError;
         }
-        let list = parent.children;
-        let children = this.children;
-        children.forEach((child) => {
+        let plist = parent.children;
+        let list = this.children;
+        list.forEach((child) => {
             child.parent = parent;
         });
-        let idx = list.indexOf(this);
+        let idx = plist.indexOf(this);
         if (idx === -1) {
             throw new InternalError;
         }
-        list.splice(idx, 1, ...children);
+        plist.splice(idx, 1, ...list);
     }
 
     replace(token) {
@@ -129,10 +174,21 @@ export default class Token {
     toTree(pad = ' ') {
         let lines = [];
         lines.push(this.name);
-        let list = this.children ?? [];
+        let list = this.children;
         list.forEach((token) => {
-            lines.push(...token.toTree(pad).map((line) => pad + line));
+            lines.push(...token.toTree(pad).map((line) => {
+                return pad + line;
+            }));
         });
         return lines;
+    }
+
+    tokenize(code, name = this.name) {
+        let lexer = new Lexer(code);
+        let token = this.grammar.tokenize(name, lexer);
+        if (token === null || !lexer.isEof()) {
+            throw new InternalError;
+        }
+        return token;
     }
 }
