@@ -48,7 +48,6 @@ export default class AssemblerStatement extends Token {
         let schemes = possible.map((instruction) => {
             return getScheme(instruction);
         });
-        console.log({schemes});
         schemes = schemes.filter((scheme) => scheme !== undefined);
         if (schemes.length !== 1) {
             throw new Error;

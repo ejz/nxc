@@ -81,12 +81,6 @@ export default class Token {
 
     toString() {
         if (this.isLeaf) {
-            // console.log({
-            //     name: this.name, value: this.value, start: this.start, end: this.end,
-            //     lexer: this.lexer,
-            //     parentChild: this.parent.children[0].children,
-            //     parentChildEq: this.parent.children[0].children[1] === this.parent.children[0].children[2],
-            // });
             return this.value;
         }
         return this.children.map((child) => {

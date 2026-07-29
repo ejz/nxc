@@ -975,37 +975,6 @@ export function sibAware(asmArg) {
         sib.disp = operand;
     }
     asmArg.sib = sib;
-    // for (let [i, operand] of operands.entries()) {
-    //     operand = operand.getChild();
-        
-        
-    //     console.log(operation);
-    //     // if (!isRegister) {
-
-    //     //     // part.integer
-    //     // }
-
-    // }
-    // let {scale, base, index, disp, minus} = sib;
-    // if (scale !== null && !arch.scales.includes(scale)) {
-    //     return false;
-    // }
-    // if (base !== null && !register.r32.includes(base)) {
-    //     return false;
-    // }
-    // if (index !== null && !register.r32.includes(index)) {
-    //     return false;
-    // }
-    // if (disp !== null) {
-    //     let int = parseInt(disp);
-    //     int = minus ? -int : int;
-    //     if (!types.i32.is(int)) {
-    //         return false;
-    //     }
-    //     sib.disp = int;
-    //     return true;
-    // }
-    // return base !== null || index !== null;
 }
 
 const reverseKeyValue = ([key, value]) => [value, key];
