@@ -25,28 +25,8 @@ export default class AssemblerBlock extends Token {
                     throw new Error;
                 }
                 labels[name] = offset;
-                // continue;
-                // console.log({asmLabel});
             }
-            // let [token] = statement.children;
             let buffers = statement.toBuffer(arch);
-            // console.log({token});
-            // if ()
-            // if (statement.label !== null) {
-            //     let name = statement.label.name;
-            
-            // }
-            // try {
-            //     buffers = ;
-            // } catch (e) {
-            //     if (e instanceof LexerError) {
-            //         throw e;
-            //     }
-            //     if (!(e instanceof AppError)) {
-            //         throw e;
-            //     }
-            //     throw statement.error(e);
-            // }
             buffers.forEach((chunk) => {
                 let length = chunk.length;
                 if (chunk.callback !== undefined) {

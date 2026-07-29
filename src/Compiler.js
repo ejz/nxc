@@ -80,28 +80,6 @@ export default class Compiler {
             }
             elf.push(assemblerBlock.toBuffer(x86));
         }
-        // console.log(assemblerBlock.toString());
-        // console.log(assemblerBlocks[0].children[0]);
-        // assemblerBlock.remove();
-        // let check = ast.filter('*<parent=Program>');
-        // console.log(check);
-        // ;
-        // Lexer.collect(program, (token) => {
-        //     if (token === program) {
-        //         return;
-        //     }
-        //     // if (token.name === 'SepOpt') {
-        //     //     return;
-        //     // }
-        //     //     if (token.parent !== program) {
-        //     //         throw new Error;
-        //     //     }
-        //     // console.log(token, grammar.tokenDescriptors);
-        //     // if (token.name !== 'AssemblerBlock') {
-        //     //     throw new Error;
-        //     // }
-        //     // return [LexerWalk.Ignore, true];
-        // });
         return elf.toBuffer();
     }
 
