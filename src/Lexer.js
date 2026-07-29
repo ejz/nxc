@@ -96,6 +96,7 @@ export default class Lexer {
     }
 
     error(opts) {
+        console.log(this);
         return new LexerError(this, opts);
     }
 

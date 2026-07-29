@@ -749,14 +749,14 @@ export default {
 };
 
 export function relClosure(iN) {
-    let resolver = ({register = null, label = null}) => {
-        return false;
-        return register !== null || label !== null;
+    let resolver = (asmArg) => {
+        asmArg = asmArg.getChild();
+        return asmArg.is('AssemblerRegister', 'AssemblerLabelName');
     };
-    let composer = ({register = null, label = null}) => {
-        let name = register ?? label;
+    let composer = (asmArg) => {
+        let name = asmArg.toString();
         let buf = Buffer.alloc(iN.size);
-        buf.callback = ({offset, length, labels}) => {
+        buf.callback = (labels, length, offset) => {
             let label = labels[name];
             if (label === undefined) {
                 throw new InvalidLabelNameError(name);

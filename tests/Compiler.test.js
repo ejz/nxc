@@ -137,56 +137,24 @@ test('Compiler / 4', (t) => {
         ['mov ax, :0x200', 'mov ax, ds:0x200'],
         ['mov eax, ds:1000', 'mov eax, ds:0x3e8'],
         ['mov ax, ds:0x200', 'mov ax, ds:0x200'],
-        // ['l:; jmp.8 l', 'jmp 0x0'],
-        // ['l:; jmp l', 'jmp 0x0'],
-        // ['l: jmp.8 l', 'jmp 0x0'],
-        // ['jmp.8 l; l:', 'jmp 0x2'],
+        ['l:; jmp.8 l', 'jmp 0x0'],
+        ['l:; jmp l', 'jmp 0x0'],
+        ['jmp.8 l; l:', 'jmp 0x2'],
+        ['jmp l; l:', 'jmp 0x2'],
+        ['l: jmp.8 l', 'jmp 0x0'],
+        ['jmp.8 l; l: nop', 'jmp 0x2'],
     ];
-    // let file = tmp('tmp-', '.bin');
     for (let [inp, out] of cases) {
         let code = `asm{${inp}}`;
-        // if (Math.random() > .5) {
-        //     let lexer = new Lexer(code);
-        //     let program = new Program(lexer).tokenize();
-        //     code = program.stringify();
-        // }
         let buffer = compiler.compile(code);
         t.equal(buffer.slice(1, 4).toString(), 'ELF');
         let stdout = getAsm(buffer.slice(0x60));
         stdout = stdout.replace(/(,)/g, '$1 ');
         stdout = stdout.replace(/([+*-])/g, ' $1 ');
-        // console.log({stdout});
         t.equal(stdout, out, inp);
-        // rmFile(file);
     }
     t.end();
 });
-
-// console.log({code});
-// test('Compiler / 2', (t) => {
-//     let buffer = Buffer.concat([
-//         Buffer.from('/*\n*/'),
-//         Buffer.from([255]),
-//     ]);
-//     console.log(buffer);
-//     let compiler = getCompiler();
-//     let err = caught(() => compiler.compile(buffer));
-//     console.log(err);
-//     t.end();
-
-//     // () => 
-//     // t.throws(() => compiler.compile([128]));
-//     // let elf = compiler.compile('');
-//     // t.equal(elf.slice(1, 4).toString(), 'ELF');
-// });
-
-// import Program from '../src/tokens/Program.js';
-
-// import x86 from '../src/arch/x86.js';
-
-// test('Compiler / 2', (t) => {
-
-// });
 
 function getAsm(buffer, lines = 1) {
     writeFile(binTmp, buffer);

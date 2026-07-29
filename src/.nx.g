@@ -6,6 +6,7 @@ Program -> Sep* (Statement Sep*)*
 
 Sep -> Space | Newline+ | Comment
 InlineSep -> Sep
+NotInlineSep -> InlineSep* Sep
 Space -> /^[ \t]+/
 Newline -> '\r\n' | '\r' | '\n'
 Comment -> SinglelineComment | MultilineComment
@@ -15,9 +16,14 @@ DecNum -> '0' | /^[1-9][0-9]*/
 Comma -> Sep* ',' Sep*
 Eof -> /^$/
 HexNum -> /^0[xX][0-9a-fA-F]+/
-Num -> HexNum | DecNum
+BinNum -> /^0[bB][0-1]+/
+OctNum -> /^0[oO][0-7]+/
+Num -> BinNum | OctNum | HexNum | DecNum
 Int -> Sign? Num
 Sign -> '+' | '-'
+End -> (Sep* (Eof | '}')) | NotInlineSep
+Term -> InlineSep* ';'
+TermEnd -> Term | ?End
 
 # Statement
 
@@ -26,23 +32,32 @@ Statement ->
     | RegularBlock
     | AssemblerBlock
 EmptyStatement -> ';'
-RegularBlock -> '{' ^ Sep* (Statement Sep*)* '}'
+RegularBlock -> '{'
+    ^
+    Sep*
+    (Statement Sep*)*
+'}'
 
 # AssemblerBlock
 
-AssemblerBlock -> `asm` Sep* '{' ^ Sep* (AssemblerStatement Sep*)* '}'
+AssemblerBlock -> `asm` Sep* '{'
+    ^
+    Sep*
+    (AssemblerStatement Sep*)*
+'}'
 AssemblerStatement ->
-    AssemblerLabelStatement
-    | AssemblerEmptyStatement
+    AssemblerEmptyStatement
+    | AssemblerLabelStatement
     | AssemblerOperation
     | AssemblerInstruction
-AssemblerLabelStatement -> AssemblerLabel
+AssemblerLabelStatement -> AssemblerLabel TermEnd
 AssemblerEmptyStatement -> ';'
 AssemblerInstruction ->
     (AssemblerLabel InlineSep+)?
     AssemblerInstructionName
     AssemblerInstructionOperandSize?
     (InlineSep+ AssemblerArguments)?
+    TermEnd
 AssemblerInstructionName -> AssemblerInstructionNamePart ('.' AssemblerInstructionNamePart)*
     AssemblerInstructionNamePart -> /^[a-zA-Z][a-zA-Z0-9]*/
     AssemblerInstructionOperandSize -> '.' DecNum
@@ -50,8 +65,8 @@ AssemblerArguments -> AssemblerArgument (Comma AssemblerArgument)*
 AssemblerArgument ->
     AssemblerReference
     | AssemblerAddress
-    | AssemblerLabel
     | AssemblerRegister
+    | AssemblerLabelName
     | AssemblerInteger
     | AssemblerSib
 AssemblerReference -> '$' DecNum
@@ -60,6 +75,7 @@ AssemblerAddress -> AssemblerAddressSegment? ':' Int
 AssemblerAddressSegment -> AssemblerRegister | Num
 AssemblerInteger -> Int
 AssemblerSib -> '['
+    ^
     Sep*
     AssemblerSibOperand
     (
@@ -78,6 +94,7 @@ AssemblerOperation ->
     Sep* AssemblerOperationName Sep*
     ^
     AssemblerArguments
+    TermEnd
 AssemblerOperationName -> '=' | '++' | '--' | '!='
 AssemblerLabel -> AssemblerLabelName ':'
 AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/

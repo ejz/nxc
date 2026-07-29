@@ -2,21 +2,39 @@ import Token from './Token.js';
 
 export default class AssemblerBlock extends Token {
     toBuffer(arch) {
-        // let labels = Object.create(null);
-        // let offset = 0;
+        let labels = Object.create(null);
+        let offset = 0;
         let chunks = [];
         let callbacks = [];
         for (let statement of this.filter('AssemblerStatement')) {
+            let child = statement.getChild();
+            if (child.is('AssemblerLabelStatement')) {
+                let [label] = child.filter('AssemblerLabelName');
+                let name = label.toString();
+                if (labels[name] !== undefined) {
+                    throw new Error;
+                }
+                labels[name] = offset;
+                continue;
+            }
+            let [asmLabel = null] = child.filter('AssemblerLabel');
+            if (asmLabel !== null && asmLabel.parent.is('AssemblerInstruction', 'AssemblerOperation')) {
+                let [label] = child.filter('AssemblerLabelName');
+                let name = label.toString();
+                if (labels[name] !== undefined) {
+                    throw new Error;
+                }
+                labels[name] = offset;
+                // continue;
+                // console.log({asmLabel});
+            }
             // let [token] = statement.children;
             let buffers = statement.toBuffer(arch);
             // console.log({token});
             // if ()
             // if (statement.label !== null) {
             //     let name = statement.label.name;
-            //     if (labels[name] !== undefined) {
-            //         throw statement.label.error();
-            //     }
-            //     labels[name] = offset;
+            
             // }
             // try {
             //     buffers = ;
@@ -30,23 +48,20 @@ export default class AssemblerBlock extends Token {
             //     throw statement.error(e);
             // }
             buffers.forEach((chunk) => {
-                // let length = chunk.length;
-                // if (chunk.callback !== undefined) {
-                //     let chunkOffset = offset;
-                //     callbacks.push(() => chunk.callback({
-                //         offset: chunkOffset,
-                //         length,
-                //         labels,
-                //     }));
-                // }
+                let length = chunk.length;
+                if (chunk.callback !== undefined) {
+                    let chunkOffset = offset;
+                    callbacks.push(() => {
+                        chunk.callback(labels, length, chunkOffset);
+                    });
+                }
                 chunks.push(chunk);
-                // offset += length;
+                offset += length;
             });
         }
         callbacks.forEach((callback) => {
             callback();
         });
-        console.log({chunks});
         return Buffer.concat(chunks);
     }
 }
