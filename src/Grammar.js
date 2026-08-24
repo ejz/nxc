@@ -101,23 +101,22 @@ export default class Grammar {
             });
         }
         rule = this.getResolverFromRule(rule, resolvers);
-        let wrapResolver;
+        let subResolver;
         let resolver = this.wrapResolver(name, (lexer) => {
-            wrapResolver ??= resolvers.doResolve(rule);
-            let child = wrapResolver(lexer);
+            subResolver ??= resolvers.doResolve(rule);
+            let child = subResolver(lexer);
             return child === null ? null : [child];
         });
         this.tokenResolvers[name] = resolver;
     }
 
-    wrapResolver(name, resolver) {
+    wrapResolver(name, resolve) {
         let ctor = this.tokenConstructors[name] ?? this.defaultTokenContructor;
-        let res = ctor.resolve ?? resolver;
         return (lexer) => {
             let value;
             let token = new ctor(name, lexer, this);
             lexer.try(() => {
-                value = res(lexer);
+                value = resolve(lexer);
                 return value !== null;
             });
             if (value === null) {
