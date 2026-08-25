@@ -19,6 +19,10 @@ export default class Token {
         this.end = null;
     }
 
+    get content() {
+        
+    }
+
     finalize(value) {
         this.end = this.lexer.position;
         this.finalizeValue = value;
@@ -165,17 +169,17 @@ export default class Token {
         list.splice(idx, 1, token);
     }
 
-    toTree(pad = ' ') {
-        let lines = [];
-        lines.push(this.name);
-        let list = this.children;
-        list.forEach((token) => {
-            lines.push(...token.toTree(pad).map((line) => {
-                return pad + line;
-            }));
-        });
-        return lines;
-    }
+    // toTree(pad = ' ') {
+    //     let lines = [];
+    //     lines.push(this.name);
+    //     let list = this.children;
+    //     list.forEach((token) => {
+    //         lines.push(...token.toTree(pad).map((line) => {
+    //             return pad + line;
+    //         }));
+    //     });
+    //     return lines;
+    // }
 
     tokenize(code, name = this.name) {
         let lexer = new Lexer(code);
