@@ -31,6 +31,17 @@ export default class Lexer {
         return str;
     }
 
+    eatRegex(regex) {
+        let tail = this.tail;
+        let match = tail.match(regex);
+        if (match === null) {
+            return null;
+        }
+        let [m] = match;
+        this.proceed(m.length);
+        return m;
+    }
+
     // eatCharacter() {
     //     if (this.isEof()) {
     //         return null;
@@ -88,16 +99,7 @@ export default class Lexer {
     //     return [tail.slice(0, pos), found];
     // }
 
-    // eatRegex(regex) {
-    //     let tail = this.tail;
-    //     let match = tail.match(regex);
-    //     if (match === null) {
-    //         return null;
-    //     }
-    //     let [m] = match;
-    //     this.proceed(m.length);
-    //     return m;
-    // }
+    
 
     // // error(opts) {
     // //     return new LexerError(this, opts);

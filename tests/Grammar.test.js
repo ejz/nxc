@@ -10,6 +10,53 @@ const test = tapePromise.default(tape);
 test.only('Grammar / 1', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
+            'A -> `a`',
+            'AA -> A',
+            'AAA -> AA',
+            'B -> `b`',
+            'BB -> B',
+            'BBB -> BB',
+            'AB -> A B',
+            'AAABBB -> AAA BBB',
+            'AORB -> A | B',
+            'AAAORBBB -> AAA | BBB',
+            'A1 -> `a` | `b`',
+            'A2 -> `a` `b`',
+            'S1 -> \'string\'',
+            'R1 -> /a|b|c/i /1|2|3/',
+        ].join('\n'),
+    });
+    let cases = [
+        ['`a`', 'a'],
+        ['A', 'a'],
+        ['AAA', 'a'],
+        ['AB', 'ab'],
+        ['AAABBB', 'ab'],
+        ['AORB', 'a'],
+        ['AORB', 'b'],
+        ['AAAORBBB', 'a'],
+        ['AAAORBBB', 'b'],
+        ['A1', 'a'],
+        ['A1', 'b'],
+        ['A2', 'ab'],
+        ['S1', 'string'],
+        ['R1', 'a1'],
+        ['R1', 'B2'],
+        ['R1', 'c3'],
+    ];
+    for (let [tt, input] of cases) {
+        let lexer = new Lexer(input);
+        let token = grammar.tokenize(tt, lexer);
+        t.ok(token !== null);
+        t.equals(token.toString(), input);
+        t.equals(lexer.isEof(), true);
+    }
+    t.end();
+});
+
+test('Grammar / 2', (t) => {
+    let grammar = new Grammar({
+        grammarFileContent: [
             'B -> `b`',
             // 'A -> \'a\'',
             // 'C -> /^c/',
@@ -44,7 +91,7 @@ test.only('Grammar / 1', (t) => {
     });
     let cases = [
         ['`b`', 'b'],
-        // ['B', 'b'],
+        ['B', 'b'],
         // ['C', 'c'],
         // ['AAA', 'a'],
         // ['AB', 'a'],

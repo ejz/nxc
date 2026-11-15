@@ -1,4 +1,35 @@
+export default class Token {
+    constructor(lexer, name) {
+        this.lexer = lexer;
+        this.name = name;
+        this.start = this.lexer.position;
+        this.end = null;
+    }
 
+    finalize(isResolved, parents) {
+        if (!isResolved) {
+            this.lexer.position = this.start;
+            this.onToken(false, parents);
+            return null;
+        }
+        this.end = this.lexer.position;
+        this.onToken(true, parents);
+        return this;
+    }
+
+    onToken(isResolved, parents) {
+        let map = (t) => t.name;
+        let delim = ' <- ';
+        console.log(
+            '(%s) (pos = %s) %s %s%s',
+            parents.length,
+            this.start,
+            isResolved ? '[v]' : '[x]',
+            parents.map(map).join(delim),
+            (parents.length === 0 ? '' : delim) + this.name,
+        );
+    }
+}
 
 // import Lexer from '../Lexer.js';
 // import InternalError from '../errors/InternalError.js';
@@ -11,24 +42,13 @@
 
 // const isArray = Array.isArray;
 
-export default class Token {
-    constructor(name, lexer) {
-        this.name = name;
-        this.lexer = lexer;
-        this.start = this.lexer.position;
-        this.end = null;
-    }
-
-    finalize() {
-        this.end = this.lexer.position;
-        return this;
-    }
+// this.onToken(childToken !== null, token, parents);
 
     // constructor(name, lexer, grammar) {
     //     this.name = name;
     //     this.lexer = lexer;
     //     this.grammar = grammar;
-    //     this.parent = null;
+    //     
     //     this.start = this.lexer.position;
     //     this.end = null;
     // }
@@ -201,9 +221,8 @@ export default class Token {
     //     }
     //     return token;
     // }
-}
 
-
+// console.log({isResolved, parents});
 // import Lexer from '../Lexer.js';
 // import InternalError from '../errors/InternalError.js';
 
