@@ -9,6 +9,7 @@ import RegexToken from './tokens/RegexToken.js';
 import SequenceToken from './tokens/SequenceToken.js';
 import ChoiceToken from './tokens/ChoiceToken.js';
 import GroupToken from './tokens/GroupToken.js';
+import OptionalToken from './tokens/OptionalToken.js';
 
 // import AssemblerBlock from './tokens/AssemblerBlock.js';
 // import AssemblerStatement from './tokens/AssemblerStatement.js';
@@ -61,26 +62,25 @@ export default class Grammar {
         for (let i = 0; i < pairs.length; i += 2) {
             let [name, rule] = pairs.slice(i);
             rule = rule.trim().replace(/\s+/g, ' ');
-            let ref = this.tokenMetas[name] = {rule};
+            let ref = this.tokenMetas[name] = {originalRule: rule};
             let ctor = this.tokenConstructors[name] ?? null;
             ref.ctor = ctor ?? this.defaultTokenContructor;
             ref.ctorArgs = ctor === null ? [name] : [];
+            [ref.rule, ref.innerList] = this.prepareRule(ref.originalRule);
         }
     }
 
-    getTokenResolverBackend(rule, innerRef, globalParents = []) {
-        let getResolver = (term, ...localParents) => {
-            if (isFinite(term)) {
-                let parents = [].concat(globalParents, localParents);
-                return innerRef[term](parents);
+    getTokenResolver(rule, innerList, ...globalParents) {
+        let getTokenResolver = (rule, ...localParents) => {
+            if (isFinite(rule)) {
+                return innerList[rule](...globalParents, ...localParents);
             }
-            let {rule, ctor, ctorArgs} = this.tokenMetas[term];
+            let {rule: newRule, innerList: newInnerList, ctor, ctorArgs} = this.tokenMetas[rule];
             return (lexer) => {
                 let token = new ctor(lexer, ...ctorArgs);
-                let parents = [].concat(globalParents, localParents);
-                let resolver = this.getTokenResolver(rule, [].concat(parents, token));
+                let resolver = this.getTokenResolver(newRule, newInnerList, ...globalParents, ...localParents, token);
                 let child = resolver(lexer);
-                return token.finalize(child, parents);
+                return token.finalize(child, [].concat(globalParents, localParents));
             };
         };
         if (rule.includes('|')) {
@@ -88,7 +88,7 @@ export default class Grammar {
                 let token = new ChoiceToken(lexer);
                 let child = null;
                 rule.split(' | ').some((rule) => {
-                    let resolver = getResolver(rule, token);
+                    let resolver = getTokenResolver(rule, token);
                     child = resolver(lexer);
                     return child !== null;
                 });
@@ -97,53 +97,97 @@ export default class Grammar {
         }
         let parts = rule.split(' ');
         if (parts.length === 1) {
-            return getResolver(rule);
+            return getTokenResolver(rule);
         }
         return (lexer) => {
             let token = new SequenceToken(lexer);
             let children = [];
             let isResolved = parts.every((rule) => {
-                let resolver = getResolver(rule, token);
-                let childToken = resolver(lexer);
-                children.push(childToken);
-                return childToken !== null;
+                let resolver = getTokenResolver(rule, token);
+                let child = resolver(lexer);
+                children.push(child);
+                return child !== null;
             });
             children = isResolved ? children : null;
             return token.finalize(children, globalParents);
         };
     }
 
-    getTokenResolver(rule, parents = []) {
-        let innerRef = [];
-        rule = rule.replace(/`.*?`|'.*?'|\/.*?\/\w*/g, (name) => {
-            let ref = (parents) => {
-                let [char] = name;
-                let idx = "`'/".indexOf(char);
-                let ctor = [KeywordToken, StringToken, RegexToken][idx];
-                return (lexer) => {
-                    let token = new ctor(lexer, name);
-                    let value = token.resolve();
-                    return token.finalize(value, parents);
-                };
-            };
-            return innerRef.push(ref) - 1;
-        });
-        let changed = true;
+    prepareRule(rule, innerList = null) {
+        let changed = innerList === null;
+        innerList ??= [];
         while (changed) {
             changed = false;
             rule = rule.replace(/\( ?([^()]+?) ?\)/g, (m, rule) => {
                 changed = true;
-                let ref = (parents) => (lexer) => {
+                [rule] = this.prepareRule(rule, innerList);
+                let elem = (...parents) => (lexer) => {
                     let token = new GroupToken(lexer);
-                    let resolver = this.getTokenResolverBackend(rule, innerRef, parents);
+                    let resolver = this.getTokenResolver(rule, innerList, ...parents, token);
                     let child = resolver(lexer);
                     return token.finalize(child, parents);
                 };
-                return innerRef.push(ref) - 1;
+                return innerList.push(elem) - 1;
             });
         }
-        return this.getTokenResolverBackend(rule, innerRef, parents);
+        rule = rule.replace(/`.*?`|'.*?'|\/.*?\/\w*/g, (name) => {
+            let [char] = name;
+            let idx = "`'/".indexOf(char);
+            let ctor = [KeywordToken, StringToken, RegexToken][idx];
+            let elem = (...parents) => (lexer) => {
+                let token = new ctor(lexer, name);
+                let value = token.resolve();
+                return token.finalize(value, parents);
+            };
+            return innerList.push(elem) - 1;
+        });
+        rule = rule.replace(/(\w+)([*+?])/g, (m, rule, p2) => {
+            if (p2 === '?') {
+                let elem = (...parents) => (lexer) => {
+                    let token = new OptionalToken(lexer);
+                    let resolver = this.getTokenResolver(rule, innerList, ...parents, token);
+                    let child = resolver(lexer);
+                    return token.finalize(child ?? [], parents);
+                };
+                return innerList.push(elem) - 1;
+            }
+            let min1 = p2 === '+';
+            let elem = (...parents) => (lexer) => {
+                let token = new RepeatToken(lexer);
+                let resolver = this.getTokenResolver(rule, innerList, ...parents, token);
+                let child, children = [];
+                while (child !== null) {
+                    child = resolver(lexer);
+                    children.push(child);
+                }
+                children.pop();
+                children = min1 && children.length === 0 ? null : children;
+                return token.finalize(children, parents);
+            };
+            return innerList.push(elem) - 1;
+        });
+        //             //         let optional = (elem) => {
+        // //             let resolver;
+        // //             return (lexer) => {
+        // //                 resolver ??= resolvers.getTokenResolver(elem);
+        // //                 let child = resolver(lexer);
+        // //                 return child === null ? [] : [child];
+        // //             };
+        // //         };
+        //             return;
+        //         }
+            //     let plus = p2 === '+';
+            //     let opti = p2 === '?';
+            //     let name = opti ? 'OptionalToken' : 'RepeatToken';
+            //     let resolver = opti ? optional(p1) : repeat(p1, plus);
+            //     let factory = this.factoryGetter(name);
+            //     resolver = this.wrapResolver(factory, resolver, withCtx(name, resolvers.getOriginalBackup(p1) + p2));
+            //     return resolvers.push(resolver);
+            // });
+        return [rule, innerList];
     }
+        // let parents = [].concat(globalParents, localParents);
+        // return this.getTokenResolverBackend(rule, innerRef, parents);
         // originalRule.replace(, (m) => {
 //     let [char] = m;
 //     if (char === '`') {
@@ -415,30 +459,8 @@ export default class Grammar {
     // getResolverFromRule(rule, tokenResolver, ctx) {
     //     let withCtx = withCtxGetter(ctx);
     //     {
-    //         let optional = (elem) => {
-    //             let resolver;
-    //             return (lexer) => {
-    //                 resolver ??= resolvers.getTokenResolver(elem);
-    //                 let child = resolver(lexer);
-    //                 return child === null ? [] : [child];
-    //             };
-    //         };
-    //         let repeat = (elem, plus) => {
-    //             let resolver;
-    //             return (lexer) => {
-    //                 resolver ??= resolvers.getTokenResolver(elem);
-    //                 let child, children = [];
-    //                 while (child !== null) {
-    //                     child = resolver(lexer);
-    //                     children.push(child);
-    //                 }
-    //                 children.pop();
-    //                 if (plus && children.length === 0) {
-    //                     return null;
-    //                 }
-    //                 return children;
-    //             };
-    //         };
+    
+    
     //         rule = rule.replace(/(\d+)([*+?])/g, (m, p1, p2) => {
     //             let plus = p2 === '+';
     //             let opti = p2 === '?';
@@ -477,8 +499,9 @@ export default class Grammar {
     //     // return resolvers.push(resolver);
     // }
 
-    tokenize(name, lexer) {
-        let tokenResolver = this.getTokenResolver(name);
+    tokenize(smth, lexer) {
+        let [rule, innerList] = this.prepareRule(smth);
+        let tokenResolver = this.getTokenResolver(rule, innerList);
         return tokenResolver(lexer);
         // if (ast === null) {
         //     return null;
