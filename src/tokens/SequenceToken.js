@@ -1,6 +1,6 @@
 import GenericToken from './GenericToken.js';
 
-const name = 'Seq';
+const name = 'Sequence';
 
 export default class SequenceToken extends GenericToken {
     constructor(...args) {

@@ -8,6 +8,7 @@ import StringToken from './tokens/StringToken.js';
 import RegexToken from './tokens/RegexToken.js';
 import SequenceToken from './tokens/SequenceToken.js';
 import ChoiceToken from './tokens/ChoiceToken.js';
+import GroupToken from './tokens/GroupToken.js';
 
 // import AssemblerBlock from './tokens/AssemblerBlock.js';
 // import AssemblerStatement from './tokens/AssemblerStatement.js';
@@ -67,62 +68,81 @@ export default class Grammar {
         }
     }
 
-    getTokenResolver(rule, parents = []) {
-        let innerRef = [];
-        let getTokenResolver = (term, additional = []) => {
+    getTokenResolverBackend(rule, innerRef, globalParents = []) {
+        let getResolver = (term, ...localParents) => {
             if (isFinite(term)) {
-                return innerRef[term]([].concat(parents, additional));
+                let parents = [].concat(globalParents, localParents);
+                return innerRef[term](parents);
             }
             let {rule, ctor, ctorArgs} = this.tokenMetas[term];
             return (lexer) => {
                 let token = new ctor(lexer, ...ctorArgs);
-                let resolver = this.getTokenResolver(rule, [].concat(parents, additional, token));
+                let parents = [].concat(globalParents, localParents);
+                let resolver = this.getTokenResolver(rule, [].concat(parents, token));
                 let child = resolver(lexer);
-                return token.finalize(child, [].concat(parents, additional));
+                return token.finalize(child, parents);
             };
         };
+        if (rule.includes('|')) {
+            return (lexer) => {
+                let token = new ChoiceToken(lexer);
+                let child = null;
+                rule.split(' | ').some((rule) => {
+                    let resolver = getResolver(rule, token);
+                    child = resolver(lexer);
+                    return child !== null;
+                });
+                return token.finalize(child, globalParents);
+            };
+        }
+        let parts = rule.split(' ');
+        if (parts.length === 1) {
+            return getResolver(rule);
+        }
+        return (lexer) => {
+            let token = new SequenceToken(lexer);
+            let children = [];
+            let isResolved = parts.every((rule) => {
+                let resolver = getResolver(rule, token);
+                let childToken = resolver(lexer);
+                children.push(childToken);
+                return childToken !== null;
+            });
+            children = isResolved ? children : null;
+            return token.finalize(children, globalParents);
+        };
+    }
+
+    getTokenResolver(rule, parents = []) {
+        let innerRef = [];
         rule = rule.replace(/`.*?`|'.*?'|\/.*?\/\w*/g, (name) => {
-            let key = innerRef.length;
             let ref = (parents) => {
                 let [char] = name;
-                let ctor = [KeywordToken, StringToken, RegexToken]["`'/".indexOf(char)];
+                let idx = "`'/".indexOf(char);
+                let ctor = [KeywordToken, StringToken, RegexToken][idx];
                 return (lexer) => {
                     let token = new ctor(lexer, name);
                     let value = token.resolve();
                     return token.finalize(value, parents);
                 };
             };
-            innerRef.push(ref);
-            return key;
+            return innerRef.push(ref) - 1;
         });
-        if (rule.includes('|')) {
-            return (lexer) => {
-                let token = new ChoiceToken(lexer);
-                let child = null;
-                rule.split(' | ').some((rule) => {
-                    let resolver = getTokenResolver(rule, token);
-                    child = resolver(lexer);
-                    return child !== null;
-                });
-                return token.finalize(child, parents);
-            };
-        }
-        let parts = rule.split(' ');
-        if (parts.length === 1) {
-            return getTokenResolver(rule);
-        }
-        return (lexer) => {
-            let token = new SequenceToken(lexer);
-            let children = [];
-            let isResolved = parts.every((rule) => {
-                let resolver = getTokenResolver(rule, token);
-                let childToken = resolver(lexer);
-                children.push(childToken);
-                return childToken !== null;
+        let changed = true;
+        while (changed) {
+            changed = false;
+            rule = rule.replace(/\( ?([^()]+?) ?\)/g, (m, rule) => {
+                changed = true;
+                let ref = (parents) => (lexer) => {
+                    let token = new GroupToken(lexer);
+                    let resolver = this.getTokenResolverBackend(rule, innerRef, parents);
+                    let child = resolver(lexer);
+                    return token.finalize(child, parents);
+                };
+                return innerRef.push(ref) - 1;
             });
-            children = isResolved ? children : null;
-            return token.finalize(children, parents);
-        };
+        }
+        return this.getTokenResolverBackend(rule, innerRef, parents);
     }
         // originalRule.replace(, (m) => {
 //     let [char] = m;
@@ -137,14 +157,7 @@ export default class Grammar {
 //         case '`': {
 //         }
         // innerDictionary
-        // let changed = true;
-        // while (changed) {
-        //     changed = false;
-        //     rule = rule.replace(/\( ?([^()]+?) ?\)/g, (m, p) => {
-        //         changed = true;
-        //         return this.getResolverFromRule(p, tokenResolver, ctx);
-        //     });
-        // }
+        
 
 
         // let [char] = name;
