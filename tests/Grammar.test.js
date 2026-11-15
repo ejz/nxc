@@ -10,13 +10,13 @@ const test = tapePromise.default(tape);
 test.only('Grammar / 1', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
-            'A -> \'a\'',
             'B -> `b`',
-            'C -> /^c/',
-            'AA -> A',
-            'AAA -> AA',
-            // 'AB -> `a` | `b`',
+            // 'A -> \'a\'',
+            // 'C -> /^c/',
+            // 'AA -> A',
+            // 'AAA -> AA',
             // 'BN -> `b`*',
+            // 'AB -> `a` | `b`',
             // 'ABN -> `a` | `b`*',
             // 'PQ -> `p` `q`',
             // 'PQN -> `p` `q`*',
@@ -43,10 +43,10 @@ test.only('Grammar / 1', (t) => {
         ].join('\n'),
     });
     let cases = [
-        ['A', 'a'],
-        ['B', 'b'],
-        ['C', 'c'],
-        ['AAA', 'a'],
+        ['`b`', 'b'],
+        // ['B', 'b'],
+        // ['C', 'c'],
+        // ['AAA', 'a'],
         // ['AB', 'a'],
         // ['AB', 'b'],
         // ['BN', ''],
