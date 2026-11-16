@@ -1,9 +1,28 @@
+import InternalError from '../errors/InternalError.js';
+
+export const Walk = {
+    Continue: 1,
+    Ignore: 0,
+    Stop: -1,
+};
+
+const isArray = Array.isArray;
+const toArray = (a) => isArray(a) ? a : [a];
+
 export default class Token {
     constructor(lexer, name) {
         this.lexer = lexer;
         this.name = name;
         this.start = this.lexer.position;
         this.end = null;
+        this.parent = null;
+        this.children = [];
+    }
+
+    toString() {
+        return this.children.map((token) => {
+            return token.toString();
+        }).join('');
     }
 
     reset() {
@@ -14,13 +33,17 @@ export default class Token {
         this.end = this.lexer.position;
     }
 
-    finalize(isResolved, parents) {
-        if (!isResolved) {
+    finalize(children, parents) {
+        if (children === null) {
             this.reset();
             this.onToken(false, parents);
             return null;
         }
         this.fix();
+        this.children = toArray(children);
+        this.children.forEach((child) => {
+            child.parent = this;
+        });
         this.onToken(true, parents);
         return this;
     }
@@ -38,20 +61,64 @@ export default class Token {
             (parents.length === 0 ? '' : delim) + this.name,
         );
     }
+
+    toTree(pad = ' ') {
+        let lines = [];
+        lines.push(this.name);
+        this.children.forEach((token) => {
+            lines.push(...token.toTree(pad).map((line) => {
+                return pad + line;
+            }));
+        });
+        return lines;
+    }
+
+    filter(filter) {
+        let collector = [];
+        this.walk((token) => {
+            let res = filter(token) ?? [];
+            res = typeof res === 'boolean' ? [, res] : res;
+            res = typeof res === 'number' ? [res] : res;
+            let [walk = Walk.Continue, filt = false] = res;
+            if (filt) {
+                collector.push(token);
+            }
+            return walk;
+        });
+        return collector;
+    }
+
+    walk(callback) {
+        let res = callback(this);
+        if ([Walk.Ignore, Walk.Stop].includes(res)) {
+            return res;
+        }
+        for (let child of this.children) {
+            let res = child.walk(callback);
+            if (res === Walk.Stop) {
+                return res;
+            }
+        }
+        return Walk.Continue;
+    }
+
+    unwrap() {
+        let parent = this.parent;
+        if (parent === null) {
+            throw new InternalError;
+        }
+        let plist = parent.children;
+        let list = this.children;
+        list.forEach((child) => {
+            child.parent = parent;
+        });
+        let idx = plist.indexOf(this);
+        if (idx === -1) {
+            throw new InternalError;
+        }
+        plist.splice(idx, 1, ...list);
+    }
 }
-
-// import Lexer from '../Lexer.js';
-// import InternalError from '../errors/InternalError.js';
-
-// export const Walk = {
-//     Continue: 1,
-//     Ignore: 0,
-//     Stop: -1,
-// };
-
-// const isArray = Array.isArray;
-
-// this.onToken(childToken !== null, token, parents);
 
     // constructor(name, lexer, grammar) {
     //     this.name = name;
@@ -133,19 +200,7 @@ export default class Token {
 
     
 
-    // walk(callback) {
-    //     let res = callback(this);
-    //     if ([Walk.Ignore, Walk.Stop].includes(res)) {
-    //         return res;
-    //     }
-    //     for (let child of this.children) {
-    //         let res = child.walk(callback);
-    //         if (res === Walk.Stop) {
-    //             return res;
-    //         }
-    //     }
-    //     return Walk.Continue;
-    // }
+    
 
     // remove() {
     //     let parent = this.parent;
@@ -160,41 +215,7 @@ export default class Token {
     //     list.splice(idx, 1);
     // }
 
-    // filter(filterFn) {
-    //     if (typeof filterFn === 'string') {
-    //         let names = filterFn.split('|');
-    //         filterFn = (token) => names.includes(token.name);
-    //     }
-    //     let collector = [];
-    //     this.walk((token) => {
-    //         let res = filterFn(token) ?? [];
-    //         res = typeof res === 'boolean' ? [, res] : res;
-    //         res = typeof res === 'number' ? [res] : res;
-    //         let [walk = Walk.Continue, filt = false] = res;
-    //         if (filt) {
-    //             collector.push(token);
-    //         }
-    //         return walk;
-    //     });
-    //     return collector;
-    // }
 
-    // unwrap() {
-    //     let parent = this.parent;
-    //     if (parent === null) {
-    //         throw new InternalError;
-    //     }
-    //     let plist = parent.children;
-    //     let list = this.children;
-    //     list.forEach((child) => {
-    //         child.parent = parent;
-    //     });
-    //     let idx = plist.indexOf(this);
-    //     if (idx === -1) {
-    //         throw new InternalError;
-    //     }
-    //     plist.splice(idx, 1, ...list);
-    // }
 
     // replace(token) {
     //     let parent = this.parent;
@@ -210,17 +231,7 @@ export default class Token {
     //     list.splice(idx, 1, token);
     // }
 
-    // // toTree(pad = ' ') {
-    // //     let lines = [];
-    // //     lines.push(this.name);
-    // //     let list = this.children;
-    // //     list.forEach((token) => {
-    // //         lines.push(...token.toTree(pad).map((line) => {
-    // //             return pad + line;
-    // //         }));
-    // //     });
-    // //     return lines;
-    // // }
+    
 
     // tokenize(code, name = this.name) {
     //     let lexer = new Lexer(code);

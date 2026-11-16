@@ -8,10 +8,10 @@ export default class ValueToken extends Token {
 
     finalize(value, parents) {
         if (value === null) {
-            return super.finalize(false, parents);
+            return super.finalize(null, parents);
         }
         this.value = value;
-        return super.finalize(true, parents);
+        return super.finalize([], parents);
     }
 
     toString() {

@@ -7,7 +7,7 @@ import Grammar from '../src/Grammar.js';
 
 const test = tapePromise.default(tape);
 
-test.only('Grammar / 1', (t) => {
+test('Grammar / 1', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'A -> `a`',
@@ -32,6 +32,8 @@ test.only('Grammar / 1', (t) => {
             'M2 -> (`a`)* (`b`)+ (`c`)',
             'G1 -> `a` * `b`',
             'ASSERT -> (`a` ^ `b`) | (`a` `c`) | (`b` `c`)',
+            'PLUS -> `a` `b`+',
+            'LOOKUP -> `a` * (/./ ?`a`) /./',
         ].join('\n'),
     });
     let cases = [
@@ -79,6 +81,9 @@ test.only('Grammar / 1', (t) => {
         ['ASSERT', `ab`],
         ['ASSERT', `bc`],
         ['ASSERT', `ac`, true, true],
+        ['PLUS', `ab`],
+        ['PLUS', `a`, true],
+        ['LOOKUP', 'a1111a'],
     ];
     for (let [tt, input, isNull = false, gotError = false] of cases) {
         let lexer = new Lexer(input);
@@ -109,95 +114,95 @@ test('Grammar / 2', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'B -> `b`',
-            // 'A -> \'a\'',
-            // 'C -> /^c/',
-            // 'AA -> A',
-            // 'AAA -> AA',
-            // 'BN -> `b`*',
-            // 'AB -> `a` | `b`',
-            // 'ABN -> `a` | `b`*',
-            // 'PQ -> `p` `q`',
-            // 'PQN -> `p` `q`*',
-            // 'PQO -> `p` `q`?',
-            // 'Para1PQN -> (`p`) (`q`*)',
-            // 'Para1PQO -> (`p`) (`q`?)',
-            // 'Para2PQN -> (`p`) (`q`)*',
-            // 'Para2PQO -> (`p`) (`q`)?',
-            // 'test1 -> `a` (`b` `c`)? `d`',
-            // 'test2 -> `a` (`b` `c`)? `b`',
-            // 'test3 -> `a` (`b` | `c`) `d`',
-            // 'l11 -> `11`',
-            // 'l12 -> `12`',
-            // 'l21 -> `21`',
-            // 'l22 -> `22`',
-            // 'l1 -> l11 | l12',
-            // 'l2 -> l21 | l22',
-            // 'alt1 -> (l11 | l12) | (l21 | l22)',
-            // 'alt2 -> (l1) | (l2)',
-            // 'alt3 -> l11 | (l12 | l21) | l22',
-            // 'rec1 -> (l11 | (l12 | (l21 | l22)))',
-            // 'rec2 -> (((l11)) | ((l12) | ((l21) | ((l22)))))',
-            // 'gr1 -> * (`a` `a` `b`)',
+            'A -> \'a\'',
+            'C -> /^c/',
+            'AA -> A',
+            'AAA -> AA',
+            'BN -> `b`*',
+            'AB -> `a` | `b`',
+            'ABN -> `a` | `b`*',
+            'PQ -> `p` `q`',
+            'PQN -> `p` `q`*',
+            'PQO -> `p` `q`?',
+            'Para1PQN -> (`p`) (`q`*)',
+            'Para1PQO -> (`p`) (`q`?)',
+            'Para2PQN -> (`p`) (`q`)*',
+            'Para2PQO -> (`p`) (`q`)?',
+            'test1 -> `a` (`b` `c`)? `d`',
+            'test2 -> `a` (`b` `c`)? `b`',
+            'test3 -> `a` (`b` | `c`) `d`',
+            'l11 -> `11`',
+            'l12 -> `12`',
+            'l21 -> `21`',
+            'l22 -> `22`',
+            'l1 -> l11 | l12',
+            'l2 -> l21 | l22',
+            'alt1 -> (l11 | l12) | (l21 | l22)',
+            'alt2 -> (l1) | (l2)',
+            'alt3 -> l11 | (l12 | l21) | l22',
+            'rec1 -> (l11 | (l12 | (l21 | l22)))',
+            'rec2 -> (((l11)) | ((l12) | ((l21) | ((l22)))))',
+            'gr1 -> * (`a` `a` `b`)',
         ].join('\n'),
     });
     let cases = [
         ['`b`', 'b'],
         ['B', 'b'],
-        // ['C', 'c'],
-        // ['AAA', 'a'],
-        // ['AB', 'a'],
-        // ['AB', 'b'],
-        // ['BN', ''],
-        // ['BN', 'b'],
-        // ['BN', 'bb'],
-        // ['ABN', 'a'],
-        // ['ABN', ''],
-        // ['ABN', 'b'],
-        // ['ABN', 'bb'],
-        // ['PQ', 'pq'],
-        // ['PQN', 'p'],
-        // ['PQN', 'pq'],
-        // ['PQN', 'pqq'],
-        // ['PQO', 'p'],
-        // ['PQO', 'pq'],
-        // ['Para1PQN', 'p'],
-        // ['Para1PQN', 'pq'],
-        // ['Para1PQN', 'pqq'],
-        // ['Para1PQO', 'p'],
-        // ['Para1PQO', 'pq'],
-        // ['Para2PQN', 'p'],
-        // ['Para2PQN', 'pq'],
-        // ['Para2PQN', 'pqq'],
-        // ['Para2PQO', 'p'],
-        // ['Para2PQO', 'pq'],
-        // ['test1', 'abcd'],
-        // ['test1', 'ad'],
-        // ['test2', 'abcb'],
-        // ['test2', 'ab'],
-        // ['test3', 'abd'],
-        // ['test3', 'acd'],
-        // ['alt1', '11'],
-        // ['alt1', '12'],
-        // ['alt1', '21'],
-        // ['alt1', '22'],
-        // ['alt2', '11'],
-        // ['alt2', '12'],
-        // ['alt2', '21'],
-        // ['alt2', '22'],
-        // ['alt3', '11'],
-        // ['alt3', '12'],
-        // ['alt3', '21'],
-        // ['alt3', '22'],
-        // ['rec1', '11'],
-        // ['rec1', '12'],
-        // ['rec1', '21'],
-        // ['rec1', '22'],
-        // ['rec2', '11'],
-        // ['rec2', '12'],
-        // ['rec2', '21'],
-        // ['rec2', '22'],
-        // ['gr1', 'aab'],
-        // ['gr1', 'aaab'],
+        ['C', 'c'],
+        ['AAA', 'a'],
+        ['AB', 'a'],
+        ['AB', 'b'],
+        ['BN', ''],
+        ['BN', 'b'],
+        ['BN', 'bb'],
+        ['ABN', 'a'],
+        ['ABN', ''],
+        ['ABN', 'b'],
+        ['ABN', 'bb'],
+        ['PQ', 'pq'],
+        ['PQN', 'p'],
+        ['PQN', 'pq'],
+        ['PQN', 'pqq'],
+        ['PQO', 'p'],
+        ['PQO', 'pq'],
+        ['Para1PQN', 'p'],
+        ['Para1PQN', 'pq'],
+        ['Para1PQN', 'pqq'],
+        ['Para1PQO', 'p'],
+        ['Para1PQO', 'pq'],
+        ['Para2PQN', 'p'],
+        ['Para2PQN', 'pq'],
+        ['Para2PQN', 'pqq'],
+        ['Para2PQO', 'p'],
+        ['Para2PQO', 'pq'],
+        ['test1', 'abcd'],
+        ['test1', 'ad'],
+        ['test2', 'abcb'],
+        ['test2', 'ab'],
+        ['test3', 'abd'],
+        ['test3', 'acd'],
+        ['alt1', '11'],
+        ['alt1', '12'],
+        ['alt1', '21'],
+        ['alt1', '22'],
+        ['alt2', '11'],
+        ['alt2', '12'],
+        ['alt2', '21'],
+        ['alt2', '22'],
+        ['alt3', '11'],
+        ['alt3', '12'],
+        ['alt3', '21'],
+        ['alt3', '22'],
+        ['rec1', '11'],
+        ['rec1', '12'],
+        ['rec1', '21'],
+        ['rec1', '22'],
+        ['rec2', '11'],
+        ['rec2', '12'],
+        ['rec2', '21'],
+        ['rec2', '22'],
+        ['gr1', 'aab'],
+        ['gr1', 'aaab'],
     ];
     for (let [tt, input] of cases) {
         let lexer = new Lexer(input);
@@ -208,41 +213,60 @@ test('Grammar / 2', (t) => {
     t.end();
 });
 
-test('Grammar / 2', (t) => {
+test.only('Grammar / 3', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'Single -> `single`',
             'Opt -> `opt`?',
-            'Repeat -> `r`*',
-            'Choice -> `a` | `b`',
+            'Rpt -> `r`*',
+            'Chc -> `a` | `b`',
             'Seq -> `a` `b`',
             'Ref -> (`a`)',
-            'Gr1 -> *',
-            'Gr2 -> * `a`',
+            'Gr1 -> * `a`',
             'L1 -> `b`* ?`a` `a`',
         ].join('\n'),
     });
-    let cases = [
-        ['Single', 'single', ['Single', ' KeywordToken']],
-        ['Opt', 'opt', ['Opt', ' KeywordToken']],
-        ['Repeat', 'rr', ['Repeat', ' KeywordToken', ' KeywordToken']],
-        ['Choice', 'a', ['Choice', ' KeywordToken']],
-        ['Seq', 'ab', ['Seq', ' KeywordToken', ' KeywordToken']],
-        ['Ref', 'a', ['Ref', ' KeywordToken']],
-        ['Gr1', '', ['Gr1', ' GreedyToken']],
-        ['Gr2', 'bbba', ['Gr2', ' GreedyToken', ' KeywordToken']],
-        ['L1', 'bbba', ['L1', ' KeywordToken', ' KeywordToken', ' KeywordToken', ' KeywordToken']],
+    let cases1 = [
+        ['Single', 'single', ['Single', ' `single`']],
+        ['Opt', 'opt', ['Opt', ' Optional', '  `opt`']],
+        ['Opt', '', ['Opt', ' Optional']],
+        ['Rpt', 'rr', ['Rpt', ' Repeat', '  `r`', '  `r`']],
+        ['Chc', 'a', ['Chc', ' Choice', '  `a`']],
+        ['Seq', 'ab', ['Seq', ' Sequence', '  `a`', '  `b`']],
+        ['Ref', 'a', ['Ref', ' Group', '  `a`']],
+        ['Gr1', 'a', ['Gr1', ' Sequence', '  *', '  `a`']],
+        ['Gr1', 'bbba', ['Gr1', ' Sequence', '  *', '  `a`']],
+        ['L1', 'bbba', ['L1', ' Sequence', '  Repeat', '   `b`', '   `b`', '   `b`', '  Lookup', '  `a`']],
     ];
-    for (let [tt, input, tree] of cases) {
+    let cases2 = [
+        ['Single', 'single', ['Single', ' `single`']],
+        ['Opt', 'opt', ['Opt', ' `opt`']],
+        ['Opt', '', ['Opt']],
+        ['Rpt', 'rr', ['Rpt', ' `r`', ' `r`']],
+        ['Chc', 'a', ['Chc', ' `a`']],
+        ['Seq', 'ab', ['Seq', ' `a`', ' `b`']],
+        ['Ref', 'a', ['Ref', ' `a`']],
+        ['Gr1', 'a', ['Gr1', ' *', ' `a`']],
+        ['Gr1', 'bbba', ['Gr1', ' *', ' `a`']],
+        ['L1', 'bbba', ['L1', ' `b`', ' `b`', ' `b`', ' `a`']],
+    ];
+    for (let [tt, input, tree] of cases1) {
         let lexer = new Lexer(input);
         let ast = grammar.tokenize(tt, lexer);
         t.equals(lexer.isEof(), true);
         t.deepEqual(ast.toTree(' '), tree);
     }
+    for (let [tt, input, tree] of cases2) {
+        let lexer = new Lexer(input);
+        let ast = grammar.tokenize(tt, lexer);
+        t.equals(lexer.isEof(), true);
+        ast = grammar.treeShake(ast);
+        t.deepEqual(ast.toTree(' '), tree);
+    }
     t.end();
 });
 
-test('Grammar / 3', (t) => {
+test('Grammar / 4', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'lk1 -> `a`* ?`l`',
@@ -262,7 +286,7 @@ test('Grammar / 3', (t) => {
     t.end();
 });
 
-test('Grammar / 4', (t) => {
+test('Grammar / 5', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'term -> term1 term2 ^ term3',
@@ -292,7 +316,7 @@ test('Grammar / 4', (t) => {
     t.end();
 });
 
-test('Grammar / 5', (t) => {
+test('Grammar / 6', (t) => {
     let grammar = new Grammar();
     let cases = [
         // ['SinglelineComment', '//'],
@@ -354,7 +378,7 @@ test('Grammar / 5', (t) => {
     t.end();
 });
 
-test('Grammar / 6', (t) => {
+test('Grammar / 7', (t) => {
     {
         let grammar = new Grammar();
         let lexer = new Lexer('ins1');
