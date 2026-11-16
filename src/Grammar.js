@@ -10,11 +10,13 @@ import SequenceToken from './tokens/SequenceToken.js';
 import ChoiceToken from './tokens/ChoiceToken.js';
 import GroupToken from './tokens/GroupToken.js';
 import OptionalToken from './tokens/OptionalToken.js';
+import RepeatToken from './tokens/RepeatToken.js';
+
+import InternalError from './errors/InternalError.js';
 
 // import AssemblerBlock from './tokens/AssemblerBlock.js';
 // import AssemblerStatement from './tokens/AssemblerStatement.js';
 // import InlineSep from './tokens/InlineSep.js';
-// import InternalError from './errors/InternalError.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
@@ -102,12 +104,43 @@ export default class Grammar {
         return (lexer) => {
             let token = new SequenceToken(lexer);
             let children = [];
-            let isResolved = parts.every((rule) => {
+            let assertion = false;
+            let resolvers = parts.map((rule));
+            let isResolved = parts.every((rule, i) => {
+                if (rule === '^') {
+                    assertion = true;
+                    return true;
+                }
+                if (rule === '*') {
+                    let rule = parts[i + 1];
+                    if (rule === undefined) {
+                        throw new InternalError;
+                    }
+                    let nextResolver = getTokenResolver(rule, token);
+                    let got, value = '', token = new GreedyToken(lexer, rule);
+                    while (true) {
+                        got = nextResolver(lexer);
+                        if (got !== null) {
+                            got.finalize(null);
+                            break;
+                        }
+                        let char = token.eat();
+                        if (char === null) {
+                            break;
+                        }
+                        value += char;
+                    }
+                    value = got !== null ? value : null;
+                    return token.finalize(value, globalParents) !== null;
+                }
                 let resolver = getTokenResolver(rule, token);
                 let child = resolver(lexer);
                 children.push(child);
                 return child !== null;
             });
+            if (!isResolved && assertion) {
+                throw lexer.error();
+            }
             children = isResolved ? children : null;
             return token.finalize(children, globalParents);
         };
@@ -136,7 +169,7 @@ export default class Grammar {
             let ctor = [KeywordToken, StringToken, RegexToken][idx];
             let elem = (...parents) => (lexer) => {
                 let token = new ctor(lexer, name);
-                let value = token.resolve();
+                let value = token.eat();
                 return token.finalize(value, parents);
             };
             return innerList.push(elem) - 1;
@@ -166,24 +199,6 @@ export default class Grammar {
             };
             return innerList.push(elem) - 1;
         });
-        //             //         let optional = (elem) => {
-        // //             let resolver;
-        // //             return (lexer) => {
-        // //                 resolver ??= resolvers.getTokenResolver(elem);
-        // //                 let child = resolver(lexer);
-        // //                 return child === null ? [] : [child];
-        // //             };
-        // //         };
-        //             return;
-        //         }
-            //     let plus = p2 === '+';
-            //     let opti = p2 === '?';
-            //     let name = opti ? 'OptionalToken' : 'RepeatToken';
-            //     let resolver = opti ? optional(p1) : repeat(p1, plus);
-            //     let factory = this.factoryGetter(name);
-            //     resolver = this.wrapResolver(factory, resolver, withCtx(name, resolvers.getOriginalBackup(p1) + p2));
-            //     return resolvers.push(resolver);
-            // });
         return [rule, innerList];
     }
         // let parents = [].concat(globalParents, localParents);
@@ -254,10 +269,7 @@ export default class Grammar {
             //     //                 greedy = token;
             //     //                 return true;
             //     //             }
-            //     //             if (resolver === '^') {
-            //     //                 assertion = true;
-            //     //                 return true;
-            //     //             }
+            
             //     //             let lastRet;
             //     //             let ret = () => {
             //     //                 let child = resolver(lexer);
@@ -283,9 +295,7 @@ export default class Grammar {
             //     //             return lastRet;
             //     //         });
             //     //         if (!result) {
-            //     //             if (assertion) {
-            //     //                 throw lexer.error();
-            //     //             }
+            
             //     //             return null;
             //     //         }
             //     //         return children;

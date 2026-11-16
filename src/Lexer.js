@@ -1,4 +1,4 @@
-// import LexerError from './errors/LexerError.js';
+import LexerError from './errors/LexerError.js';
 
 export default class Lexer {
     constructor(content, position = 0) {
@@ -42,14 +42,18 @@ export default class Lexer {
         return m;
     }
 
-    // eatCharacter() {
-    //     if (this.isEof()) {
-    //         return null;
-    //     }
-    //     let char = this.tail.slice(0, 1);
-    //     this.proceed();
-    //     return char;
-    // }
+    error() {
+        return new LexerError(this);
+    }
+
+    eatCharacter() {
+        if (this.isEof()) {
+            return null;
+        }
+        let char = this.tail.slice(0, 1);
+        this.proceed();
+        return char;
+    }
 
     // eatAll() {
     //     let tail = this.tail;
@@ -101,9 +105,7 @@ export default class Lexer {
 
     
 
-    // // error(opts) {
-    // //     return new LexerError(this, opts);
-    // // }
+    
 
     // getContext(count) {
     //     let {position, content} = this;

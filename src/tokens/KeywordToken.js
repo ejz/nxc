@@ -1,7 +1,7 @@
 import ValueToken from './ValueToken.js';
 
 export default class KeywordToken extends ValueToken {
-    resolve() {
+    eat() {
         return this.lexer.eat(this.keyword);
     }
 

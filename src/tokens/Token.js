@@ -17,7 +17,10 @@ export default class Token {
         return this;
     }
 
-    onToken(isResolved, parents) {
+    onToken(isResolved, parents = null) {
+        if (parents === null) {
+            return;
+        }
         let map = (t) => t.name;
         let delim = ' <- ';
         console.log(

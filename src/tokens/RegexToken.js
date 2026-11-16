@@ -1,7 +1,7 @@
 import ValueToken from './ValueToken.js';
 
 export default class RegexToken extends ValueToken {
-    resolve() {
+    eat() {
         return this.lexer.eatRegex(this.regex);
     }
 

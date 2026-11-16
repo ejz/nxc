@@ -25,6 +25,11 @@ test.only('Grammar / 1', (t) => {
             'S1 -> \'string\'',
             'R1 -> /a|b|c/i /1|2|3/',
             'P1 -> ((`a`) (`b`) (`c`))',
+            'P2 -> ((`a`) | (`b`) | (`c`))',
+            'O1 -> `a`? `b`? `c`',
+            'O2 -> (`a`)? (`b`)? (`c`)',
+            'M1 -> `a`* `b`+ `c`',
+            'M2 -> (`a`)* (`b`)+ (`c`)',
         ].join('\n'),
     });
     let cases = [
@@ -45,6 +50,25 @@ test.only('Grammar / 1', (t) => {
         ['R1', 'B2'],
         ['R1', 'c3'],
         ['P1', 'abc'],
+        ['P2', 'a'],
+        ['P2', 'b'],
+        ['P2', 'c'],
+        ['O1', 'c'],
+        ['O1', 'ac'],
+        ['O1', 'bc'],
+        ['O1', 'abc'],
+        ['O2', 'c'],
+        ['O2', 'ac'],
+        ['O2', 'bc'],
+        ['O2', 'abc'],
+        ['M1', 'bc'],
+        ['M1', 'bbc'],
+        ['M1', 'abc'],
+        ['M1', 'abbc'],
+        ['M2', 'bc'],
+        ['M2', 'bbc'],
+        ['M2', 'abc'],
+        ['M2', 'abbc'],
     ];
     for (let [tt, input] of cases) {
         let lexer = new Lexer(input);
