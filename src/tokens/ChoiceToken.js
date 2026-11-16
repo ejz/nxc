@@ -1,8 +1,8 @@
-import GenericToken from './GenericToken.js';
+import Token from './Token.js';
 
 const name = 'Choice';
 
-export default class ChoiceToken extends GenericToken {
+export default class ChoiceToken extends Token {
     constructor(...args) {
         super(...args, name);
     }

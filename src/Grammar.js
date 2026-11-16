@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-import GenericToken from './tokens/GenericToken.js';
+import Token from './tokens/Token.js';
 import KeywordToken from './tokens/KeywordToken.js';
 import StringToken from './tokens/StringToken.js';
 import RegexToken from './tokens/RegexToken.js';
@@ -11,6 +11,8 @@ import ChoiceToken from './tokens/ChoiceToken.js';
 import GroupToken from './tokens/GroupToken.js';
 import OptionalToken from './tokens/OptionalToken.js';
 import RepeatToken from './tokens/RepeatToken.js';
+import GreedyToken from './tokens/GreedyToken.js';
+import LookupToken from './tokens/LookupToken.js';
 
 import InternalError from './errors/InternalError.js';
 
@@ -44,7 +46,7 @@ const tokenCtors = {
 export default class Grammar {
     constructor({
         grammarFileContent = fs.readFileSync(grammarFile).toString(),
-        defaultTokenContructor = GenericToken,
+        defaultTokenContructor = Token,
         tokenConstructors = tokenCtors,
     } = {}) {
         this.grammarFileContent = grammarFileContent;
@@ -105,7 +107,6 @@ export default class Grammar {
             let token = new SequenceToken(lexer);
             let children = [];
             let assertion = false;
-            let resolvers = parts.map((rule));
             let isResolved = parts.every((rule, i) => {
                 if (rule === '^') {
                     assertion = true;
@@ -117,21 +118,23 @@ export default class Grammar {
                         throw new InternalError;
                     }
                     let nextResolver = getTokenResolver(rule, token);
-                    let got, value = '', token = new GreedyToken(lexer, rule);
+                    let greedy = new GreedyToken(lexer, '*');
+                    let got, value = '';
                     while (true) {
                         got = nextResolver(lexer);
                         if (got !== null) {
-                            got.finalize(null);
+                            got.reset();
                             break;
                         }
-                        let char = token.eat();
+                        let char = greedy.eat();
                         if (char === null) {
                             break;
                         }
                         value += char;
                     }
                     value = got !== null ? value : null;
-                    return token.finalize(value, globalParents) !== null;
+                    children.push(greedy);
+                    return greedy.finalize(value, globalParents) !== null;
                 }
                 let resolver = getTokenResolver(rule, token);
                 let child = resolver(lexer);
@@ -171,6 +174,18 @@ export default class Grammar {
                 let token = new ctor(lexer, name);
                 let value = token.eat();
                 return token.finalize(value, parents);
+            };
+            return innerList.push(elem) - 1;
+        });
+        rule = rule.replace(/\?(\w+)/g, (m, rule) => {
+            let elem = (...parents) => (lexer) => {
+                let token = new LookupToken(lexer);
+                let resolver = this.getTokenResolver(rule, innerList, ...parents, token);
+                let child = resolver(lexer);
+                if (child !== null) {
+                    child.reset();
+                }
+                return token.finalize(child !== null ? [] : null, parents);
             };
             return innerList.push(elem) - 1;
         });
@@ -482,20 +497,7 @@ export default class Grammar {
     //         });
     //     }
     //     // {
-    //     //     let lookup = (part) => {
-    //     //         let resolver;
-    //     //         return (lexer) => {
-    //     //             resolver ??= resolvers.doResolve(part);
-    //     //             let res = lexer.look(() => resolver(lexer));
-    //     //             return res !== null ? [] : null;
-    //     //         };
-    //     //     };
-    //     //     rule = rule.replace(/\?(\w+)/g, (m, p1) => {
-    //     //         let name = SpecialToken.LookupToken;
-    //     //         let resolver = lookup(p1);
-    //     //         resolver = this.wrapResolver(name, resolver);
-    //     //         return resolvers.push(resolver);
-    //     //     });
+
     //     // }
     //     
     //     let parts = rule.split(' ');
@@ -513,25 +515,40 @@ export default class Grammar {
         let [rule, innerList] = this.prepareRule(smth);
         let tokenResolver = this.getTokenResolver(rule, innerList);
         return tokenResolver(lexer);
+    }
+
+    treeShake(ast) {
+        let filter = (token) => {
+            return (
+                token instanceof OptionalToken
+                || token instanceof RepeatToken
+                || token instanceof ChoiceToken
+                || token instanceof SequenceToken
+                || token instanceof LookupToken
+                || token instanceof GroupToken
+            );
+        };
+        let tokens = ast.filter(filter);
+        tokens.forEach((token) => {
+            token.unwrap();
+        });
+        return ast;
+        // console.log(tokens);
+    }
+            // return [
+            //     'OptionalToken',
+            //     'RepeatToken',
+            //     'ChoiceToken',
+            //     'SequenceToken',
+            //     'LookupToken',
+            // ].includes(ast.name);
+
         // if (ast === null) {
         //     return null;
         // }
         // // this.#toAst(ast, parent);
-        // let filter = (ast) => {
-        //     return [
-        //         'OptionalToken',
-        //         'RepeatToken',
-        //         'ChoiceToken',
-        //         'SequenceToken',
-        //         'LookupToken',
-        //     ].includes(ast.name);
-        // };
-        // let tokens = ast.filter(filter);
-        // tokens.forEach((token) => {
-        //     token.unwrap();
-        // });
-        // return ast;
-    }
+        
+        
 }
 
 // function toPredicate(predicate) {

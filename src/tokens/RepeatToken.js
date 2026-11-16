@@ -1,8 +1,8 @@
-import GenericToken from './GenericToken.js';
+import Token from './Token.js';
 
 const name = 'Repeat';
 
-export default class RepeatToken extends GenericToken {
+export default class RepeatToken extends Token {
     constructor(...args) {
         super(...args, name);
     }

@@ -213,7 +213,7 @@ test('Grammar / 2', (t) => {
     t.end();
 });
 
-test.only('Grammar / 3', (t) => {
+test('Grammar / 3', (t) => {
     let grammar = new Grammar({
         grammarFileContent: [
             'Single -> `single`',
@@ -316,62 +316,62 @@ test('Grammar / 5', (t) => {
     t.end();
 });
 
-test('Grammar / 6', (t) => {
+test.only('Grammar / 6', (t) => {
     let grammar = new Grammar();
     let cases = [
-        // ['SinglelineComment', '//'],
-        // ['SinglelineComment', '//1'],
-        // ['SinglelineComment', '//\n'],
-        // ['SinglelineComment', '//1\n'],
-        // ['SinglelineComment', '//\r\n'],
-        // ['SinglelineComment', '//\r\r', '\r'],
-        // ['SinglelineComment', '// a\n1', '1'],
-        // ['SinglelineComment', '// a\n'],
-        // ['MultilineComment', '/**/'],
-        // ['MultilineComment', '/* \n */'],
-        // ['MultilineComment', '/* b */'],
-        // ['Sep', ' '],
-        // ['Sep', ' \t '],
-        // ['Sep', '\r\n'],
-        // ['Program', '{}'],
-        // ['Program', ' {/* */} '],
-        // ['Program', ' {//\n} '],
-        // ['Program', ' ; '],
-        // ['Program', ' ; { ; }'],
-        // ['AssemblerBlock', 'asm{}'],
-        // ['AssemblerBlock', 'asm{/**/}'],
-        // ['AssemblerBlock', 'asm{;}'],
-        // ['AssemblerInstruction', 'ins'],
-        // ['AssemblerBlock', 'asm{ins}'],
-        // ['AssemblerInstruction', 'ins.32'],
-        // ['AssemblerBlock', 'asm{ins.32}'],
-        // ['AssemblerInstruction', 'ins.32 eax'],
-        // ['AssemblerBlock', 'asm{ins.32 eax}'],
-        // ['AssemblerInstruction', 'ins.32 eax,\nebx'],
-        // ['AssemblerBlock', 'asm{ins.32 eax,\nebx}'],
-        // ['DecNum', '0'],
-        // ['DecNum', '5'],
-        // ['AssemblerArgument', '$0'],
-        // ['AssemblerArgument', 'eax'],
-        // ['AssemblerArgument', ':1000'],
-        // ['AssemblerArgument', 'eax:1000'],
-        // ['AssemblerArgument', '-1'],
-        // ['AssemblerArgument', '[eax]'],
-        // ['AssemblerArgument', '[eax + 1]'],
-        // ['AssemblerArgument', '[1 + 4 *  eax]'],
-        // ['AssemblerArgument', '[1 + eax * 4]'],
-        // ['AssemblerArgument', '[eax + ebx * 4 + 0x1000]'],
+        ['SinglelineComment', '//'],
+        ['SinglelineComment', '//1'],
+        ['SinglelineComment', '//\n'],
+        ['SinglelineComment', '//1\n'],
+        ['SinglelineComment', '//\r\n'],
+        ['SinglelineComment', '//\r\r', '\r'],
+        ['SinglelineComment', '// a\n1', '1'],
+        ['SinglelineComment', '// a\n'],
+        ['MultilineComment', '/**/'],
+        ['MultilineComment', '/* \n */'],
+        ['MultilineComment', '/* b */'],
+        ['Sep', ' '],
+        ['Sep', ' \t '],
+        ['Sep', '\r\n'],
+        ['Program', '{}'],
+        ['Program', ' {/* */} '],
+        ['Program', ' {//\n} '],
+        ['Program', ' ; '],
+        ['Program', ' ; { ; }'],
+        ['AssemblerBlock', 'asm{}'],
+        ['AssemblerBlock', 'asm{/**/}'],
+        ['AssemblerBlock', 'asm{;}'],
+        ['AssemblerInstruction', 'ins'],
+        ['AssemblerBlock', 'asm{ins}'],
+        ['AssemblerInstruction', 'ins.32'],
+        ['AssemblerBlock', 'asm{ins.32}'],
+        ['AssemblerInstruction', 'ins.32 eax'],
+        ['AssemblerBlock', 'asm{ins.32 eax}'],
+        ['AssemblerInstruction', 'ins.32 eax,\nebx'],
+        ['AssemblerBlock', 'asm{ins.32 eax,\nebx}'],
+        ['DecNum', '0'],
+        ['DecNum', '5'],
+        ['AssemblerArgument', '$0'],
+        ['AssemblerArgument', 'eax'],
+        ['AssemblerArgument', ':1000'],
+        ['AssemblerArgument', 'eax:1000'],
+        ['AssemblerArgument', '-1'],
+        ['AssemblerArgument', '[eax]'],
+        ['AssemblerArgument', '[eax + 1]'],
+        ['AssemblerArgument', '[1 + 4 *  eax]'],
+        ['AssemblerArgument', '[1 + eax * 4]'],
+        ['AssemblerArgument', '[eax + ebx * 4 + 0x1000]'],
         // ['AssemblerBlock', 'asm{ins1;ins2}'],
-        ['AssemblerInstruction', 'ins1'],
-        ['AssemblerInstruction', 'ins1\nins2', 'ins2'],
+        // ['AssemblerInstruction', 'ins1'],
+        // ['AssemblerInstruction', 'ins1\nins2', 'ins2'],
         // ['AssemblerBlock', 'asm{ins1\nins2}'],
     ];
     for (let [tt, input, tail = ''] of cases) {
         let lexer = new Lexer(input);
         let token = grammar.tokenize(tt, lexer);
-        console.log({token});
-        console.log(token.toTree(' '));
-        console.log(token.toString());
+        // console.log({token});
+        // console.log(token.toTree(' '));
+        // console.log(token.toString());
         t.equals(token.toString(), input.slice(0, tail.length === 0 ? undefined : -tail.length));
         t.equals(lexer.tail, tail);
     }
