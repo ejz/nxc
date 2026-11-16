@@ -6,27 +6,33 @@ export default class Token {
         this.end = null;
     }
 
+    reset() {
+        this.lexer.position = this.start;
+    }
+
+    fix() {
+        this.end = this.lexer.position;
+    }
+
     finalize(isResolved, parents) {
         if (!isResolved) {
-            this.lexer.position = this.start;
+            this.reset();
             this.onToken(false, parents);
             return null;
         }
-        this.end = this.lexer.position;
+        this.fix();
         this.onToken(true, parents);
         return this;
     }
 
-    onToken(isResolved, parents = null) {
-        if (parents === null) {
-            return;
-        }
+    onToken(isResolved, parents) {
         let map = (t) => t.name;
         let delim = ' <- ';
         console.log(
-            '(%s) (pos = %s) %s %s%s',
+            '(%s) (%s:%s) %s %s%s',
             parents.length,
             this.start,
+            this.end ?? '',
             isResolved ? '[v]' : '[x]',
             parents.map(map).join(delim),
             (parents.length === 0 ? '' : delim) + this.name,

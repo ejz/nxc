@@ -30,6 +30,8 @@ test.only('Grammar / 1', (t) => {
             'O2 -> (`a`)? (`b`)? (`c`)',
             'M1 -> `a`* `b`+ `c`',
             'M2 -> (`a`)* (`b`)+ (`c`)',
+            'G1 -> `a` * `b`',
+            'ASSERT -> (`a` ^ `b`) | (`a` `c`) | (`b` `c`)',
         ].join('\n'),
     });
     let cases = [
@@ -69,10 +71,33 @@ test.only('Grammar / 1', (t) => {
         ['M2', 'bbc'],
         ['M2', 'abc'],
         ['M2', 'abbc'],
+        ['G1', 'ab'],
+        ['G1', 'a1b'],
+        ['G1', 'a11b'],
+        ['G1', `a${'1'.repeat(100)}b`],
+        ['G1', `aaa`, true],
+        ['ASSERT', `ab`],
+        ['ASSERT', `bc`],
+        ['ASSERT', `ac`, true, true],
     ];
-    for (let [tt, input] of cases) {
+    for (let [tt, input, isNull = false, gotError = false] of cases) {
         let lexer = new Lexer(input);
-        let token = grammar.tokenize(tt, lexer);
+        let token, error = false;
+        try {
+            token = grammar.tokenize(tt, lexer);
+        } catch {
+            error = true;
+            token = null;
+        }
+        if (gotError) {
+            t.ok(error);
+        } else {
+            t.ok(!error);
+        }
+        if (isNull) {
+            t.ok(token === null);
+            continue;
+        }
         t.ok(token !== null);
         t.equals(token.toString(), input);
         t.equals(lexer.isEof(), true);

@@ -1,4 +1,4 @@
-import GenericToken from './GenericToken.js';
+import ValueToken from './ValueToken.js';
 
 export default class GreedyToken extends ValueToken {
     eat() {
