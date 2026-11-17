@@ -55,11 +55,11 @@ export default class Lexer {
         return char;
     }
 
-    // eatAll() {
-    //     let tail = this.tail;
-    //     this.proceed(tail.length);
-    //     return tail;
-    // }
+    eatAll() {
+        let tail = this.tail;
+        this.proceed(tail.length);
+        return tail;
+    }
 
     // eatAny(...strs) {
     //     let find = (str) => this.eat(str) !== null;

@@ -19,7 +19,7 @@ export default class Compiler {
         let lexer = new Lexer(content);
         if (error) {
             lexer.eatAll();
-            throw lexer.error({args: 'invalid utf-8 character'});
+            throw lexer.error();
         }
         return lexer;
     }
@@ -28,46 +28,47 @@ export default class Compiler {
         return new Grammar();
     }
 
-    getAst(lexer, normalize) {
+    getAst(lexer, {
+        doAll,
+        doRemoveEmptyStatement = doAll,
+        doRemoveAssemblerEmptyStatement = doAll,
+        doUnwrapRegularBlock = doAll,
+    }) {
         let grammar = this.getGrammar();
         let ast = grammar.tokenize('Program', lexer);
         if (ast === null || !lexer.isEof()) {
             throw lexer.error();
         }
-        if (normalize === false) {
-            return ast;
-        }
-        if (normalize === true || normalize === 'removeEmptyStatement') {
+        if (doRemoveEmptyStatement) {
             ast.filter('EmptyStatement').forEach((token) => {
                 token.parent.remove();
             });
         }
-        if (normalize === true || normalize === 'removeAssemblerEmptyStatement') {
+        if (doRemoveAssemblerEmptyStatement) {
             ast.filter('AssemblerEmptyStatement').forEach((token) => {
                 token.parent.remove();
             });
         }
-        if (normalize === true || normalize === 'unwrapRegularBlock') {
+        if (doUnwrapRegularBlock) {
             ast.filter('RegularBlock').forEach((token) => {
                 token.children = token.children.slice(1, -1);
                 token.unwrap();
             });
         }
-        if (normalize === true || normalize === 'appendFinalExit') {
-            this.appendFinalExit(ast, x86);
-        }
+        
         return ast;
     }
 
-    lint(buffer, normalize = false) {
+    lint(buffer, normalizeOpts = {doAll: false}) {
         let lexer = this.getLexer(buffer);
-        let program = this.getAst(lexer, normalize);
+        let program = this.getAst(lexer, normalizeOpts);
         return program.toString();
     }
 
-    compile(buffer, normalize = true) {
+    compile(buffer, normalizeOpts = {doAll: true}) {
         let lexer = this.getLexer(buffer);
-        let ast = this.getAst(lexer, normalize);
+        let ast = this.getAst(lexer, normalizeOpts);
+        this.appendFinalExit(ast, x86);
         let elf = new Elf(x86);
         let statements = ast.filter('Statement');
         for (let statement of statements) {

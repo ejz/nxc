@@ -2,7 +2,7 @@
 
 Program -> Sep* (Statement Sep*)*
 
-# Mix
+# Global
 
 Sep -> Space | Newline+ | Comment
 InlineSep -> Sep

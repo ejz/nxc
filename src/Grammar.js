@@ -3,21 +3,10 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import Token from './tokens/Token.js';
-import KeywordToken from './tokens/KeywordToken.js';
-import StringToken from './tokens/StringToken.js';
-import RegexToken from './tokens/RegexToken.js';
-import SequenceToken from './tokens/SequenceToken.js';
-import ChoiceToken from './tokens/ChoiceToken.js';
-import GroupToken from './tokens/GroupToken.js';
-import OptionalToken from './tokens/OptionalToken.js';
-import RepeatToken from './tokens/RepeatToken.js';
-import GreedyToken from './tokens/GreedyToken.js';
-import LookupToken from './tokens/LookupToken.js';
+import {KeywordToken, StringToken, RegexToken, GreedyToken} from './tokens/ValueToken.js';
+import GrammarToken, {SequenceToken, ChoiceToken, GroupToken, OptionalToken, RepeatToken, LookupToken} from './tokens/GrammarToken.js';
 
 import InternalError from './errors/InternalError.js';
-
-// import AssemblerBlock from './tokens/AssemblerBlock.js';
-// import AssemblerStatement from './tokens/AssemblerStatement.js';
 import InlineSep from './tokens/InlineSep.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
@@ -501,18 +490,8 @@ export default class Grammar {
     }
 
     treeShake(ast) {
-        let filter = (token) => {
-            return (
-                token instanceof OptionalToken
-                || token instanceof RepeatToken
-                || token instanceof ChoiceToken
-                || token instanceof SequenceToken
-                || token instanceof LookupToken
-                || token instanceof GroupToken
-            );
-        };
-        let tokens = ast.filter(filter);
-        tokens.forEach((token) => {
+        let filter = (token) => token instanceof GrammarToken;
+        ast.filter(filter).forEach((token) => {
             token.unwrap();
         });
         return ast;
