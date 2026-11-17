@@ -1,8 +1,8 @@
 import Token from './Token.js';
 
 export default class ValueToken extends Token {
-    constructor(...args) {
-        super(...args);
+    constructor(lexer, name) {
+        super(lexer, name);
         this.value = '';
     }
 
@@ -16,5 +16,41 @@ export default class ValueToken extends Token {
 
     toString() {
         return this.value;
+    }
+}
+
+export class StringToken extends ValueToken {
+    eat() {
+        return this.lexer.eat(this.string);
+    }
+
+    get string() {
+        return eval(this.name);
+    }
+}
+
+export class KeywordToken extends ValueToken {
+    eat() {
+        return this.lexer.eat(this.keyword);
+    }
+
+    get keyword() {
+        return this.name.slice(1, -1);
+    }
+}
+
+export class RegexToken extends ValueToken {
+    eat() {
+        return this.lexer.eatRegex(this.regex);
+    }
+
+    get regex() {
+        return eval(this.name);
+    }
+}
+
+export class GreedyToken extends ValueToken {
+    eat() {
+        return this.lexer.eatCharacter();
     }
 }

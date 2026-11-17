@@ -27,6 +27,7 @@ export default class Token {
 
     reset() {
         this.lexer.position = this.start;
+        this.end = null;
     }
 
     fix() {
@@ -44,22 +45,27 @@ export default class Token {
         this.children.forEach((child) => {
             child.parent = this;
         });
+        if (this.validate !== undefined && !this.validate()) {
+            this.reset();
+            this.onToken(false, parents);
+            return null;
+        }
         this.onToken(true, parents);
         return this;
     }
 
     onToken(isResolved, parents) {
-        let map = (t) => t.name;
-        let delim = ' <- ';
-        console.log(
-            '(%s) (%s:%s) %s %s%s',
-            parents.length,
-            this.start,
-            this.end ?? '',
-            isResolved ? '[v]' : '[x]',
-            parents.map(map).join(delim),
-            (parents.length === 0 ? '' : delim) + this.name,
-        );
+        // let map = (t) => t.name;
+        // let delim = ' <- ';
+        // console.log(
+        //     '(%s) (%s:%s) %s %s%s',
+        //     parents.length,
+        //     this.start,
+        //     this.end ?? '',
+        //     isResolved ? '[v]' : '[x]',
+        //     parents.map(map).join(delim),
+        //     (parents.length === 0 ? '' : delim) + this.name,
+        // );
     }
 
     toTree(pad = ' ') {
@@ -117,6 +123,19 @@ export default class Token {
             throw new InternalError;
         }
         plist.splice(idx, 1, ...list);
+    }
+
+    remove() {
+        let parent = this.parent;
+        if (parent === null) {
+            throw new InternalError;
+        }
+        let list = parent.children;
+        let idx = list.indexOf(this);
+        if (idx === -1) {
+            throw new InternalError;
+        }
+        list.splice(idx, 1);
     }
 }
 
@@ -202,18 +221,7 @@ export default class Token {
 
     
 
-    // remove() {
-    //     let parent = this.parent;
-    //     if (parent === null) {
-    //         throw new InternalError;
-    //     }
-    //     let list = parent.children;
-    //     let idx = list.indexOf(this);
-    //     if (idx === -1) {
-    //         throw new InternalError;
-    //     }
-    //     list.splice(idx, 1);
-    // }
+    
 
 
 
