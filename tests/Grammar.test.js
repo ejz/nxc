@@ -384,6 +384,7 @@ test('Grammar / 7', (t) => {
     let grammar = new Grammar();
     let cases = [
         ['Declaration', 'let a;'],
+        ['Declaration', 'let\na'],
         ['Declaration', 'let a , b'],
     ];
     for (let [tt, input, expected = input] of cases) {

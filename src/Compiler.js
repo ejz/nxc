@@ -28,49 +28,60 @@ export default class Compiler {
         return new Grammar();
     }
 
-    #getProgramAst(lexer, {
+    #getProgram(lexer, {
         treeShake = true,
         doAll = false,
         doRemoveEmptyStatement = doAll,
         doRemoveAssemblerEmptyStatement = doAll,
         doUnwrapRegularBlock = doAll,
+        splitVariableDeclaration = doAll,
     }) {
         let grammar = this.getGrammar();
-        let ast = grammar.tokenize('Program', lexer);
-        if (ast === null || !lexer.isEof()) {
+        let variableBlock = {
+            dictionary: Object.create(null),
+        };
+        let programAst = grammar.tokenize('Program', lexer);
+        if (programAst === null || !lexer.isEof()) {
             throw lexer.error();
         }
         if (treeShake) {
-            ast = grammar.treeShake(ast);
+            programAst = grammar.treeShake(programAst);
         }
         if (doRemoveEmptyStatement) {
-            ast.filter('EmptyStatement').forEach((token) => {
+            programAst.filter('EmptyStatement').forEach((token) => {
                 token.parent.remove();
             });
         }
         if (doRemoveAssemblerEmptyStatement) {
-            ast.filter('AssemblerEmptyStatement').forEach((token) => {
+            programAst.filter('AssemblerEmptyStatement').forEach((token) => {
                 token.parent.remove();
             });
         }
+        if (splitVariableDeclaration) {
+            programAst.filter('VariableDeclaration').forEach((token) => {
+                let declarators = token.filter('VariableDeclarator');
+                console.log(declarators.length, declarators);
+                // VariableDeclarator
+            });
+        }
         if (doUnwrapRegularBlock) {
-            ast.filter('RegularBlock').forEach((token) => {
+            programAst.filter('RegularBlock').forEach((token) => {
                 token.children = token.children.slice(1, -1);
                 token.unwrap();
             });
         }
-        return ast;
+        return {programAst, variableBlock};
     }
 
     lint(buffer, normalizeOpts = {}) {
         let lexer = this.getLexer(buffer);
-        let program = this.#getProgramAst(lexer, normalizeOpts);
-        return program.toString();
+        let {programAst} = this.#getProgram(lexer, normalizeOpts);
+        return programAst.toString();
     }
 
     compile(buffer, {doAll = true, ...rest} = {}) {
         let lexer = this.getLexer(buffer);
-        let programAst = this.#getProgramAst(lexer, {doAll, ...rest});
+        let {programAst} = this.#getProgram(lexer, {doAll, ...rest});
         this.appendFinalExit(programAst, x86);
         let elf = new Elf(x86);
         let statements = programAst.filter('Statement');

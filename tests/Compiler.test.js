@@ -154,6 +154,15 @@ test('Compiler / 4', (t) => {
     t.end();
 });
 
+test.only('Compiler / 5', (t) => {
+    let compiler = getCompiler();
+    {
+        let code = compiler.lint('let a, b', {splitVariableDeclaration: true});
+        t.equal(code, '{}/* */');
+    }
+    t.end();
+});
+
 function getAsm(buffer, lines = 1) {
     writeFile(binTmp, buffer);
     let stdout = childProcess.execSync(format(objdump, binTmp)).toString();

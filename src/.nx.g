@@ -43,8 +43,8 @@ RegularBlock -> '{'
 
 Declaration -> VariableDeclaration
 VariableDeclaration -> `let` Sep+ VariableDeclarator (Comma VariableDeclarator)* TerminatorEnd
-VariableDeclarator -> VariableName
-VariableName -> /^[a-zA-Z][a-zA-Z0-9]*/
+VariableDeclarator -> Variable
+Variable -> /^[a-zA-Z][a-zA-Z0-9]*/
 
 # AssemblerBlock
 
