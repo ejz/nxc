@@ -29,6 +29,7 @@ TerminatorEnd -> Terminator | ?End
 
 Statement ->
     EmptyStatement
+    | Declaration
     | RegularBlock
     | AssemblerBlock
 EmptyStatement -> ';'
@@ -37,6 +38,13 @@ RegularBlock -> '{'
     Sep*
     (Statement Sep*)*
 '}'
+
+# Declaration
+
+Declaration -> VariableDeclaration
+VariableDeclaration -> `let` Sep+ VariableDeclarator (Comma VariableDeclarator)* TerminatorEnd
+VariableDeclarator -> VariableName
+VariableName -> /^[a-zA-Z][a-zA-Z0-9]*/
 
 # AssemblerBlock
 

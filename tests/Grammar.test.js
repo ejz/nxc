@@ -379,3 +379,17 @@ test('Grammar / 6', (t) => {
     }
     t.end();
 });
+
+test('Grammar / 7', (t) => {
+    let grammar = new Grammar();
+    let cases = [
+        ['Declaration', 'let a;'],
+        ['Declaration', 'let a , b'],
+    ];
+    for (let [tt, input, expected = input] of cases) {
+        let lexer = new Lexer(input);
+        let token = grammar.tokenize(tt, lexer);
+        t.equals(token.toString(), expected);
+    }
+    t.end();
+});

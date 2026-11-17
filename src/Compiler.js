@@ -68,9 +68,9 @@ export default class Compiler {
         return program.toString();
     }
 
-    compile(buffer, {doAll = true, assignGrammar = true, ...rest} = {}) {
+    compile(buffer, {doAll = true, ...rest} = {}) {
         let lexer = this.getLexer(buffer);
-        let programAst = this.#getProgramAst(lexer, {doAll, assignGrammar, ...rest});
+        let programAst = this.#getProgramAst(lexer, {doAll, ...rest});
         this.appendFinalExit(programAst, x86);
         let elf = new Elf(x86);
         let statements = programAst.filter('Statement');
@@ -79,7 +79,6 @@ export default class Compiler {
                 throw new InternalError;
             }
             let [assemblerBlock = null] = statement.children;
-            // console.log(assemblerBlock);
             if (assemblerBlock === null || !assemblerBlock.is('AssemblerBlock')) {
                 throw new InternalError;
             }
