@@ -316,7 +316,7 @@ test('Grammar / 5', (t) => {
     t.end();
 });
 
-test.only('Grammar / 6', (t) => {
+test('Grammar / 6', (t) => {
     let grammar = new Grammar();
     let cases = [
         ['SinglelineComment', '//'],
@@ -324,8 +324,8 @@ test.only('Grammar / 6', (t) => {
         ['SinglelineComment', '//\n'],
         ['SinglelineComment', '//1\n'],
         ['SinglelineComment', '//\r\n'],
-        ['SinglelineComment', '//\r\r', '\r'],
-        ['SinglelineComment', '// a\n1', '1'],
+        ['SinglelineComment', '//\r\r', '//\r'],
+        ['SinglelineComment', '// a\n1', '// a\n'],
         ['SinglelineComment', '// a\n'],
         ['MultilineComment', '/**/'],
         ['MultilineComment', '/* \n */'],
@@ -333,6 +333,9 @@ test.only('Grammar / 6', (t) => {
         ['Sep', ' '],
         ['Sep', ' \t '],
         ['Sep', '\r\n'],
+        ['InlineSep', ' '],
+        ['NotInlineSep', '\n'],
+        ['NotInlineSep', '\r'],
         ['Program', '{}'],
         ['Program', ' {/* */} '],
         ['Program', ' {//\n} '],
@@ -361,41 +364,18 @@ test.only('Grammar / 6', (t) => {
         ['AssemblerArgument', '[1 + 4 *  eax]'],
         ['AssemblerArgument', '[1 + eax * 4]'],
         ['AssemblerArgument', '[eax + ebx * 4 + 0x1000]'],
-        // ['AssemblerBlock', 'asm{ins1;ins2}'],
-        // ['AssemblerInstruction', 'ins1'],
-        // ['AssemblerInstruction', 'ins1\nins2', 'ins2'],
-        // ['AssemblerBlock', 'asm{ins1\nins2}'],
+        ['AssemblerBlock', 'asm{ins1;ins2}'],
+        ['AssemblerInstruction', 'ins1'],
+        ['AssemblerInstruction', 'ins1\nins2', 'ins1'],
+        ['AssemblerBlock', 'asm{ins1\nins2}'],
+        ['AssemblerStatement', 'ins1', 'ins1'],
+        ['AssemblerStatement', 'ins1\nins2', 'ins1'],
+        ['AssemblerStatement', 'ins1 arg1', 'ins1 arg1'],
     ];
-    for (let [tt, input, tail = ''] of cases) {
+    for (let [tt, input, expected = input] of cases) {
         let lexer = new Lexer(input);
         let token = grammar.tokenize(tt, lexer);
-        // console.log({token});
-        // console.log(token.toTree(' '));
-        // console.log(token.toString());
-        t.equals(token.toString(), input.slice(0, tail.length === 0 ? undefined : -tail.length));
-        t.equals(lexer.tail, tail);
-    }
-    t.end();
-});
-
-test('Grammar / 7', (t) => {
-    {
-        let grammar = new Grammar();
-        let lexer = new Lexer('ins1');
-        let token = grammar.tokenize('AssemblerStatement', lexer);
-        t.equals(token.toString(), 'ins1');
-    }
-    {
-        // let grammar = new Grammar();
-        // let lexer = new Lexer('ins1\nins2');
-        // let token = grammar.tokenize('AssemblerStatement', lexer);
-        // t.equals(token.toString(), 'ins1');
-    }
-    {
-        // let grammar = new Grammar();
-        // let lexer = new Lexer('ins1 arg1');
-        // let token = grammar.tokenize('AssemblerStatement', lexer);
-        // t.equals(token.toString(), 'ins1 arg1');
+        t.equals(token.toString(), expected);
     }
     t.end();
 });

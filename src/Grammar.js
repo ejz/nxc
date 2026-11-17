@@ -18,30 +18,13 @@ import InternalError from './errors/InternalError.js';
 
 // import AssemblerBlock from './tokens/AssemblerBlock.js';
 // import AssemblerStatement from './tokens/AssemblerStatement.js';
-// import InlineSep from './tokens/InlineSep.js';
+import InlineSep from './tokens/InlineSep.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const tokenCtors = {
-    // InlineSep,
-    // AssemblerBlock,
-    // AssemblerStatement,
+    InlineSep,
 };
-// const SpecialToken = {
-//     // KeywordToken: 'KeywordToken',
-//     // StringToken: 'StringToken',
-//     // RegexToken: 'RegexToken',
-//     OptionalToken: 'OptionalToken', // a?
-//     RepeatToken: 'RepeatToken', // a*
-//     ChoiceToken: 'ChoiceToken', // a | b
-//     SequenceToken: 'SequenceToken', // a b
-//     GreedyToken: 'GreedyToken', // * a
-//     LookupToken: 'LookupToken', // ?a
-// };
-// const logTokenChain = (isOkay, token, parents) => {
-    
-// };
-
 
 export default class Grammar {
     constructor({
@@ -533,22 +516,7 @@ export default class Grammar {
             token.unwrap();
         });
         return ast;
-        // console.log(tokens);
     }
-            // return [
-            //     'OptionalToken',
-            //     'RepeatToken',
-            //     'ChoiceToken',
-            //     'SequenceToken',
-            //     'LookupToken',
-            // ].includes(ast.name);
-
-        // if (ast === null) {
-        //     return null;
-        // }
-        // // this.#toAst(ast, parent);
-        
-        
 }
 
 // function toPredicate(predicate) {

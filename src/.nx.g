@@ -22,8 +22,8 @@ Num -> BinNum | OctNum | HexNum | DecNum
 Int -> Sign? Num
 Sign -> '+' | '-'
 End -> (Sep* (Eof | '}')) | NotInlineSep
-Term -> InlineSep* ';'
-TermEnd -> Term | ?End
+Terminator -> InlineSep* ';'
+TerminatorEnd -> Terminator | ?End
 
 # Statement
 
@@ -50,14 +50,14 @@ AssemblerStatement ->
     | AssemblerLabelStatement
     | AssemblerOperation
     | AssemblerInstruction
-AssemblerLabelStatement -> AssemblerLabel TermEnd
+AssemblerLabelStatement -> AssemblerLabel TerminatorEnd
 AssemblerEmptyStatement -> ';'
 AssemblerInstruction ->
     (AssemblerLabel InlineSep+)?
     AssemblerInstructionName
     AssemblerInstructionOperandSize?
     (InlineSep+ AssemblerArguments)?
-    TermEnd
+    TerminatorEnd
 AssemblerInstructionName -> AssemblerInstructionNamePart ('.' AssemblerInstructionNamePart)*
     AssemblerInstructionNamePart -> /^[a-zA-Z][a-zA-Z0-9]*/
     AssemblerInstructionOperandSize -> '.' DecNum
@@ -94,7 +94,7 @@ AssemblerOperation ->
     Sep* AssemblerOperationName Sep*
     ^
     AssemblerArguments
-    TermEnd
+    TerminatorEnd
 AssemblerOperationName -> '=' | '++' | '--' | '!='
 AssemblerLabel -> AssemblerLabelName ':'
 AssemblerLabelName -> /^[_a-zA-Z][_a-zA-Z0-9]*/
