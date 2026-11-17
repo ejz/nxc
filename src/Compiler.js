@@ -28,8 +28,10 @@ export default class Compiler {
         return new Grammar();
     }
 
-    getAst(lexer, {
-        doAll,
+    #getProgramAst(lexer, {
+        treeShake = true,
+        assignTokenizeCheckedCodeToNode = false,
+        doAll = false,
         doRemoveEmptyStatement = doAll,
         doRemoveAssemblerEmptyStatement = doAll,
         doUnwrapRegularBlock = doAll,
@@ -39,6 +41,7 @@ export default class Compiler {
         if (ast === null || !lexer.isEof()) {
             throw lexer.error();
         }
+        ast = grammar.treeShake(ast);
         if (doRemoveEmptyStatement) {
             ast.filter('EmptyStatement').forEach((token) => {
                 token.parent.remove();
@@ -55,19 +58,29 @@ export default class Compiler {
                 token.unwrap();
             });
         }
-        
+        if (assignTokenizeCheckedCodeToNode) {
+            ast.tokenizeCheckedCode = (code, name) => {
+                let lexer = new Lexer(code);
+                let token = grammar.tokenize(name, lexer);
+                if (token === null || !lexer.isEof()) {
+                    throw new InternalError;
+                }
+                token = grammar.treeShake(token);
+                return token;
+            };
+        }
         return ast;
     }
 
-    lint(buffer, normalizeOpts = {doAll: false}) {
+    lint(buffer, normalizeOpts = {}) {
         let lexer = this.getLexer(buffer);
-        let program = this.getAst(lexer, normalizeOpts);
+        let program = this.#getProgramAst(lexer, normalizeOpts);
         return program.toString();
     }
 
-    compile(buffer, normalizeOpts = {doAll: true}) {
+    compile(buffer, {doAll = true, assignTokenizeCheckedCodeToNode = true, ...rest} = {}) {
         let lexer = this.getLexer(buffer);
-        let ast = this.getAst(lexer, normalizeOpts);
+        let ast = this.#getProgramAst(lexer, {doAll, assignTokenizeCheckedCodeToNode, ...rest});
         this.appendFinalExit(ast, x86);
         let elf = new Elf(x86);
         let statements = ast.filter('Statement');
@@ -86,8 +99,7 @@ export default class Compiler {
 
     appendFinalExit(ast, {finalExit}) {
         let code = `asm{${finalExit}}`;
-        let statement = ast.tokenize(code, 'Statement');
-        statement.parent = ast;
-        ast.children.push(statement);
+        let statement = ast.tokenizeCheckedCode(code, 'Statement');
+        ast.addChild(statement);
     }
 }

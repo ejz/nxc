@@ -43,7 +43,7 @@ export default class Lexer {
     }
 
     error() {
-        return new LexerError(this);
+        return new LexerError;
     }
 
     eatCharacter() {

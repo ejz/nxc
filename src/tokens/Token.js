@@ -54,6 +54,11 @@ export default class Token {
         return this;
     }
 
+    addChild(child) {
+        child.parent = this;
+        this.children.push(child);
+    }
+
     onToken(isResolved, parents) {
         // let map = (t) => t.name;
         // let delim = ' <- ';
@@ -80,6 +85,10 @@ export default class Token {
     }
 
     filter(filter) {
+        if (typeof filter === 'string') {
+            let name = filter;
+            filter = (token) => token.name === name;
+        }
         let collector = [];
         this.walk((token) => {
             let res = filter(token) ?? [];
@@ -136,6 +145,19 @@ export default class Token {
             throw new InternalError;
         }
         list.splice(idx, 1);
+    }
+
+    is(...names) {
+        return names.includes(this.name);
+    }
+
+    getChild(n = 0) {
+        let idx = n < 0 ? this.children.length + n : n;
+        let child = this.children[idx];
+        if (child === undefined) {
+            throw new InternalError;
+        }
+        return child;
     }
 }
 
@@ -205,17 +227,9 @@ export default class Token {
     // //     return token;
     // // }
 
-    // // is(...names) {
-    // //     return names.includes(this.name);
-    // // }
+    
 
-    // // getChild(n = 0) {
-    // //     let child = this.children[n];
-    // //     if (child === undefined) {
-    // //         throw new InternalError;
-    // //     }
-    // //     return child;
-    // // }
+    
 
     
 
@@ -241,14 +255,7 @@ export default class Token {
 
     
 
-    // tokenize(code, name = this.name) {
-    //     let lexer = new Lexer(code);
-    //     let token = this.grammar.tokenize(name, lexer);
-    //     if (token === null || !lexer.isEof()) {
-    //         throw new InternalError;
-    //     }
-    //     return token;
-    // }
+    
 
 // console.log({isResolved, parents});
 // import Lexer from '../Lexer.js';

@@ -1,4 +1,5 @@
 import Token from './Token.js';
+import InvalidLabelNameError from '../errors/InvalidLabelNameError.js';
 
 export default class AssemblerBlock extends Token {
     toBuffer(arch) {
@@ -12,17 +13,17 @@ export default class AssemblerBlock extends Token {
                 let [label] = child.filter('AssemblerLabelName');
                 let name = label.toString();
                 if (labels[name] !== undefined) {
-                    throw new Error;
+                    throw new InvalidLabelNameError;
                 }
                 labels[name] = offset;
                 continue;
             }
             let [asmLabel = null] = child.filter('AssemblerLabel');
             if (asmLabel !== null && asmLabel.parent.is('AssemblerInstruction', 'AssemblerOperation')) {
-                let [label] = child.filter('AssemblerLabelName');
+                let [label = null] = child.filter('AssemblerLabelName');
                 let name = label.toString();
                 if (labels[name] !== undefined) {
-                    throw new Error;
+                    throw new InvalidLabelNameError;
                 }
                 labels[name] = offset;
             }

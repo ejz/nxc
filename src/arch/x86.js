@@ -1,8 +1,9 @@
 import {format} from 'node:util';
+
 import InvalidLabelNameError from '../errors/InvalidLabelNameError.js';
 import InvalidLabelOffsetError from '../errors/InvalidLabelOffsetError.js';
-import InternalError from '../errors/InternalError.js';
 import SibValidationError from '../errors/SibValidationError.js';
+import InternalError from '../errors/InternalError.js';
 
 import * as types from './types.js';
 
@@ -759,12 +760,12 @@ export function relClosure(iN) {
         buf.callback = (labels, length, offset) => {
             let label = labels[name];
             if (label === undefined) {
-                throw new InvalidLabelNameError(name);
+                throw new InvalidLabelNameError;
             }
             offset += length;
             let value = label - offset;
             if (!iN.is(value)) {
-                throw new InvalidLabelOffsetError(name, value);
+                throw new InvalidLabelOffsetError;
             }
             buf[iN.method](value);
         };
