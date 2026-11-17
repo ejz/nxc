@@ -8,11 +8,15 @@ import GrammarToken, {SequenceToken, ChoiceToken, GroupToken, OptionalToken, Rep
 
 import InternalError from './errors/InternalError.js';
 import InlineSep from './tokens/InlineSep.js';
+import AssemblerBlock from './tokens/AssemblerBlock.js';
+import AssemblerStatement from './tokens/AssemblerStatement.js';
 
 const thisDirectory = fileURLToPath(new URL('.', import.meta.url));
 const grammarFile = path.join(thisDirectory, '.nx.g');
 const tokenCtors = {
     InlineSep,
+    AssemblerBlock,
+    AssemblerStatement,
 };
 
 export default class Grammar {
@@ -41,19 +45,18 @@ export default class Grammar {
             let ref = this.tokenMetas[name] = {originalRule: rule};
             let ctor = this.tokenConstructors[name] ?? null;
             ref.ctor = ctor ?? this.defaultTokenContructor;
-            ref.ctorArgs = ctor === null ? [name] : [];
             [ref.rule, ref.innerList] = this.prepareRule(ref.originalRule);
         }
     }
 
     getTokenResolver(rule, innerList, ...globalParents) {
-        let getTokenResolver = (rule, ...localParents) => {
-            if (isFinite(rule)) {
-                return innerList[rule](...globalParents, ...localParents);
+        let getTokenResolver = (name, ...localParents) => {
+            if (isFinite(name)) {
+                return innerList[name](...globalParents, ...localParents);
             }
-            let {rule: newRule, innerList: newInnerList, ctor, ctorArgs} = this.tokenMetas[rule];
+            let {rule: newRule, innerList: newInnerList, ctor} = this.tokenMetas[name];
             return (lexer) => {
-                let token = new ctor(lexer, ...ctorArgs);
+                let token = new ctor(name, lexer, this);
                 let resolver = this.getTokenResolver(newRule, newInnerList, ...globalParents, ...localParents, token);
                 let child = resolver(lexer);
                 return token.finalize(child, [].concat(globalParents, localParents));
@@ -61,7 +64,7 @@ export default class Grammar {
         };
         if (rule.includes('|')) {
             return (lexer) => {
-                let token = new ChoiceToken(lexer);
+                let token = new ChoiceToken(lexer, this);
                 let child = null;
                 rule.split(' | ').some((rule) => {
                     let resolver = getTokenResolver(rule, token);
@@ -76,7 +79,7 @@ export default class Grammar {
             return getTokenResolver(rule);
         }
         return (lexer) => {
-            let token = new SequenceToken(lexer);
+            let token = new SequenceToken(lexer, this);
             let children = [];
             let assertion = false;
             let isResolved = parts.every((rule, i) => {
@@ -90,7 +93,7 @@ export default class Grammar {
                         throw new InternalError;
                     }
                     let nextResolver = getTokenResolver(rule, token);
-                    let greedy = new GreedyToken(lexer, '*');
+                    let greedy = new GreedyToken('*', lexer, this);
                     let got, value = '';
                     while (true) {
                         got = nextResolver(lexer);
@@ -130,7 +133,7 @@ export default class Grammar {
                 changed = true;
                 [rule] = this.prepareRule(rule, innerList);
                 let elem = (...parents) => (lexer) => {
-                    let token = new GroupToken(lexer);
+                    let token = new GroupToken(lexer, this);
                     let resolver = this.getTokenResolver(rule, innerList, ...parents, token);
                     let child = resolver(lexer);
                     return token.finalize(child, parents);
@@ -143,7 +146,7 @@ export default class Grammar {
             let idx = "`'/".indexOf(char);
             let ctor = [KeywordToken, StringToken, RegexToken][idx];
             let elem = (...parents) => (lexer) => {
-                let token = new ctor(lexer, name);
+                let token = new ctor(name, lexer, this);
                 let value = token.eat();
                 return token.finalize(value, parents);
             };
@@ -151,7 +154,7 @@ export default class Grammar {
         });
         rule = rule.replace(/\?(\w+)/g, (m, rule) => {
             let elem = (...parents) => (lexer) => {
-                let token = new LookupToken(lexer);
+                let token = new LookupToken(lexer, this);
                 let resolver = this.getTokenResolver(rule, innerList, ...parents, token);
                 let child = resolver(lexer);
                 if (child !== null) {
@@ -164,7 +167,7 @@ export default class Grammar {
         rule = rule.replace(/(\w+)([*+?])/g, (m, rule, p2) => {
             if (p2 === '?') {
                 let elem = (...parents) => (lexer) => {
-                    let token = new OptionalToken(lexer);
+                    let token = new OptionalToken(lexer, this);
                     let resolver = this.getTokenResolver(rule, innerList, ...parents, token);
                     let child = resolver(lexer);
                     return token.finalize(child ?? [], parents);
@@ -173,7 +176,7 @@ export default class Grammar {
             }
             let min1 = p2 === '+';
             let elem = (...parents) => (lexer) => {
-                let token = new RepeatToken(lexer);
+                let token = new RepeatToken(lexer, this);
                 let resolver = this.getTokenResolver(rule, innerList, ...parents, token);
                 let child, children = [];
                 while (child !== null) {

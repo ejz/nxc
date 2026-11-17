@@ -1,8 +1,8 @@
 import Token from './Token.js';
 
 export default class ValueToken extends Token {
-    constructor(lexer, name) {
-        super(lexer, name);
+    constructor(...args) {
+        super(...args);
         this.value = '';
     }
 
@@ -12,6 +12,12 @@ export default class ValueToken extends Token {
         }
         this.value = value;
         return super.finalize([], parents);
+    }
+
+    clone() {
+        let token = super.clone();
+        token.value = this.value;
+        return token;
     }
 
     toString() {

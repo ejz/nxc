@@ -4,37 +4,37 @@ export default class GrammarToken extends Token {
 }
 
 export class GroupToken extends GrammarToken {
-    constructor(lexer) {
-        super(lexer, 'Group');
+    constructor(...args) {
+        super('Group', ...args);
     }
 }
 
 export class SequenceToken extends GrammarToken {
-    constructor(lexer) {
-        super(lexer, 'Sequence');
+    constructor(...args) {
+        super('Sequence', ...args);
     }
 }
 
 export class ChoiceToken extends GrammarToken {
-    constructor(lexer) {
-        super(lexer, 'Choice');
+    constructor(...args) {
+        super('Choice', ...args);
     }
 }
 
 export class LookupToken extends GrammarToken {
-    constructor(lexer) {
-        super(lexer, 'Lookup');
+    constructor(...args) {
+        super('Lookup', ...args);
     }
 }
 
 export class OptionalToken extends GrammarToken {
-    constructor(lexer) {
-        super(lexer, 'Optional');
+    constructor(...args) {
+        super('Optional', ...args);
     }
 }
 
 export class RepeatToken extends GrammarToken {
-    constructor(lexer) {
-        super(lexer, 'Repeat');
+    constructor(...args) {
+        super('Repeat', ...args);
     }
 }

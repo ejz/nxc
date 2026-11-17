@@ -1,8 +1,5 @@
 import Token from './Token.js';
 import InternalError from '../errors/InternalError.js';
-import Lexer from '../Lexer.js';
-import Grammar from '../Grammar.js';
-// import AssemblerArgument from './AssemblerArgument.js';
 // 
 const isArray = Array.isArray;
 const toArray = (a) => isArray(a) ? a : [a];

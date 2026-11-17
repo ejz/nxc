@@ -14,12 +14,8 @@ import {sibAware} from '../src/arch/x86.js';
 const test = tapePromise.default(tape);
 const noop = () => {};
 const toBuffer = (c) => Buffer.isBuffer(c) ? c : Buffer.from(c);
-const getCompiler = (o) => {
-    o = {
-        logger: new Logger(noop),
-        ...o,
-    };
-    let compiler = new Compiler(o);
+const getCompiler = ({logger = new Logger(noop), ...rest} = {}) => {
+    let compiler = new Compiler({logger, ...rest});
     let compile = compiler.compile.bind(compiler);
     let lint = compiler.lint.bind(compiler);
     compiler.compile = (c, ...rest) => compile(toBuffer(c), ...rest);
@@ -50,15 +46,15 @@ test('Compiler / 1', async (t) => {
 test('Compiler / 2', (t) => {
     let compiler = getCompiler();
     {
-        let code = compiler.lint('{;}/* */;', 'removeEmptyStatement');
+        let code = compiler.lint('{;}/* */;', {doRemoveEmptyStatement: true});
         t.equal(code, '{}/* */');
     }
     {
-        let code = compiler.lint('asm{;}', 'removeAssemblerEmptyStatement');
+        let code = compiler.lint('asm{;}', {doRemoveAssemblerEmptyStatement: true});
         t.equal(code, 'asm{}');
     }
     {
-        let code = compiler.lint('{asm{;}{/*1*/asm{;;}/*2*/asm{;;;}/*3*/}}/* */;', 'unwrapRegularBlock');
+        let code = compiler.lint('{asm{;}{/*1*/asm{;;}/*2*/asm{;;;}/*3*/}}/* */;', {doUnwrapRegularBlock: true});
         t.equal(code, 'asm{;}/*1*/asm{;;}/*2*/asm{;;;}/*3*//* */;');
     }
     t.end();
@@ -83,6 +79,8 @@ test('Compiler / 3', (t) => {
         let grammar = compiler.getGrammar();
         let lexer = new Lexer(code);
         let ast = grammar.tokenize('AssemblerArgument', lexer);
+        t.ok(ast !== null);
+        ast = grammar.treeShake(ast);
         sibAware(ast);
         t.deepEqual(ast.sib, sib);
     }

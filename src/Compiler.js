@@ -30,7 +30,6 @@ export default class Compiler {
 
     #getProgramAst(lexer, {
         treeShake = true,
-        assignTokenizeCheckedCodeToNode = false,
         doAll = false,
         doRemoveEmptyStatement = doAll,
         doRemoveAssemblerEmptyStatement = doAll,
@@ -41,7 +40,9 @@ export default class Compiler {
         if (ast === null || !lexer.isEof()) {
             throw lexer.error();
         }
-        ast = grammar.treeShake(ast);
+        if (treeShake) {
+            ast = grammar.treeShake(ast);
+        }
         if (doRemoveEmptyStatement) {
             ast.filter('EmptyStatement').forEach((token) => {
                 token.parent.remove();
@@ -58,17 +59,6 @@ export default class Compiler {
                 token.unwrap();
             });
         }
-        if (assignTokenizeCheckedCodeToNode) {
-            ast.tokenizeCheckedCode = (code, name) => {
-                let lexer = new Lexer(code);
-                let token = grammar.tokenize(name, lexer);
-                if (token === null || !lexer.isEof()) {
-                    throw new InternalError;
-                }
-                token = grammar.treeShake(token);
-                return token;
-            };
-        }
         return ast;
     }
 
@@ -78,17 +68,18 @@ export default class Compiler {
         return program.toString();
     }
 
-    compile(buffer, {doAll = true, assignTokenizeCheckedCodeToNode = true, ...rest} = {}) {
+    compile(buffer, {doAll = true, assignGrammar = true, ...rest} = {}) {
         let lexer = this.getLexer(buffer);
-        let ast = this.#getProgramAst(lexer, {doAll, assignTokenizeCheckedCodeToNode, ...rest});
-        this.appendFinalExit(ast, x86);
+        let programAst = this.#getProgramAst(lexer, {doAll, assignGrammar, ...rest});
+        this.appendFinalExit(programAst, x86);
         let elf = new Elf(x86);
-        let statements = ast.filter('Statement');
+        let statements = programAst.filter('Statement');
         for (let statement of statements) {
-            if (statement.parent !== ast) {
+            if (statement.parent !== programAst) {
                 throw new InternalError;
             }
             let [assemblerBlock = null] = statement.children;
+            // console.log(assemblerBlock);
             if (assemblerBlock === null || !assemblerBlock.is('AssemblerBlock')) {
                 throw new InternalError;
             }
@@ -97,9 +88,9 @@ export default class Compiler {
         return elf.toBuffer();
     }
 
-    appendFinalExit(ast, {finalExit}) {
+    appendFinalExit(programAst, {finalExit}) {
         let code = `asm{${finalExit}}`;
-        let statement = ast.tokenizeCheckedCode(code, 'Statement');
-        ast.addChild(statement);
+        let statement = programAst.tokenize(code, 'Statement');
+        programAst.addChild(statement);
     }
 }

@@ -20,7 +20,7 @@ export default class AssemblerBlock extends Token {
             }
             let [asmLabel = null] = child.filter('AssemblerLabel');
             if (asmLabel !== null && asmLabel.parent.is('AssemblerInstruction', 'AssemblerOperation')) {
-                let [label = null] = child.filter('AssemblerLabelName');
+                let [label] = child.filter('AssemblerLabelName');
                 let name = label.toString();
                 if (labels[name] !== undefined) {
                     throw new InvalidLabelNameError;
